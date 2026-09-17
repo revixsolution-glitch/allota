@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
-import fs from "fs";
-import path from "path";
+import { cleanBackupSql } from "@/lib/clean-backup-sql";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +18,7 @@ export async function GET() {
   try {
     const client = await pool.connect();
     try {
-      const sqlPath = path.join(process.cwd(), "prisma", "clean_backup.sql");
-      const sql = fs.readFileSync(sqlPath, "utf-8");
-      
-      await client.query(sql);
+      await client.query(cleanBackupSql);
       
       return NextResponse.json({
         success: true,
