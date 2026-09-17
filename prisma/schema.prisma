@@ -1,0 +1,374 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EMPLOYEE
+}
+
+model Company {
+  id                      String           @id @default(cuid())
+  name                    String
+  slug                    String           @unique
+  contactEmail            String?
+  contactPhone            String?
+  status                  String           @default("ACTIVE") // ACTIVE | TRIAL | SUSPENDED
+  planTier                String           @default("CORE_LEAD_SUITE") // CORE_LEAD_SUITE | PREMIUM_ERP | CUSTOM
+  
+  settings                CompanySettings[]
+  users                   User[]
+  employees               Employee[]
+  leads                   Lead[]
+  clients                 Client[]
+  products                Product[]
+  orders                  Order[]
+  territories             Territory[]
+  
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+}
+
+enum LeadSource {
+  META
+  INDIAMART
+  WEBSITE
+  WHATSAPP
+  SOCIAL
+  MANUAL
+  EXCEL_IMPORT
+}
+
+enum LeadStatus {
+  NEW
+  ASSIGNED
+  CONTACTED
+  INTERESTED
+  NOT_INTERESTED
+  CONVERTED
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id           String    @id @default(cuid())
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email        String    @unique
+  passwordHash String
+  role         Role
+  employee     Employee?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Employee {
+  id          String         @id @default(cuid())
+  companyId   String?
+  company     Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId      String         @unique
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  phoneNumber String         @unique
+  clients     Client[]
+  leads       Lead[]
+  calls       Call[]
+  tasks       FollowupTask[]
+  sessions    EmployeeSession[]
+  reassignmentsFrom LeadReassignmentLog[] @relation("ReassignedFrom")
+  reassignmentsTo   LeadReassignmentLog[] @relation("ReassignedTo")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Territory {
+  id        String   @id @default(cuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  state     String
+  city      String
+  clients   Client[]
+  createdAt DateTime @default(now())
+
+  @@unique([state, city])
+}
+
+model Client {
+  id                 String         @id @default(cuid())
+  companyId          String?
+  company            Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name               String
+  companyDetails     String?
+  phoneNumber        String?
+  territoryId        String?
+  territory          Territory?     @relation(fields: [territoryId], references: [id])
+  assignedEmployeeId String?
+  assignedEmployee   Employee?      @relation(fields: [assignedEmployeeId], references: [id])
+  status             ClientStatus   @default(ACTIVE)
+  businessType       String?        @default("PCD_FRANCHISE") // PCD_FRANCHISE or THIRD_PARTY
+  isRepeatCustomer   Boolean        @default(false)
+  avgReorderIntervalDays Int?       @default(30)
+  typicalOrderDayOfMonth Int?       @default(5)
+  reorderAlertCadence    String?    @default("MONTHLY")
+  leads              Lead[]
+  orders             Order[]
+  calls              Call[]
+  creditRecords      CreditRecord[]
+  tasks              FollowupTask[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Lead {
+  id                 String     @id @default(cuid())
+  companyId          String?
+  company            Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  source             LeadSource
+  sourceTag          String?    // e.g. "CPHI Expo 2025", "Delhi Chemist List"
+  division           String?    @default("PCD_FRANCHISE") // PCD_FRANCHISE or THIRD_PARTY
+  inquiryDetails     String?
+  rawPayload         Json?
+  name               String?
+  phoneNumber        String?
+  city               String?
+  state              String?
+  status             LeadStatus @default(NEW)
+  assignedEmployeeId String?
+  assignedEmployee   Employee?  @relation(fields: [assignedEmployeeId], references: [id])
+  clientId           String?
+  client             Client?    @relation(fields: [clientId], references: [id])
+  calls              Call[]
+  reassignedCount    Int        @default(0)
+  reassignedAt       DateTime?
+  reassignmentReason String?
+  reassignmentLogs   LeadReassignmentLog[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model Call {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  leadId        String?
+  lead          Lead?    @relation(fields: [leadId], references: [id])
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id])
+  direction     String
+  missed        Boolean  @default(false)
+  recordingUrl  String?
+  transcript    String?
+  aiSummary     String?
+  behaviorTags  String[]
+  whatsappSent  Boolean  @default(false)
+  durationSec   Int?     @default(180)
+  occurredAt    DateTime
+  createdAt     DateTime @default(now())
+}
+
+model Product {
+  id                String              @id @default(cuid())
+  companyId         String?
+  company           Company?            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name              String
+  sku               String              @unique
+  composition       String?
+  category          String?             @default("General")
+  dosageForm        String?             @default("Tablets")
+  batchNumber       String?
+  packaging         String?             @default("Boxes (10x10 Strips)")
+  stockQty          Int                 @default(0)
+  reorderThreshold  Int                 @default(0)
+  mrp               Decimal?            @default(0)
+  rate              Decimal?            @default(0)
+  expiryDate        DateTime?
+  erpSource         String?             @default("Marg ERP 9+")
+  erpSyncId         String?
+  lastSyncedAt      DateTime?
+  alerts            PurchaseOrderAlert[]
+  orderItems        OrderItem[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  companyId     String?
+  company       Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id])
+  items         OrderItem[]
+  amount        Decimal
+  orderDate     DateTime
+  invoiceNumber String?
+  billingSource String?     @default("Marg ERP 9+")
+  orderStatus   String?     @default("DELIVERED")
+  createdAt     DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal
+}
+
+model PurchaseOrderAlert {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  status      String   @default("PENDING")
+  triggeredAt DateTime @default(now())
+}
+
+enum CreditStatus {
+  CURRENT
+  NEARBY_DUE
+  OVERDUE
+  SETTLED
+}
+
+enum AiCallStatus {
+  IDLE
+  SCHEDULED
+  DIALING
+  COMPLETED
+  PROMISED_TO_PAY
+  FAILED
+}
+
+model CreditRecord {
+  id               String        @id @default(cuid())
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoiceNumber    String        @unique
+  productDetails   String?
+  totalAmount      Decimal
+  paidAmount       Decimal       @default(0)
+  balanceAmount    Decimal
+  daysAsked        Int           @default(30)
+  invoiceDate      DateTime      @default(now())
+  dueDate          DateTime
+  status           CreditStatus  @default(CURRENT)
+
+  // AI Alert Management
+  sendAiMessage    Boolean       @default(true)
+  aiMessageStatus  String?       @default("PENDING_SCHEDULE")
+  lastAiMessageAt  DateTime?
+  aiMessagePreview String?
+
+  // AI Voice Call Management
+  enableAiCall     Boolean       @default(true)
+  aiCallStatus     AiCallStatus  @default(IDLE)
+  lastAiCallAt     DateTime?
+  aiCallSummary    String?
+
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model FollowupTask {
+  id                 String       @id @default(cuid())
+  clientId           String
+  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedEmployeeId String
+  assignedEmployee   Employee     @relation(fields: [assignedEmployeeId], references: [id], onDelete: Cascade)
+  title              String
+  description        String?
+  taskType           String       @default("REORDER_FOLLOWUP")
+  priority           TaskPriority @default(HIGH)
+  status             TaskStatus   @default(PENDING)
+  dueDate            DateTime?
+  completedAt        DateTime?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model EmployeeSession {
+  id           String    @id @default(cuid())
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  loginTime    DateTime  @default(now())
+  logoutTime   DateTime?
+  workingHours Float?    // e.g. 8.5
+  status       String    @default("ACTIVE") // ACTIVE, COMPLETED
+  deviceInfo   String?   @default("Android / Chrome Mobile (Field Device)")
+  ipAddress    String?   @default("192.168.1.105")
+  createdAt    DateTime  @default(now())
+}
+
+model LeadReassignmentLog {
+  id               String    @id @default(cuid())
+  leadId           String
+  lead             Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromEmployeeId   String?
+  fromEmployee     Employee? @relation("ReassignedFrom", fields: [fromEmployeeId], references: [id])
+  toEmployeeId     String
+  toEmployee       Employee  @relation("ReassignedTo", fields: [toEmployeeId], references: [id])
+  reason           String?
+  previousStatus   String?
+  newStatus        String    @default("ASSIGNED")
+  reassignedAt     DateTime  @default(now())
+}
+
+model CompanySettings {
+  id                      String   @id @default(cuid())
+  companyId               String?
+  company                 Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyName             String   @default("Pharma Life Sciences")
+  planTier                String   @default("CORE_LEAD_SUITE") // CORE_LEAD_SUITE | PREMIUM_ERP | CUSTOM
+  
+  // Core Suite Features (Always enabled)
+  enableLeadCenter        Boolean  @default(true)
+  enableLeadsAllotment    Boolean  @default(true)
+  enableLeadsReassign     Boolean  @default(true)
+  enableLeadsIq           Boolean  @default(true)
+  enableSourcesHub        Boolean  @default(true)
+  enableBulkExcelUpload   Boolean  @default(true)
+  enableEmployeeTracking  Boolean  @default(true)
+
+  // Premium Billing ERP Add-ons (Default: false to eliminate Marg ₹40k API fee)
+  enableBillingErp        Boolean  @default(false)
+  enableStockIq           Boolean  @default(false)
+  enableReorders          Boolean  @default(false)
+  enableCreditManagement  Boolean  @default(false)
+  enableClientsManagement Boolean  @default(false)
+  enableTerritories       Boolean  @default(false)
+
+  updatedAt               DateTime @updatedAt
+  createdAt               DateTime @default(now())
+}
+
+
+
+
