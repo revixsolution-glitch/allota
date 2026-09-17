@@ -82,7 +82,7 @@ export default async function EmployeeDashboardPage() {
   return (
     <div className="space-y-7">
       {/* Top Rep Greeting Banner */}
-      <section className="relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/80 bg-white">
+      <section className="relative overflow-hidden rounded-3xl p-4 sm:p-7 neo-panel border-t-2 border-t-primary/80 bg-white">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -95,16 +95,16 @@ export default async function EmployeeDashboardPage() {
               </span>
             </div>
 
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
+            <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
               Welcome, {employee?.name}!
             </h1>
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted">
+            <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-relaxed text-ink-muted">
               Here is your synchronized telecalling pipeline. All leads allotted to you by Admin appear below 
               in real-time with direct call logging, division badges, and instant WhatsApp dialers.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center shrink-0">
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
                 My Leads
@@ -135,10 +135,10 @@ export default async function EmployeeDashboardPage() {
 
       {/* Recent Admin Allotments Notice (Connecting Employee with Admin Actions) */}
       {recentAllotments.length > 0 && (
-        <section className="rounded-2xl p-4 bg-teal-50/80 border border-teal-200">
-          <div className="flex items-center justify-between">
+        <section className="rounded-2xl p-3.5 sm:p-4 bg-teal-50/80 border border-teal-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-teal-100 text-teal-800 text-sm">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800 text-sm">
                 ⚡
               </span>
               <div>
@@ -152,7 +152,7 @@ export default async function EmployeeDashboardPage() {
             </div>
             <Link
               href="/employee/leads"
-              className="text-xs font-bold text-teal-800 underline hover:text-teal-900"
+              className="text-xs font-bold text-teal-800 underline hover:text-teal-900 self-end sm:self-auto"
             >
               View All In Allotments Desk &rarr;
             </Link>
@@ -162,9 +162,9 @@ export default async function EmployeeDashboardPage() {
 
       {/* Assigned Leads Allotment Desk Preview */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-extrabold text-ink">
+            <h2 className="text-base sm:text-lg font-extrabold text-ink">
               My Assigned Inquiries Workdesk
             </h2>
             <p className="text-xs text-ink-muted mt-0.5">
@@ -173,7 +173,7 @@ export default async function EmployeeDashboardPage() {
           </div>
           <Link
             href="/employee/leads"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 self-start sm:self-auto"
           >
             <span>View All {totalLeads} Allotted Leads</span>
             <span>&rarr;</span>
@@ -181,7 +181,7 @@ export default async function EmployeeDashboardPage() {
         </div>
 
         {leads.length === 0 ? (
-          <div className="rounded-3xl p-10 text-center neo-panel bg-white border border-line">
+          <div className="rounded-3xl p-8 sm:p-10 text-center neo-panel bg-white border border-line">
             <p className="text-sm font-bold text-ink">Zero Inquiries Assigned Yet</p>
             <p className="text-xs text-ink-muted mt-1">
               When Admin allocates leads to your profile, they will appear here instantly.
@@ -189,7 +189,8 @@ export default async function EmployeeDashboardPage() {
           </div>
         ) : (
           <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                   <tr>
@@ -301,13 +302,93 @@ export default async function EmployeeDashboardPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Touch Cards View (md:hidden) */}
+            <div className="md:hidden divide-y divide-line">
+              {leads.map((lead) => {
+                const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
+                const isThirdParty = lead.division === "THIRD_PARTY";
+
+                return (
+                  <div key={lead.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-ink text-base">{lead.name}</p>
+                        <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
+                          isThirdParty
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                      </span>
+                    </div>
+
+                    {lead.inquiryDetails && (
+                      <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
+                        {lead.inquiryDetails}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
+                      <div className="flex items-center gap-2">
+                        {cleanPhone && (
+                          <>
+                            <a
+                              href={`tel:${cleanPhone}`}
+                              className="flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 active:bg-blue-200"
+                            >
+                              <span>📞</span>
+                              <span>Call</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 active:bg-emerald-200"
+                            >
+                              <span>💬</span>
+                              <span>WhatsApp</span>
+                            </a>
+                          </>
+                        )}
+                      </div>
+
+                      <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5">
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <select
+                          name="status"
+                          defaultValue={lead.status}
+                          className="h-8 rounded-xl border border-line bg-white px-2 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          <option value={LeadStatus.ASSIGNED}>Assigned</option>
+                          <option value={LeadStatus.CONTACTED}>Contacted</option>
+                          <option value={LeadStatus.INTERESTED}>Interested</option>
+                          <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
+                          <option value={LeadStatus.CONVERTED}>Converted ✓</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="h-8 rounded-xl bg-slate-100 hover:bg-primary hover:text-white text-ink px-2.5 text-xs font-bold transition cursor-pointer"
+                        >
+                          Save
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </section>
 
       {/* Assigned Reorder Follow-up Tasks */}
-      <section className="rounded-3xl p-6 neo-panel bg-white border border-line">
-        <div className="flex items-center justify-between border-b border-line pb-4">
+      <section className="rounded-3xl p-4 sm:p-6 neo-panel bg-white border border-line">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line pb-4 gap-2">
           <div>
             <h2 className="font-bold text-ink text-base">
               My Assigned Reorder Follow-up Tasks ({pendingTasks.length})
@@ -316,7 +397,7 @@ export default async function EmployeeDashboardPage() {
               Client reorders delegated by Admin to contact and confirm monthly medicine dispatch.
             </p>
           </div>
-          <span className="rounded-full bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 text-xs font-bold">
+          <span className="rounded-full bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 text-xs font-bold self-start sm:self-auto">
             Field Action Queue
           </span>
         </div>
@@ -325,10 +406,10 @@ export default async function EmployeeDashboardPage() {
           {pendingTasks.map((task) => (
             <div
               key={task.id}
-              className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-3.5"
             >
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-bold text-ink text-sm">{task.title}</span>
                   <span
                     className={`rounded-md px-2 py-0.5 text-[10px] font-bold border ${
@@ -344,12 +425,32 @@ export default async function EmployeeDashboardPage() {
                   </span>
                 </div>
                 <p className="text-xs text-ink-muted max-w-2xl">{task.description}</p>
-                <p className="text-[11px] text-ink-faint font-mono">
-                  Client Contact: {task.client.phoneNumber || "No phone recorded"}
-                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-xs text-ink-faint font-mono">
+                    Client: {task.client.phoneNumber || "No phone recorded"}
+                  </span>
+                  {task.client.phoneNumber && (
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${task.client.phoneNumber.replace(/\D/g, "")}`}
+                        className="h-6 w-6 rounded-md bg-blue-50 text-blue-700 inline-flex items-center justify-center text-xs"
+                      >
+                        📞
+                      </a>
+                      <a
+                        href={`https://wa.me/${task.client.phoneNumber.replace(/\D/g, "").startsWith("91") ? task.client.phoneNumber.replace(/\D/g, "") : `91${task.client.phoneNumber.replace(/\D/g, "")}`}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 inline-flex items-center justify-center text-xs"
+                      >
+                        💬
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
                 <form action={completeFollowupTask}>
                   <input type="hidden" name="taskId" value={task.id} />
                   <button

@@ -37,27 +37,29 @@ export default async function SuperAdminPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 backdrop-blur-md sticky top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-md shadow-purple-500/20 text-white font-black text-lg">
-              ⚡
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-black tracking-tight text-white">Pharma CRM</span>
-                <span className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-300 border border-purple-500/30">
-                  Super Admin
-                </span>
+      <header className="border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 py-3.5 sm:py-4 backdrop-blur-md sticky top-0 z-40">
+        <div className="mx-auto flex max-w-7xl flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-md shadow-purple-500/20 text-white font-black text-lg">
+                ⚡
               </div>
-              <p className="text-xs text-slate-400">Master B2B Multi-Tenant Platform Engine</p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-black tracking-tight text-white">Pharma CRM</span>
+                  <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-300 border border-purple-500/30">
+                    Super Admin
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">Master B2B Multi-Tenant Platform</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4 justify-end">
             <Link
               href="/super-admin/onboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-teal-500/20 transition hover:from-emerald-400 hover:to-teal-500"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-teal-500/20 transition hover:from-emerald-400 hover:to-teal-500"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -68,7 +70,7 @@ export default async function SuperAdminPage() {
             <form action="/api/auth/logout" method="POST">
               <button
                 type="submit"
-                className="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition"
+                className="rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition cursor-pointer"
               >
                 Sign Out
               </button>
@@ -77,53 +79,53 @@ export default async function SuperAdminPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 space-y-8">
+      <main className="mx-auto max-w-7xl px-3.5 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* KPI Overview Grid */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-sm">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Companies</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-sm">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Active Companies</span>
+              <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 text-xs sm:text-sm">
                 🏢
               </span>
             </div>
-            <p className="mt-2 text-3xl font-black text-white">{companies.length}</p>
-            <p className="mt-1 text-xs text-slate-400">
-              {coreCount} Core Suite • {premiumCount} Premium ERP
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-white">{companies.length}</p>
+            <p className="mt-1 text-[11px] text-slate-400">
+              {coreCount} Core • {premiumCount} Premium
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Global Reps</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400 text-sm">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Global Reps</span>
+              <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400 text-xs sm:text-sm">
                 👥
               </span>
             </div>
-            <p className="mt-2 text-3xl font-black text-white">{totalReps}</p>
-            <p className="mt-1 text-xs text-slate-400">Field executives across all tenants</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-white">{totalReps}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Field sales reps</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Leads Ingested</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 text-sm">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Total Leads</span>
+              <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 text-xs sm:text-sm">
                 🎯
               </span>
             </div>
-            <p className="mt-2 text-3xl font-black text-white">{totalLeads}</p>
-            <p className="mt-1 text-xs text-slate-400">PCD, Pharma & 3rd Party franchise queries</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-white">{totalLeads}</p>
+            <p className="mt-1 text-[11px] text-slate-400">PCD & 3rd party</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Platform Isolation</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Isolation</span>
+              <span className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs sm:text-sm">
                 🔒
               </span>
             </div>
-            <p className="mt-2 text-3xl font-black text-emerald-400">100%</p>
-            <p className="mt-1 text-xs text-slate-400">Zero cross-tenant data leak</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-emerald-400">100%</p>
+            <p className="mt-1 text-[11px] text-slate-400">Zero data leak</p>
           </div>
         </section>
 
@@ -142,27 +144,28 @@ export default async function SuperAdminPage() {
           </div>
           <Link
             href="/super-admin/onboard"
-            className="shrink-0 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-500 transition"
+            className="shrink-0 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-500 transition self-start md:self-auto"
           >
             + Onboard New Client
           </Link>
         </div>
 
         {/* Companies Directory Table */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-950/70 p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 sm:p-6 shadow-sm">
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-white">Client Businesses Directory</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white">Client Businesses Directory</h2>
               <p className="text-xs text-slate-400">
                 Manage accounts, switch subscription plans, or enter their CRM directly for customer support.
               </p>
             </div>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
+            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300 self-start sm:self-auto">
               {companies.length} Registered {companies.length === 1 ? "Company" : "Companies"}
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="border-b border-slate-800 bg-slate-900/60 uppercase tracking-wider text-[11px] text-slate-400">
                 <tr>
@@ -221,6 +224,56 @@ export default async function SuperAdminPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View (md:hidden) */}
+          <div className="md:hidden divide-y divide-slate-800/80">
+            {companies.map((company) => (
+              <div key={company.id} className="py-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-white text-base">{company.name}</h3>
+                    <p className="text-xs text-slate-400">{company.contactEmail}</p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">slug: {company.slug}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      company.status === "ACTIVE"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    }`}
+                  >
+                    {company.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">Reps</p>
+                    <p className="text-sm font-black text-white">{company._count.employees}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">Leads</p>
+                    <p className="text-sm font-black text-white">{company._count.leads}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold">Clients</p>
+                    <p className="text-sm font-black text-white">{company._count.clients}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-slate-400 font-bold uppercase">Plan Tier:</span>
+                    <PlanTierSelect companyId={company.id} initialPlanTier={company.planTier} />
+                  </div>
+
+                  <div className="pt-2">
+                    <EnterCrmButton companyId={company.id} companyName={company.name} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </main>

@@ -109,12 +109,12 @@ export default async function EmployeeLeadsPage({
           </div>
         </div>
 
-        {/* Division Filter Chips */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
-          <div className="flex items-center gap-2">
+        {/* Division Filter Chips & Search Bar */}
+        <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-line pt-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/employee/leads"
-              className={`rounded-2xl px-4 py-2 text-xs font-bold transition ${
+              className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition ${
                 selectedDivision === "ALL"
                   ? "bg-slate-900 text-white shadow-xs"
                   : "bg-canvas text-ink-muted hover:text-ink border border-line"
@@ -124,7 +124,7 @@ export default async function EmployeeLeadsPage({
             </Link>
             <Link
               href="/employee/leads?division=PCD_FRANCHISE"
-              className={`rounded-2xl px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 selectedDivision === "PCD_FRANCHISE"
                   ? "bg-blue-700 text-white shadow-xs"
                   : "bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200"
@@ -135,19 +135,19 @@ export default async function EmployeeLeadsPage({
             </Link>
             <Link
               href="/employee/leads?division=THIRD_PARTY"
-              className={`rounded-2xl px-4 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 selectedDivision === "THIRD_PARTY"
                   ? "bg-purple-700 text-white shadow-xs"
                   : "bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200"
               }`}
             >
               <span>🏭</span>
-              <span>Third-Party Mfg ({tpCount})</span>
+              <span>Third-Party ({tpCount})</span>
             </Link>
           </div>
 
           {/* Search Bar */}
-          <form className="flex items-center gap-2">
+          <form className="flex items-center gap-2 w-full sm:w-auto">
             {selectedDivision !== "ALL" && (
               <input type="hidden" name="division" value={selectedDivision} />
             )}
@@ -155,12 +155,12 @@ export default async function EmployeeLeadsPage({
               type="text"
               name="search"
               defaultValue={search}
-              placeholder="Search by prospect name, phone, city..."
-              className="h-10 w-64 rounded-xl border border-line bg-canvas px-3.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+              placeholder="Search by prospect, phone, city..."
+              className="h-10 flex-1 sm:w-64 rounded-xl border border-line bg-canvas px-3.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
             <button
               type="submit"
-              className="h-10 rounded-xl bg-primary px-3 text-xs font-bold text-white hover:bg-primary-strong transition"
+              className="h-10 rounded-xl bg-primary px-3.5 text-xs font-bold text-white hover:bg-primary-strong transition shrink-0 cursor-pointer"
             >
               Search
             </button>
@@ -171,7 +171,7 @@ export default async function EmployeeLeadsPage({
                     ? `/employee/leads?division=${selectedDivision}`
                     : "/employee/leads"
                 }
-                className="text-xs font-bold text-ink-faint hover:text-ink"
+                className="text-xs font-bold text-ink-faint hover:text-ink shrink-0"
               >
                 Clear
               </Link>
@@ -180,9 +180,9 @@ export default async function EmployeeLeadsPage({
         </div>
       </section>
 
-      {/* Leads Table */}
+      {/* Leads Container */}
       {filteredLeads.length === 0 ? (
-        <div className="rounded-3xl p-12 text-center neo-panel bg-white border border-line">
+        <div className="rounded-3xl p-10 sm:p-12 text-center neo-panel bg-white border border-line">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
             📋
           </div>
@@ -195,7 +195,8 @@ export default async function EmployeeLeadsPage({
         </div>
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
@@ -387,6 +388,175 @@ export default async function EmployeeLeadsPage({
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Touch Cards View (lg:hidden) */}
+          <div className="lg:hidden divide-y divide-line">
+            {filteredLeads.map((lead) => {
+              const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
+              const isThirdParty = lead.division === "THIRD_PARTY";
+
+              return (
+                <div key={lead.id} className="p-4 space-y-3.5">
+                  {/* Prospect Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-extrabold text-ink text-base">
+                        {lead.name || "Anonymous Prospect"}
+                      </h3>
+                      <p className="font-mono text-ink-muted text-xs mt-0.5">
+                        {lead.phoneNumber || "No phone"}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
+                        isThirdParty
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                    </span>
+                  </div>
+
+                  {/* Badges strip: Source & Location */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-ink">
+                      {lead.source}
+                    </span>
+                    {lead.sourceTag && (
+                      <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] text-ink-muted">
+                        🏷️ {lead.sourceTag}
+                      </span>
+                    )}
+                    {lead.city && (
+                      <span className="text-ink-muted text-xs">
+                        📍 {lead.city}{lead.state ? `, ${lead.state}` : ""}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Inquiry notes */}
+                  {lead.inquiryDetails && (
+                    <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
+                      {lead.inquiryDetails}
+                    </p>
+                  )}
+
+                  {/* Direct 1-tap dialers */}
+                  {cleanPhone && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 py-2 text-xs font-bold text-blue-700 active:bg-blue-200 transition"
+                      >
+                        <span>📞</span>
+                        <span>Call Direct</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 py-2 text-xs font-bold text-emerald-700 active:bg-emerald-200 transition"
+                      >
+                        <span>💬</span>
+                        <span>WhatsApp</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Inline Stage update form */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft">
+                    <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5 flex-1">
+                      <input type="hidden" name="leadId" value={lead.id} />
+                      <select
+                        name="status"
+                        defaultValue={lead.status}
+                        className="h-9 flex-1 rounded-xl border border-line bg-white px-2 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value={LeadStatus.ASSIGNED}>Assigned</option>
+                        <option value={LeadStatus.CONTACTED}>Contacted</option>
+                        <option value={LeadStatus.INTERESTED}>Interested</option>
+                        <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
+                        <option value={LeadStatus.CONVERTED}>Converted ✓</option>
+                      </select>
+                      <button
+                        type="submit"
+                        className="h-9 rounded-xl bg-slate-100 hover:bg-primary hover:text-white text-ink px-3 text-xs font-bold transition cursor-pointer shrink-0"
+                      >
+                        Save
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Inline Log Call accordian */}
+                  <details className="rounded-xl border border-teal-200 bg-teal-50/50 p-3 group">
+                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-teal-900 select-none list-none">
+                      <div className="flex items-center gap-1.5">
+                        <span>📞 Record Call Touchpoint</span>
+                        <span className="text-[10px] text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded-full">
+                          {lead._count.calls} logged
+                        </span>
+                      </div>
+                      <span className="text-teal-700 font-bold transition-transform group-open:rotate-180">▾</span>
+                    </summary>
+
+                    <form action={logEmployeeCall} className="mt-3 space-y-2.5 pt-2 border-t border-teal-200/60">
+                      <input type="hidden" name="leadId" value={lead.id} />
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
+                          Call Notes *
+                        </label>
+                        <textarea
+                          name="notes"
+                          rows={2}
+                          required
+                          placeholder="Discussed requirements, monopoly terms..."
+                          className="w-full rounded-xl border border-line bg-white p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
+                            Duration (sec)
+                          </label>
+                          <input
+                            type="number"
+                            name="durationSec"
+                            defaultValue={180}
+                            min={10}
+                            className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs text-ink"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
+                            New Outcome
+                          </label>
+                          <select
+                            name="outcome"
+                            defaultValue={LeadStatus.INTERESTED}
+                            className="w-full h-8 rounded-lg border border-line bg-white px-1 text-xs text-ink"
+                          >
+                            <option value={LeadStatus.CONTACTED}>Contacted</option>
+                            <option value={LeadStatus.INTERESTED}>Interested</option>
+                            <option value={LeadStatus.CONVERTED}>Converted</option>
+                            <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full h-8 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition cursor-pointer"
+                      >
+                        Save Call Touchpoint
+                      </button>
+                    </form>
+                  </details>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -729,8 +729,8 @@ export default async function AdminLeadsPage({
           </div>
         </div>
 
-        {/* Full-Width Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Full-Width Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-ink-faint">
               <tr>
@@ -886,6 +886,140 @@ export default async function AdminLeadsPage({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Touch Cards View (lg:hidden) */}
+        <div className="lg:hidden divide-y divide-line-soft">
+          {filteredLeads.map((lead) => {
+            const cleanPhone = (lead.phoneNumber || "").replace(/[^0-9]/g, "");
+            const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
+            const leadDataText = extractLeadData(lead.rawPayload) || lead.inquiryDetails || "Inquiry recorded via API";
+
+            return (
+              <div key={lead.id} className="p-4 space-y-3">
+                {/* Lead Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-ink text-base">
+                      {lead.name ?? "Unnamed Prospect"}
+                    </h3>
+                    <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
+                      <span>{lead.phoneNumber ?? "No phone recorded"}</span>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
+                      isPcd
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-purple-100 text-purple-800"
+                    }`}
+                  >
+                    {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party"}
+                  </span>
+                </div>
+
+                {/* Source & Actions Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-ink bg-slate-100 px-2.5 py-1 rounded-lg">
+                    <span>{getSourceIcon(lead.source)}</span>
+                    <span>{lead.source}</span>
+                  </span>
+
+                  {cleanPhone && (
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-700 active:bg-blue-100"
+                      >
+                        📞 Call
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 active:bg-emerald-100"
+                      >
+                        💬 WhatsApp
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Inquiry notes */}
+                <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
+                  {leadDataText}
+                </p>
+
+                {/* Rep Assignment & Stage Form on Mobile */}
+                <div className="space-y-2 pt-1 border-t border-line-soft">
+                  <form action={updateLead} className="flex items-center justify-between gap-2">
+                    <input type="hidden" name="leadId" value={lead.id} />
+                    <input type="hidden" name="status" value={lead.status} />
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-[10px] font-bold uppercase text-ink-faint mb-0.5">
+                        Assigned Rep:
+                      </label>
+                      <select
+                        name="assignedEmployeeId"
+                        defaultValue={lead.assignedEmployeeId ?? ""}
+                        className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-medium text-ink"
+                      >
+                        <option value="">Unassigned</option>
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="submit"
+                      className="self-end h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white px-2.5 text-xs font-bold text-ink cursor-pointer"
+                    >
+                      Assign
+                    </button>
+                  </form>
+
+                  <form action={updateLead} className="flex items-center justify-between gap-2">
+                    <input type="hidden" name="leadId" value={lead.id} />
+                    <input
+                      type="hidden"
+                      name="assignedEmployeeId"
+                      value={lead.assignedEmployeeId ?? ""}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-[10px] font-bold uppercase text-ink-faint mb-0.5">
+                        Pipeline Stage:
+                      </label>
+                      <select
+                        name="status"
+                        defaultValue={lead.status}
+                        className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-medium text-ink"
+                      >
+                        {leadStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {formatStatus(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="submit"
+                      className="self-end h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white px-2.5 text-xs font-bold text-ink cursor-pointer"
+                    >
+                      Update
+                    </button>
+                  </form>
+                </div>
+              </div>
+            );
+          })}
+
+          {!filteredLeads.length && (
+            <div className="p-8 text-center text-sm text-ink-faint">
+              No inquiries matched your criteria.
+            </div>
+          )}
         </div>
       </section>
     </div>

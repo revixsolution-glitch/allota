@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -21,6 +22,12 @@ export function AppShell({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -28,26 +35,180 @@ export function AppShell({
     router.refresh();
   }
 
+  // Determine quick bottom bar tabs
+  const isEmployee = portalType === "Employee";
+  const bottomNavShortcuts = isEmployee
+    ? [
+        { href: "/employee", label: "Workdesk" },
+        { href: "/employee/leads", label: "Leads" },
+        { href: "/employee/clients", label: "Clients" },
+      ]
+    : [
+        { href: "/admin", label: "Dashboard" },
+        { href: "/admin/leads", label: "Leads" },
+        { href: "/admin/employees", label: "Reps" },
+        { href: "/admin/insights", label: "Insights" },
+      ];
+
   return (
-    <div className="flex min-h-screen bg-canvas">
-      {/* Sleek Neumorphic Sidebar with Color Accents */}
-      <aside className="m-4 flex w-68 flex-col rounded-3xl p-5 neo-panel shrink-0">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-canvas">
+      {/* ============================================================ */}
+      {/* 1. MOBILE TOP APP BAR (Screens < 1024px)                     */}
+      {/* ============================================================ */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line/70 bg-white/95 px-4 py-3 backdrop-blur-md shadow-xs lg:hidden">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-ink neo-button active:scale-95 transition"
+          >
+            {mobileMenuOpen ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black text-ink leading-tight" title={title}>
+                {title}
+              </p>
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+                {portalType} Portal
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="rounded-md bg-primary-soft px-2 py-0.5 text-[10px] font-bold text-primary">
+            {portalType.toUpperCase()}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign out"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-rose-600 hover:bg-rose-50 neo-button active:scale-95 transition"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* ============================================================ */}
+      {/* 2. MOBILE SLIDE-OUT DRAWER OVERLAY & PANEL                   */}
+      {/* ============================================================ */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <div
+        className={`fixed inset-y-0 left-0 z-50 flex w-76 max-w-[85vw] flex-col bg-canvas p-5 neo-panel shadow-2xl transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl p-3 neo-pressed">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 via-primary to-indigo-600 text-white shadow-md shadow-primary/25 font-bold text-base">
+              ⚡
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-ink">{title}</p>
+              <p className="text-xs font-semibold text-primary">{portalType} Workspace</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close navigation drawer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted hover:bg-slate-200"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Drawer Navigation Links */}
+        <div className="mt-5 flex-1">
+          <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            Navigation Menu
+          </p>
+          <nav className="mt-2 space-y-1.5">
+            {navItems.map((item) => {
+              const isActive =
+                item.href === "/admin" || item.href === "/employee"
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={
+                    isActive
+                      ? "flex items-center gap-3 rounded-2xl bg-gradient-to-r from-primary to-primary-strong px-4 py-3 text-sm font-semibold text-white shadow-md transition-all"
+                      : "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-ink-muted neo-button hover:text-primary transition-all"
+                  }
+                >
+                  <NavIcon href={item.href} active={isActive} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Drawer User Footer */}
+        <div className="mt-auto pt-4 border-t border-line/60">
+          <div className="mb-3 flex items-center justify-between rounded-xl px-3 py-2 neo-pressed">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-700 font-bold text-xs shrink-0">
+                {portalType === "Admin" ? "AD" : "EM"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-ink truncate">
+                  {portalType === "Admin" ? "Admin Master" : "Field Agent"}
+                </p>
+                <p className="text-[10px] text-ink-faint">Active Mobile Session</p>
+              </div>
+            </div>
+            <span className="rounded-md bg-primary-soft px-2 py-0.5 text-[10px] font-bold text-primary shrink-0">
+              {portalType.toUpperCase()}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold text-rose-600 neo-button hover:bg-rose-50 transition"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 3. DESKTOP SIDEBAR (Screens >= 1024px)                        */}
+      {/* ============================================================ */}
+      <aside className="hidden lg:flex m-4 w-68 flex-col rounded-3xl p-5 neo-panel shrink-0">
         {/* Brand Header */}
         <div className="flex items-center gap-3.5 rounded-2xl p-3 neo-pressed">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 via-primary to-indigo-600 text-white shadow-md shadow-primary/25">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.2"
-                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-              />
-            </svg>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 via-primary to-indigo-600 text-white shadow-md shadow-primary/25 font-black text-lg">
+            ⚡
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
@@ -133,8 +294,55 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Main Content Viewport */}
-      <main className="min-w-0 flex-1 p-6 lg:p-8">{children}</main>
+      {/* ============================================================ */}
+      {/* 4. MAIN CONTENT VIEWPORT (Responsive Padding & Max-Width)   */}
+      {/* ============================================================ */}
+      <main className="min-w-0 flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 w-full max-w-full overflow-x-hidden">
+        {children}
+      </main>
+
+      {/* ============================================================ */}
+      {/* 5. MOBILE BOTTOM THUMB NAVIGATION BAR (Screens < 1024px)     */}
+      {/* ============================================================ */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 flex h-16 items-center justify-around border-t border-line/80 bg-white/95 backdrop-blur-md px-1 shadow-lg lg:hidden">
+        {bottomNavShortcuts.map((item) => {
+          const isActive =
+            item.href === "/admin" || item.href === "/employee"
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center justify-center flex-1 py-1.5 transition ${
+                isActive
+                  ? "text-primary font-bold"
+                  : "text-ink-muted hover:text-ink font-medium"
+              }`}
+            >
+              <div className={`p-1 rounded-xl transition ${isActive ? "bg-primary-soft text-primary" : ""}`}>
+                <NavIcon href={item.href} active={isActive} />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* More / Menu Drawer Trigger */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex flex-col items-center justify-center flex-1 py-1.5 text-ink-muted hover:text-ink transition"
+        >
+          <div className="p-1 rounded-xl">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-medium tracking-tight mt-0.5">More</span>
+        </button>
+      </nav>
     </div>
   );
 }
@@ -143,10 +351,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   const strokeColor = active ? "currentColor" : "currentColor";
 
   if (href === "/admin" || href === "/employee") {
-    // Dashboard / Grid Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-primary"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-primary"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -162,10 +369,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("insights")) {
-    // AI Insights / Brain / Analytics Sparkle Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-purple-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-purple-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -181,10 +387,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("stock")) {
-    // Stock IQ / Pharma Inventory & Box Management Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-teal-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-teal-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -200,10 +405,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("credits")) {
-    // Credit Management / Credit Card & Ledger Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-emerald-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-emerald-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -219,10 +423,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("territories")) {
-    // Map / Pin Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-teal-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-teal-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -244,10 +447,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("clients")) {
-    // Building / Clients Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-indigo-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-indigo-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -263,10 +465,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("leads-iq")) {
-    // Leads IQ / Lead Velocity Analytics Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-teal-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-teal-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -282,10 +483,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("sources")) {
-    // Multi-Channel Sources & Upload Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-emerald-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-emerald-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -301,10 +501,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("settings")) {
-    // Settings & Plan Configurator Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-slate-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-slate-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -326,10 +525,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("leads-reassign")) {
-    // Leads Reassign / Transfer / Two-way swap Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-amber-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-amber-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -345,10 +543,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("leads")) {
-    // Target / Funnel Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-amber-500"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-amber-500"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
@@ -364,10 +561,9 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
   }
 
   if (href.includes("employees")) {
-    // Team / Users Icon
     return (
       <svg
-        className={`h-5 w-5 ${active ? "text-white" : "text-purple-600"}`}
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-purple-600"}`}
         fill="none"
         stroke={strokeColor}
         viewBox="0 0 24 24"
