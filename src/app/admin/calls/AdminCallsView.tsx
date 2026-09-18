@@ -83,6 +83,7 @@ export function AdminCallsView({
   companyName: string;
 }) {
   const [callsList, setCallsList] = useState<CallFeedItem[]>(initialCalls);
+  const [activeViewTab, setActiveViewTab] = useState<"FEED" | "MISSED" | "LEADERBOARD">("FEED");
   const [selectedRepId, setSelectedRepId] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ANSWERED" | "MISSED" | "WHATSAPP_SENT">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -246,8 +247,83 @@ export function AdminCallsView({
         </div>
       </section>
 
-      {/* 3. Priority Missed Call Recovery Desk */}
-      {pendingMissedAlerts.length > 0 && (
+      {/* 3. View Switcher Tabs (Live Feed First) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveViewTab("FEED")}
+            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
+              activeViewTab === "FEED"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25 scale-[1.02]"
+                : "bg-white text-ink-muted border border-line hover:border-purple-300 hover:text-purple-700"
+            }`}
+          >
+            <span>🎙️ Live AI Calls Feed</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeViewTab === "FEED" ? "bg-white/20 text-white" : "bg-slate-100 text-ink-muted"
+              }`}
+            >
+              {filteredCalls.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveViewTab("MISSED")}
+            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
+              activeViewTab === "MISSED"
+                ? "bg-amber-600 text-white shadow-md shadow-amber-600/25 scale-[1.02]"
+                : "bg-white text-ink-muted border border-line hover:border-amber-300 hover:text-amber-700"
+            }`}
+          >
+            <span>⚡ Unanswered Recovery Desk</span>
+            {pendingMissedAlerts.length > 0 && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  activeViewTab === "MISSED" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {pendingMissedAlerts.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveViewTab("LEADERBOARD")}
+            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
+              activeViewTab === "LEADERBOARD"
+                ? "bg-primary text-white shadow-md shadow-primary/25 scale-[1.02]"
+                : "bg-white text-ink-muted border border-line hover:border-primary/30 hover:text-primary"
+            }`}
+          >
+            <span>📊 Sales Reps Leaderboard</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeViewTab === "LEADERBOARD" ? "bg-white/20 text-white" : "bg-slate-100 text-ink-muted"
+              }`}
+            >
+              {reps.length}
+            </span>
+          </button>
+        </div>
+
+        {pendingMissedAlerts.length > 0 && activeViewTab !== "MISSED" && (
+          <button
+            type="button"
+            onClick={() => setActiveViewTab("MISSED")}
+            className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1.5"
+          >
+            <span>⚡</span>
+            <span>{pendingMissedAlerts.length} Unanswered calls require WhatsApp follow-up &rarr;</span>
+          </button>
+        )}
+      </div>
+
+      {/* TAB 2: Missed Calls Queue */}
+      {activeViewTab === "MISSED" && (
         <section className="rounded-3xl p-6 bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-white border-2 border-amber-300 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-4">
             <div className="flex items-center gap-3">
@@ -269,135 +345,128 @@ export function AdminCallsView({
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingMissedAlerts.slice(0, 6).map((call) => (
-              <div
-                key={call.id}
-                className="rounded-2xl p-4 bg-white border border-amber-200 shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="font-extrabold text-sm text-ink">{call.targetName}</h4>
-                      <p className="font-mono text-xs text-ink-muted mt-0.5">{call.targetPhone || "No Phone"}</p>
-                    </div>
-                    <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5">
-                      Missed
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-ink-faint mt-1.5 flex items-center gap-1">
-                    <span>Rep:</span>
-                    <strong className="text-ink">{call.repName}</strong>
-                    {call.leadTerritory && <span>• 📍 {call.leadTerritory}</span>}
-                  </p>
-
-                  <div className="mt-2.5 rounded-xl bg-slate-50 p-2.5 border border-line text-[11px] text-ink-muted italic">
-                    &ldquo;Hello {call.targetName}, this is {call.repName} from {companyName}. We just tried calling you regarding your franchise inquiry...&rdquo;
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
-                  <span className="text-[10px] text-ink-faint font-medium">
-                    {formatDate(call.occurredAt)} • {formatTime(call.occurredAt)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleSendAiWhatsAppAlert(call)}
-                    disabled={sendingAlertCallId === call.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer"
-                  >
-                    <span>{sendingAlertCallId === call.id ? "⏳" : "⚡"}</span>
-                    <span>Send AI WhatsApp</span>
-                  </button>
-                </div>
+            {pendingMissedAlerts.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-sm font-semibold text-ink-muted">
+                ✅ No pending unanswered calls! All prospects answered or followed up.
               </div>
-            ))}
+            ) : (
+              pendingMissedAlerts.map((call) => (
+                <div
+                  key={call.id}
+                  className="rounded-2xl p-4 bg-white border border-amber-200 shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-ink">{call.targetName}</h4>
+                        <p className="font-mono text-xs text-ink-muted mt-0.5">{call.targetPhone || "No Phone"}</p>
+                      </div>
+                      <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5">
+                        Missed
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-ink-faint mt-1.5 flex items-center gap-1">
+                      <span>Rep:</span>
+                      <strong className="text-ink">{call.repName}</strong>
+                      {call.leadTerritory && <span>• 📍 {call.leadTerritory}</span>}
+                    </p>
+
+                    <div className="mt-2.5 rounded-xl bg-slate-50 p-2.5 border border-line text-[11px] text-ink-muted italic">
+                      &ldquo;Hello {call.targetName}, this is {call.repName} from {companyName}. We just tried calling you regarding your franchise inquiry...&rdquo;
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-ink-faint font-medium">
+                      {formatDate(call.occurredAt)} • {formatTime(call.occurredAt)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSendAiWhatsAppAlert(call)}
+                      disabled={sendingAlertCallId === call.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer"
+                    >
+                      <span>{sendingAlertCallId === call.id ? "⏳" : "⚡"}</span>
+                      <span>Send AI WhatsApp</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
       )}
 
-      {/* 4. Representative Performance Leaderboard */}
-      <section className="rounded-3xl p-6 neo-panel bg-white">
-        <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h3 className="font-extrabold text-ink text-base">Representative Telecalling Leaderboard</h3>
-            <p className="text-xs text-ink-muted mt-0.5">Call volumes, pickup rates, and AI summaries per sales representative</p>
+      {/* TAB 3: Leaderboard */}
+      {activeViewTab === "LEADERBOARD" && (
+        <section className="rounded-3xl p-6 neo-panel bg-white">
+          <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h3 className="font-extrabold text-ink text-base">Representative Telecalling Leaderboard</h3>
+              <p className="text-xs text-ink-muted mt-0.5">Call volumes, pickup rates, and AI summaries per sales representative</p>
+            </div>
+            <span className="text-xs font-semibold text-ink-muted">
+              {reps.length} Field Reps Active
+            </span>
           </div>
-          <span className="text-xs font-semibold text-ink-muted">
-            {reps.length} Field Reps Active
-          </span>
-        </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-line text-ink-faint uppercase font-bold text-[10px] bg-slate-50/60">
-              <tr>
-                <th className="py-3 px-4">Sales Representative</th>
-                <th className="py-3 px-3">Total Calls</th>
-                <th className="py-3 px-3">Picked / Answered</th>
-                <th className="py-3 px-3">Not Answered</th>
-                <th className="py-3 px-3">Connection %</th>
-                <th className="py-3 px-3">Avg Duration</th>
-                <th className="py-3 px-3">WhatsApp Sent</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line/60">
-              {reps.map((rep) => (
-                <tr key={rep.id} className="hover:bg-slate-50/60 transition">
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-xs shadow-xs">
-                        {rep.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-extrabold text-ink text-sm">{rep.name}</p>
-                        <p className="font-mono text-[11px] text-ink-muted">{rep.phoneNumber}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-3 font-bold text-ink text-sm">{rep.totalCalls}</td>
-                  <td className="py-3.5 px-3">
-                    <span className="font-bold text-emerald-700">{rep.connectedCalls}</span>
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <span className="font-bold text-amber-700">{rep.missedCalls}</span>
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-ink">{rep.connectionRate}%</span>
-                      <div className="h-1.5 w-16 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${rep.connectionRate}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-3 font-semibold text-ink-muted">
-                    {formatDuration(rep.avgDurationSec)}
-                  </td>
-                  <td className="py-3.5 px-3">
-                    <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 text-[10px] font-bold">
-                      {rep.whatsappSentCount} Sent
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Link
-                      href={`/admin/employees/${rep.id}?tab=calls`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition shadow-2xs"
-                    >
-                      <span>🤖</span> Rep AI Summaries &rarr;
-                    </Link>
-                  </td>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-line text-ink-faint uppercase font-bold text-[10px] bg-slate-50/60">
+                <tr>
+                  <th className="py-3 px-4">Sales Representative</th>
+                  <th className="py-3 px-3">Total Calls</th>
+                  <th className="py-3 px-3">Picked / Answered</th>
+                  <th className="py-3 px-3">Not Answered</th>
+                  <th className="py-3 px-3">Connection %</th>
+                  <th className="py-3 px-3">Avg Duration</th>
+                  <th className="py-3 px-3">WhatsApp Sent</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-line/60">
+                {reps.map((rep) => (
+                  <tr key={rep.id} className="hover:bg-slate-50/60 transition">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-xs shadow-xs">
+                          {rep.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-extrabold text-ink text-xs">{rep.name}</p>
+                          <p className="text-[10px] text-ink-faint font-mono">{rep.phoneNumber}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-3 font-black text-ink">{rep.totalCalls}</td>
+                    <td className="py-3.5 px-3 font-bold text-emerald-700">{rep.connectedCalls}</td>
+                    <td className="py-3.5 px-3 font-bold text-rose-700">{rep.missedCalls}</td>
+                    <td className="py-3.5 px-3 font-black text-indigo-700">{rep.connectionRate}%</td>
+                    <td className="py-3.5 px-3 text-ink-muted">{formatDuration(rep.avgDurationSec)}</td>
+                    <td className="py-3.5 px-3">
+                      <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 text-[10px] font-bold">
+                        {rep.whatsappSentCount} Sent
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        href={`/admin/employees/${rep.id}?tab=calls`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition shadow-2xs"
+                      >
+                        <span>🤖</span> Rep AI Summaries &rarr;
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
-      {/* 5. Global Call Operations Feed & AI Discussion Summaries */}
+      {/* TAB 1: Live Call Feed & AI Summaries (Shown when activeViewTab === "FEED") */}
+      {activeViewTab === "FEED" && (
       <section className="rounded-3xl p-6 neo-panel bg-white">
         <div className="border-b border-line pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
@@ -596,6 +665,7 @@ export function AdminCallsView({
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

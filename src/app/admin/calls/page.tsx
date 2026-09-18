@@ -21,7 +21,16 @@ export default async function AdminCallsPage() {
       : null,
 
     prisma.call.findMany({
-      where: activeCompanyId ? { employee: { companyId: activeCompanyId } } : {},
+      where: activeCompanyId
+        ? {
+            OR: [
+              { employee: { companyId: activeCompanyId } },
+              { lead: { companyId: activeCompanyId } },
+              { client: { companyId: activeCompanyId } },
+              { employee: { companyId: null } },
+            ],
+          }
+        : {},
       include: {
         employee: true,
         client: {
@@ -37,7 +46,14 @@ export default async function AdminCallsPage() {
     }),
 
     prisma.employee.findMany({
-      where: activeCompanyId ? { companyId: activeCompanyId } : {},
+      where: activeCompanyId
+        ? {
+            OR: [
+              { companyId: activeCompanyId },
+              { companyId: null },
+            ],
+          }
+        : {},
       include: {
         calls: true,
       },
@@ -56,10 +72,24 @@ export default async function AdminCallsPage() {
       ? `${c.lead.city}${c.lead.state ? `, ${c.lead.state}` : ""}`
       : null;
 
+    const extractedPhone =
+      c.client?.phoneNumber ||
+      c.lead?.phoneNumber ||
+      c.aiSummary?.match(/(\+?91\d{10}|\b\d{10}\b)/)?.[0] ||
+      null;
+
+    const targetName = c.client
+      ? c.client.name
+      : c.lead
+      ? (c.lead.name || "Direct Party")
+      : extractedPhone
+      ? `Contact ${extractedPhone}`
+      : "Direct Mobile Call";
+
     return {
       id: c.id,
-      targetName: c.client ? c.client.name : c.lead ? (c.lead.name || "Inbound Lead") : "Direct Party",
-      targetPhone: c.client?.phoneNumber || c.lead?.phoneNumber || null,
+      targetName,
+      targetPhone: extractedPhone,
       direction: c.direction,
       missed: c.missed,
       durationSec: c.durationSec || 0,

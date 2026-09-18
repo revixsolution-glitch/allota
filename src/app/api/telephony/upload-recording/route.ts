@@ -169,15 +169,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // If employee wasn't explicitly matched, inherit from Lead or take the first active employee
+    // If employee wasn't explicitly matched, inherit from Lead or find primary company employee
     if (!employee && lead?.assignedEmployee) {
       employee = lead.assignedEmployee;
     }
 
     if (!employee) {
+      // Find employee belonging to active company
       employee = await prisma.employee.findFirst({
+        where: { companyId: { not: null } },
         orderBy: { createdAt: "asc" },
       });
+      if (!employee) {
+        employee = await prisma.employee.findFirst({
+          orderBy: { createdAt: "asc" },
+        });
+      }
     }
 
     if (!employee) {
@@ -185,6 +192,25 @@ export async function POST(req: NextRequest) {
         { error: "No employee found in the system to attribute call to." },
         { status: 400 }
       );
+    }
+
+    // Auto-create lead if phone number exists but lead was not found
+    if (!lead && !client && customerPhone) {
+      try {
+        lead = await prisma.lead.create({
+          data: {
+            companyId: employee.companyId || null,
+            source: "DIRECT_CALL" as any,
+            name: `Contact ${customerPhone}`,
+            phoneNumber: customerPhone,
+            status: "CONTACTED",
+            assignedEmployeeId: employee.id,
+          },
+          include: { assignedEmployee: true },
+        });
+      } catch (leadErr) {
+        console.warn("Could not auto-create lead for phone:", customerPhone, leadErr);
+      }
     }
 
     // 5. Analyze Audio using Gemini Flash (if audio recording provided and not a 0-sec missed call)
@@ -233,6 +259,16 @@ export async function POST(req: NextRequest) {
         client: true,
       },
     });
+
+    // If running in development / local tunnel, forward asynchronously to production so both stay in sync
+    if (!req.url.includes("allota.vercel.app")) {
+      const prodUrl = `https://allota.vercel.app/api/telephony/upload-recording${url.search}`;
+      fetch(prodUrl, {
+        method: "POST",
+        headers: { "Content-Type": contentType || "application/json" },
+        body: audioBuffer ? new Uint8Array(audioBuffer) : undefined,
+      }).catch((e) => console.warn("Failed to forward to production:", e));
+    }
 
     return NextResponse.json({
       success: true,

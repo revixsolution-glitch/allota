@@ -35,6 +35,7 @@ export default async function AdminDashboardPage() {
     lowStockProducts,
     activeCredits,
     nearExpiryCount,
+    recentCalls,
   ] = await Promise.all([
     prisma.territory.count({ where: companyScope }),
     prisma.client.count({ where: companyScope }),
@@ -126,6 +127,25 @@ export default async function AdminDashboardPage() {
           gt: now,
         },
       },
+    }),
+    prisma.call.findMany({
+      where: activeCompanyId
+        ? {
+            OR: [
+              { employee: { companyId: activeCompanyId } },
+              { lead: { companyId: activeCompanyId } },
+              { client: { companyId: activeCompanyId } },
+              { employee: { companyId: null } },
+            ],
+          }
+        : {},
+      include: {
+        employee: true,
+        lead: true,
+        client: true,
+      },
+      orderBy: { occurredAt: "desc" },
+      take: 3,
     }),
   ]);
 
@@ -338,6 +358,116 @@ export default async function AdminDashboardPage() {
           </div>
         ))}
       </section>
+
+      {/* 📞 Live AI Calls & Discussion Summaries Showcase */}
+      {recentCalls.length > 0 && (
+        <section className="rounded-3xl p-6 neo-panel bg-white border-t-2 border-t-purple-500 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-line pb-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xl shadow-md shadow-purple-500/25">
+                📞
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-black px-2.5 py-0.5 border border-purple-200">
+                    LIVE AI TELEPHONY INTELLIGENCE
+                  </span>
+                  <span className="text-xs text-ink-faint font-semibold">
+                    {callsToday} Calls Today
+                  </span>
+                </div>
+                <h2 className="text-lg font-black text-ink mt-0.5">
+                  Recent AI Call Discussion Summaries
+                </h2>
+              </div>
+            </div>
+
+            <Link
+              href="/admin/calls"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition shadow-2xs self-start md:self-auto"
+            >
+              <span>🤖</span>
+              <span>Open AI Calls Summary Hub &rarr;</span>
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentCalls.map((call) => {
+              const isMissed = call.missed;
+              const callerName = call.client?.name || call.lead?.name || "Direct Mobile Call";
+              const callerPhone = call.client?.phoneNumber || call.lead?.phoneNumber || "";
+
+              return (
+                <div
+                  key={call.id}
+                  className="rounded-2xl p-4 bg-slate-50/70 border border-line flex flex-col justify-between hover:border-purple-300 transition"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-extrabold text-sm text-ink">{callerName}</p>
+                        {callerPhone && (
+                          <p className="text-xs font-mono text-ink-muted">{callerPhone}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                          isMissed
+                            ? "bg-rose-100 text-rose-800 border border-rose-200"
+                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        }`}
+                      >
+                        {isMissed ? "📵 Missed" : `🟢 ${Math.round(call.durationSec || 0)}s`}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-ink-faint mt-1">
+                      Rep: <strong className="text-ink">{call.employee.name}</strong>
+                    </p>
+
+                    <div className="mt-3 rounded-xl bg-white p-3 border border-purple-100 shadow-2xs">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1">
+                        <span>🤖</span> AI Summary (Hinglish)
+                      </p>
+                      <p className="text-xs text-ink leading-relaxed mt-1 line-clamp-3">
+                        {call.aiSummary || "Discussion recorded and analyzed via Gemini."}
+                      </p>
+                    </div>
+
+                    {call.behaviorTags && call.behaviorTags.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1">
+                        {call.behaviorTags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-md bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 text-[9px] font-bold"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span className="text-ink-faint text-[10px]">
+                      {new Date(call.occurredAt).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <Link
+                      href="/admin/calls"
+                      className="font-bold text-purple-700 hover:underline flex items-center gap-1"
+                    >
+                      View Full Call &rarr;
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* AI Priority Desk & Build Roadmap */}
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
