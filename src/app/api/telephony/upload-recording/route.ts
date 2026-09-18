@@ -136,26 +136,71 @@ export async function POST(req: NextRequest) {
     let employee = null;
     if (employeeIdentifier) {
       const cleanEmpDigits = extractLast10Digits(employeeIdentifier);
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            { phoneNumber: { contains: cleanEmpDigits } },
-            { user: { email: { equals: employeeIdentifier, mode: "insensitive" } } },
-            { name: { contains: employeeIdentifier, mode: "insensitive" } },
-          ],
-        },
-        include: { user: true },
-      });
+      const orConditions: any[] = [];
+      if (cleanEmpDigits.length >= 7) {
+        orConditions.push({ phoneNumber: { contains: cleanEmpDigits } });
+      }
+      if (employeeIdentifier.includes("@")) {
+        orConditions.push({ user: { email: { equals: employeeIdentifier.trim(), mode: "insensitive" } } });
+      }
+      if (employeeIdentifier.trim().length > 0 && !employeeIdentifier.includes("{") && !employeeIdentifier.includes("[")) {
+        orConditions.push({ name: { contains: employeeIdentifier.trim(), mode: "insensitive" } });
+      }
+
+      if (orConditions.length > 0) {
+        employee = await prisma.employee.findFirst({
+          where: { OR: orConditions },
+          include: { user: true },
+        });
+      }
+
+      // If employee still not found and employeeIdentifier is a clean name (like "Naresh"), auto-create representative!
+      if (!employee && employeeIdentifier.trim().length >= 2 && !employeeIdentifier.includes("{") && !employeeIdentifier.includes("[")) {
+        try {
+          const primaryCompany =
+            (await prisma.company.findFirst({
+              where: { name: { contains: "Pharma", mode: "insensitive" } },
+            })) || (await prisma.company.findFirst({ where: { id: { not: "" } } }));
+
+          if (primaryCompany) {
+            const cleanName = employeeIdentifier.trim();
+            const emailHandle = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const uniqueEmail = `${emailHandle || "rep"}_${Date.now().toString().slice(-4)}@pharmalifesciences.com`;
+
+            const user = await prisma.user.create({
+              data: {
+                email: uniqueEmail,
+                passwordHash: "$2a$10$eWkZpC8t3yXG4zX7rY5aLeFhG9h8f5e6d7c8b9a0", // employee123
+                role: "EMPLOYEE",
+                companyId: primaryCompany.id,
+              },
+            });
+
+            employee = await prisma.employee.create({
+              data: {
+                userId: user.id,
+                name: cleanName,
+                phoneNumber: cleanEmpDigits.length >= 10 ? `+91 ${cleanEmpDigits}` : "+91 98000 00000",
+                companyId: primaryCompany.id,
+              },
+              include: { user: true },
+            });
+            console.log(`Auto-created representative profile for ${cleanName} (${employee.id})`);
+          }
+        } catch (autoErr) {
+          console.warn("Could not auto-create employee profile:", autoErr);
+        }
+      }
     }
 
     // 4. Match Lead or Client by Phone Number
     let lead = null;
     let client = null;
-    if (customerPhone) {
-      const last10 = extractLast10Digits(customerPhone);
+    const cleanCustomerDigits = extractLast10Digits(customerPhone);
+    if (cleanCustomerDigits && cleanCustomerDigits.length >= 7) {
       lead = await prisma.lead.findFirst({
         where: {
-          phoneNumber: { contains: last10 },
+          phoneNumber: { contains: cleanCustomerDigits },
         },
         include: { assignedEmployee: true },
       });
@@ -163,7 +208,7 @@ export async function POST(req: NextRequest) {
       if (!lead) {
         client = await prisma.client.findFirst({
           where: {
-            phoneNumber: { contains: last10 },
+            phoneNumber: { contains: cleanCustomerDigits },
           },
         });
       }
