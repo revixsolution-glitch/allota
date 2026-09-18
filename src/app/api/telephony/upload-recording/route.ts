@@ -5,21 +5,33 @@ import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 // Health check & diagnostic endpoint (returns recent calls)
 export async function GET() {
   try {
-    const recentCalls = await prisma.call.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: {
-        employee: { select: { name: true, phoneNumber: true } },
-        lead: { select: { name: true, phoneNumber: true } },
-        client: { select: { name: true, phoneNumber: true } },
-      },
-    });
+    const [recentCalls, allEmployees, allCompanies] = await Promise.all([
+      prisma.call.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          employee: { select: { id: true, name: true, phoneNumber: true, companyId: true } },
+          lead: { select: { name: true, phoneNumber: true } },
+          client: { select: { name: true, phoneNumber: true } },
+        },
+      }),
+      prisma.employee.findMany({
+        select: { id: true, name: true, phoneNumber: true, companyId: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.company.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
 
     return NextResponse.json({
       status: "online",
       service: "Allota Pharma CRM - Telephony Recording Webhook",
       timestamp: new Date().toISOString(),
       totalRecentCalls: recentCalls.length,
+      allCompanies,
+      totalEmployees: allEmployees.length,
+      allEmployees,
       recentCalls,
     });
   } catch (err: any) {
