@@ -906,10 +906,33 @@ export async function updateEmployeeLeadStatus(formData: FormData) {
 const logCallSchema = z.object({
   leadId: requiredText,
   direction: z.string().default("OUTBOUND"),
+  callStatus: z.enum(["ANSWERED", "NOT_ANSWERED"]).default("ANSWERED"),
   durationSec: z.coerce.number().min(0).default(180),
-  notes: requiredText,
+  notes: z.string().optional().default(""),
   outcome: z.nativeEnum(LeadStatus).optional(),
 });
+
+
+export async function markWhatsAppAlertSent(formData: FormData) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const callId = String(formData.get("callId") || "").trim();
+  if (!callId) return { error: "Call ID is required" };
+
+  await prisma.call.update({
+    where: { id: callId },
+    data: { whatsappSent: true },
+  });
+
+  revalidatePath("/admin/calls");
+  revalidatePath("/admin/employees");
+  revalidatePath("/employee");
+  revalidatePath("/employee/leads");
+  return { success: true };
+}
 
 export async function logEmployeeCall(formData: FormData) {
   const session = await getSession();
@@ -917,21 +940,59 @@ export async function logEmployeeCall(formData: FormData) {
     redirect("/login");
   }
 
+  const rawCallStatus = formData.get("callStatus") === "NOT_ANSWERED" || formData.get("missed") === "true"
+    ? "NOT_ANSWERED"
+    : "ANSWERED";
+
   const input = logCallSchema.parse({
     leadId: formData.get("leadId"),
     direction: formData.get("direction") || "OUTBOUND",
-    durationSec: formData.get("durationSec") || 180,
-    notes: formData.get("notes"),
+    callStatus: rawCallStatus,
+    durationSec: rawCallStatus === "NOT_ANSWERED" ? 0 : (formData.get("durationSec") || 180),
+    notes: formData.get("notes") || "",
     outcome: formData.get("outcome") || undefined,
   });
 
-  const lead = await prisma.lead.findUnique({
-    where: { id: input.leadId },
-  });
+  const [lead, rep] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id: input.leadId },
+    }),
+    prisma.employee.findUnique({
+      where: { id: session.employeeId },
+      select: { name: true },
+    }),
+  ]);
 
   if (!lead) throw new Error("Lead not found");
 
   const now = new Date();
+  const isMissed = input.callStatus === "NOT_ANSWERED";
+
+  const behaviorTags: string[] = [];
+  let finalSummary = input.notes?.trim() || "";
+
+  if (isMissed) {
+    behaviorTags.push("Missed Call", "Unanswered", "Needs Follow-up");
+    if (!finalSummary) {
+      finalSummary = `Outbound phone call attempted by ${rep?.name || "Representative"}. Prospect did not answer / phone rang out. Follow-up WhatsApp alert suggested.`;
+    } else {
+      finalSummary = `[Attempted Call - Unanswered]: ${finalSummary}`;
+    }
+  } else {
+    behaviorTags.push("Connected", "Engaged");
+    const lower = finalSummary.toLowerCase();
+    if (lower.includes("monopoly")) behaviorTags.push("Monopoly Rights");
+    if (lower.includes("price") || lower.includes("rate") || lower.includes("quotation")) behaviorTags.push("Pricing & Margins");
+    if (lower.includes("sample") || lower.includes("visual aid") || lower.includes("catalog")) behaviorTags.push("Marketing Kit");
+    if (lower.includes("order") || lower.includes("advance") || lower.includes("payment")) behaviorTags.push("Commercial Intent");
+    if (input.outcome === LeadStatus.INTERESTED) behaviorTags.push("Warm Prospect");
+    if (input.outcome === LeadStatus.CONVERTED) behaviorTags.push("High Intent / Deal Signed");
+    if (input.outcome === LeadStatus.NOT_INTERESTED) behaviorTags.push("Disqualified / Non-target");
+
+    if (!finalSummary) {
+      finalSummary = `Connected discussion conducted by ${rep?.name || "Representative"}. Prospect briefed on product catalog and commercial terms.`;
+    }
+  }
 
   await prisma.$transaction([
     prisma.call.create({
@@ -939,9 +1000,10 @@ export async function logEmployeeCall(formData: FormData) {
         employeeId: session.employeeId,
         leadId: input.leadId,
         direction: input.direction,
-        missed: false,
-        durationSec: input.durationSec,
-        aiSummary: input.notes,
+        missed: isMissed,
+        durationSec: isMissed ? 0 : input.durationSec,
+        aiSummary: finalSummary,
+        behaviorTags,
         occurredAt: now,
       },
     }),
@@ -954,12 +1016,13 @@ export async function logEmployeeCall(formData: FormData) {
             ? LeadStatus.CONTACTED
             : lead.status),
         inquiryDetails: lead.inquiryDetails
-          ? `${lead.inquiryDetails}\n[Call Touchpoint ${now.toLocaleDateString("en-IN")}]: ${input.notes}`
-          : input.notes,
+          ? `${lead.inquiryDetails}\n[${isMissed ? "Missed Call" : "Call Touchpoint"} ${now.toLocaleDateString("en-IN")}]: ${finalSummary}`
+          : finalSummary,
       },
     }),
   ]);
 
+  revalidatePath("/admin/calls");
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
   revalidatePath("/admin/leads");

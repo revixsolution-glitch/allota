@@ -41,15 +41,23 @@ export interface EmployeeReassignmentRow {
 export interface EmployeeCallRow {
   id: string;
   targetName: string;
+  targetPhone: string | null;
   targetType: "LEAD" | "CLIENT" | "GENERAL";
   direction: string;
   missed: boolean;
   durationSec: number;
   transcript: string | null;
   summary: string | null;
+  aiSummary: string | null;
   behaviorTags: string[];
   whatsappSent: boolean;
   occurredAt: string;
+  leadId?: string | null;
+  leadDivision?: string | null;
+  leadTerritory?: string | null;
+  leadSource?: string | null;
+  repName?: string | null;
+  companyName?: string | null;
 }
 
 export interface EmployeeClientRow {

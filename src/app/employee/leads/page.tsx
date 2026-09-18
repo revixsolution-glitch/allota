@@ -331,13 +331,26 @@ export default async function EmployeeLeadsPage({
 
                               <div>
                                 <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                  Call Notes / Outcome *
+                                  Call Result *
+                                </label>
+                                <select
+                                  name="callStatus"
+                                  defaultValue="ANSWERED"
+                                  className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink focus:outline-none"
+                                >
+                                  <option value="ANSWERED">🟢 Picked / Answered</option>
+                                  <option value="NOT_ANSWERED">🔴 Not Answered / Missed</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                  Call Notes
                                 </label>
                                 <textarea
                                   name="notes"
                                   rows={2}
-                                  required
-                                  placeholder="Discussed monopoly terms for Ambala..."
+                                  placeholder="Discussion details, monopoly terms, or missed reason..."
                                   className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal-500"
                                 />
                               </div>
@@ -351,7 +364,7 @@ export default async function EmployeeLeadsPage({
                                     type="number"
                                     name="durationSec"
                                     defaultValue={180}
-                                    min={10}
+                                    min={0}
                                     className="w-full h-8 rounded-lg border border-line px-2 text-xs text-ink focus:outline-none"
                                   />
                                 </div>
@@ -503,15 +516,29 @@ export default async function EmployeeLeadsPage({
 
                     <form action={logEmployeeCall} className="mt-3 space-y-2.5 pt-2 border-t border-teal-200/60">
                       <input type="hidden" name="leadId" value={lead.id} />
+
                       <div>
                         <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
-                          Call Notes *
+                          Call Result *
+                        </label>
+                        <select
+                          name="callStatus"
+                          defaultValue="ANSWERED"
+                          className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink focus:outline-none"
+                        >
+                          <option value="ANSWERED">🟢 Picked / Answered</option>
+                          <option value="NOT_ANSWERED">🔴 Not Answered / Missed</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
+                          Call Notes
                         </label>
                         <textarea
                           name="notes"
                           rows={2}
-                          required
-                          placeholder="Discussed requirements, monopoly terms..."
+                          placeholder="Discussion details, monopoly terms, or missed reason..."
                           className="w-full rounded-xl border border-line bg-white p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal-500"
                         />
                       </div>
@@ -525,7 +552,7 @@ export default async function EmployeeLeadsPage({
                             type="number"
                             name="durationSec"
                             defaultValue={180}
-                            min={10}
+                            min={0}
                             className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs text-ink"
                           />
                         </div>

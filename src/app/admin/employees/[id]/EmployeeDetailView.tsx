@@ -10,6 +10,8 @@ import {
   EmployeeSessionRow,
   EmployeeTaskRow,
 } from "./types";
+import { markWhatsAppAlertSent } from "@/lib/admin-actions";
+import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
 
 function formatINR(amount: number): string {
   if (amount >= 10000000) {
@@ -59,8 +61,14 @@ function formatDuration(seconds: number): string {
 
 type TabType = "leads" | "reassigned" | "attendance" | "calls" | "clients" | "tasks";
 
-export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
-  const [activeTab, setActiveTab] = useState<TabType>("leads");
+export function EmployeeDetailView({
+  data,
+  initialTab = "leads",
+}: {
+  data: EmployeeDetailData;
+  initialTab?: TabType;
+}) {
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [leadSearch, setLeadSearch] = useState("");
   const [reassignSearch, setReassignSearch] = useState("");
   const [reassignFilter, setReassignFilter] = useState<"ALL" | "INCOMING" | "OUTGOING">("ALL");
@@ -71,6 +79,47 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
   const [divisionFilter, setDivisionFilter] = useState<"ALL" | "PCD_FRANCHISE" | "THIRD_PARTY">("ALL");
 
   const { employee, summary } = data;
+  const [callsList, setCallsList] = useState<EmployeeCallRow[]>(data.calls);
+  const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
+
+  async function handleSendAiWhatsAppAlert(call: EmployeeCallRow) {
+    const rawPhone = call.targetPhone || "";
+    const cleanPhone = rawPhone.replace(/\D/g, "");
+    if (!cleanPhone) {
+      alert("No phone number available for this contact party.");
+      return;
+    }
+    const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+
+    const text = craftAiWhatsAppMissedMessage({
+      leadName: call.targetName,
+      repName: call.repName || employee.name,
+      companyName: call.companyName || "Pharma Desk",
+      division: call.leadDivision,
+      territory: call.leadTerritory,
+    });
+
+    setSendingAlertCallId(call.id);
+
+    // 1. Open WhatsApp web / mobile intent
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
+
+    // 2. Mark in DB via server action
+    try {
+      const fd = new FormData();
+      fd.append("callId", call.id);
+      await markWhatsAppAlertSent(fd);
+
+      // 3. Optimistic local update
+      setCallsList((prev) =>
+        prev.map((c) => (c.id === call.id ? { ...c, whatsappSent: true } : c))
+      );
+    } catch (err) {
+      console.error("Failed to mark WhatsApp alert sent", err);
+    } finally {
+      setSendingAlertCallId(null);
+    }
+  }
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
@@ -119,15 +168,17 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
 
   // Filtered Calls
   const filteredCalls = useMemo(() => {
-    if (!callSearch.trim()) return data.calls;
+    if (!callSearch.trim()) return callsList;
     const q = callSearch.toLowerCase();
-    return data.calls.filter(
+    return callsList.filter(
       (c) =>
         c.targetName.toLowerCase().includes(q) ||
+        (c.targetPhone && c.targetPhone.includes(q)) ||
         (c.summary && c.summary.toLowerCase().includes(q)) ||
+        (c.aiSummary && c.aiSummary.toLowerCase().includes(q)) ||
         c.behaviorTags.some((t) => t.toLowerCase().includes(q))
     );
-  }, [data.calls, callSearch]);
+  }, [callsList, callSearch]);
 
   // Filtered Clients
   const filteredClients = useMemo(() => {
@@ -282,11 +333,11 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
             onClick={() => setActiveTab("calls")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
               activeTab === "calls"
-                ? "bg-rose-600 text-white shadow-md"
+                ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md shadow-rose-500/20"
                 : "bg-white text-ink-muted border border-line hover:bg-slate-50"
             }`}
           >
-            <span>📞</span> Daily Calls & Telephony
+            <span>🤖</span> AI Calls Summary
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                 activeTab === "calls" ? "bg-white/20 text-white" : "bg-rose-100 text-rose-800"
@@ -387,10 +438,16 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
               </div>
             </div>
 
-            {/* Card 4: Telephony Calls */}
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white">
+            {/* Card 4: AI Calls Summary */}
+            <div
+              onClick={() => setActiveTab("calls")}
+              className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white cursor-pointer hover:shadow-md hover:border-rose-300 transition"
+              title="Click to view full AI Call Summaries & Insights"
+            >
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Telephony Calls</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1">
+                  <span>🤖</span> AI Calls Summary
+                </p>
                 <span className="rounded bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-700">
                   {summary.missedCalls} Missed
                 </span>
@@ -400,6 +457,9 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
                 <span>Avg Duration: <strong>{formatDuration(summary.avgCallDurationSec)}</strong></span>
                 <span>WhatsApp Sent: <strong>{summary.whatsappSentCount}</strong></span>
               </div>
+              <p className="mt-2 text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                View AI Summaries →
+              </p>
             </div>
 
             {/* Card 5: Field Work Hours */}
@@ -464,10 +524,16 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
               </div>
             </div>
 
-            {/* Card 4: Daily Calls */}
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white">
+            {/* Card 4: AI Calls Summary */}
+            <div
+              onClick={() => setActiveTab("calls")}
+              className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white cursor-pointer hover:shadow-md hover:border-rose-300 transition"
+              title="Click to view full AI Call Summaries & Insights"
+            >
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Telephony Calls</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1">
+                  <span>🤖</span> AI Calls Summary
+                </p>
                 <span className="rounded bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-700">
                   {summary.missedCalls} Missed
                 </span>
@@ -477,6 +543,9 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
                 <span>Avg Duration: <strong>{formatDuration(summary.avgCallDurationSec)}</strong></span>
                 <span>WhatsApp Sent: <strong>{summary.whatsappSentCount}</strong></span>
               </div>
+              <p className="mt-2 text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                View AI Summaries →
+              </p>
             </div>
 
             {/* Card 5: Working Hours */}
@@ -1104,37 +1173,136 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
       {/* ========================================================================= */}
       {activeTab === "calls" && (
         <div className="space-y-8">
-          {/* Daily Calls Overview Ribbon */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Calls Logged</p>
+          {/* 1. Daily Calls & Telephony Performance Ribbon */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Calls Placed</p>
               <p className="mt-2 text-2xl font-black text-ink">{summary.totalCalls} Calls</p>
-              <p className="mt-1 text-xs text-ink-muted">{summary.connectedCalls} Connected • {summary.missedCalls} Missed</p>
+              <p className="mt-1 text-xs text-ink-muted">All voice touchpoints logged</p>
             </div>
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-600">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Call Connection Rate</p>
-              <p className="mt-2 text-2xl font-black text-emerald-700">
-                {summary.totalCalls > 0 ? Math.round((summary.connectedCalls / summary.totalCalls) * 100) : 0}%
-              </p>
-              <p className="mt-1 text-xs text-ink-muted">High touch client engagement</p>
+
+            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-600 bg-white">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Picked / Answered</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-emerald-700">{summary.connectedCalls}</span>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  {summary.totalCalls > 0 ? Math.round((summary.connectedCalls / summary.totalCalls) * 100) : 0}% Picked
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">Active verbal engagement</p>
             </div>
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-indigo-600">
+
+            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-amber-600 bg-white">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Not Answered / Missed</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-amber-700">{summary.missedCalls}</span>
+                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  {summary.totalCalls > 0 ? Math.round((summary.missedCalls / summary.totalCalls) * 100) : 0}% Missed
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">Prospect did not pick up</p>
+            </div>
+
+            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-indigo-600 bg-white">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Average Talk Duration</p>
               <p className="mt-2 text-2xl font-black text-indigo-700">{formatDuration(summary.avgCallDurationSec)}</p>
-              <p className="mt-1 text-xs text-ink-muted">In-depth order & visual aid discussions</p>
+              <p className="mt-1 text-xs text-ink-muted">Order & visual aid discussion</p>
             </div>
-            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-teal-600">
+
+            <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-teal-600 bg-white">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">WhatsApp Dispatches</p>
-              <p className="mt-2 text-2xl font-black text-teal-700">{summary.whatsappSentCount} Catalogs</p>
-              <p className="mt-1 text-xs text-ink-muted">Post-call brochures & order lists</p>
+              <p className="mt-2 text-2xl font-black text-teal-700">{callsList.filter((c) => c.whatsappSent).length} Sent</p>
+              <p className="mt-1 text-xs text-ink-muted">AI recovery alerts delivered</p>
             </div>
           </div>
 
-          {/* Daily Call Trend (Day-by-Day) */}
-          <div className="rounded-3xl p-6 neo-panel">
-            <div className="border-b border-line pb-4">
-              <h3 className="font-bold text-ink text-base">Daily Calling Volume (Last 7 Days)</h3>
-              <p className="text-xs text-ink-faint mt-0.5">Calls placed and answered per day by {employee.name}</p>
+          {/* 2. Priority Missed Call Recovery Queue */}
+          {callsList.filter((c) => c.missed && !c.whatsappSent).length > 0 && (
+            <div className="rounded-3xl p-6 bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-white border-2 border-amber-300/80 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500 text-white text-lg shadow-md shadow-amber-500/25">
+                    ⚡
+                  </span>
+                  <div>
+                    <h3 className="font-black text-ink text-base">
+                      Missed Call Recovery Desk ({callsList.filter((c) => c.missed && !c.whatsappSent).length} Unanswered Inquiries)
+                    </h3>
+                    <p className="text-xs text-ink-muted mt-0.5">
+                      These prospects did not answer calls placed by {employee.name}. Send 1-tap personalized AI WhatsApp follow-up messages to prevent lead leakage.
+                    </p>
+                  </div>
+                </div>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800 self-start sm:self-auto border border-amber-300">
+                  Action Required
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {callsList
+                  .filter((c) => c.missed && !c.whatsappSent)
+                  .map((call) => (
+                    <div
+                      key={call.id}
+                      className="rounded-2xl p-4 bg-white border border-amber-200 shadow-xs flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-ink">{call.targetName}</h4>
+                            <p className="font-mono text-xs text-ink-muted mt-0.5">{call.targetPhone || "No Phone"}</p>
+                          </div>
+                          <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5">
+                            Missed
+                          </span>
+                        </div>
+
+                        {call.leadTerritory && (
+                          <p className="text-[11px] text-ink-faint mt-1.5 flex items-center gap-1">
+                            <span>📍</span> {call.leadTerritory}
+                            {call.leadDivision && (
+                              <span className="text-[10px] font-bold text-purple-700">
+                                • {call.leadDivision === "THIRD_PARTY" ? "Third-Party" : "PCD Franchise"}
+                              </span>
+                            )}
+                          </p>
+                        )}
+
+                        <div className="mt-2.5 rounded-xl bg-slate-50 p-2.5 border border-line text-[11px] text-ink-muted italic">
+                          &ldquo;Hello {call.targetName}, this is {employee.name} from {call.companyName || "our company"}. We just tried calling you regarding your franchise inquiry...&rdquo;
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-ink-faint font-medium">
+                          {formatTime(call.occurredAt)} • {formatDate(call.occurredAt)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSendAiWhatsAppAlert(call)}
+                          disabled={sendingAlertCallId === call.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer"
+                        >
+                          <span>{sendingAlertCallId === call.id ? "⏳" : "⚡"}</span>
+                          <span>Send AI WhatsApp</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Daily Call Trend (Day-by-Day) */}
+          <div className="rounded-3xl p-6 neo-panel bg-white">
+            <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-ink text-base">Daily Calling Volume & Connection Velocity (Last 7 Days)</h3>
+                <p className="text-xs text-ink-faint mt-0.5">Calls placed and answered per day by {employee.name}</p>
+              </div>
+              <span className="text-xs font-semibold text-ink-muted">
+                Last 7 Days: <strong className="text-ink">{summary.totalCalls} total calls</strong>
+              </span>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1146,103 +1314,186 @@ export function EmployeeDetailView({ data }: { data: EmployeeDetailData }) {
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] text-ink-muted">
                     <span>Connected: <strong className="text-emerald-700">{st.connected}</strong></span>
-                    <span>Missed: <strong className="text-rose-700">{st.missed}</strong></span>
+                    <span>Missed: <strong className="text-amber-700">{st.missed}</strong></span>
                   </div>
-                  <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div className="mt-2 h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-rose-500"
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                       style={{ width: `${st.total > 0 ? (st.connected / st.total) * 100 : 0}%` }}
                     />
                   </div>
+                  <p className="mt-1.5 text-[10px] text-right font-bold text-ink-faint">
+                    {st.total > 0 ? Math.round((st.connected / st.total) * 100) : 0}% Connection Rate
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Detailed Call Operations Log */}
-          <div className="rounded-3xl p-6 neo-panel">
-            <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* 4. Detailed AI Call Intelligence History & Audio Summaries */}
+          <div className="rounded-3xl p-6 neo-panel bg-white">
+            <div className="border-b border-line pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h3 className="font-bold text-ink text-base">Conversation & Telephony History</h3>
-                <p className="text-xs text-ink-faint mt-0.5">Full audit trail of phone calls with summaries, behavioral tags, and WhatsApp follow-ups</p>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 px-2.5 py-0.5 text-[10px] font-black text-purple-700">
+                    <span>✨</span> AI Telephony Insights
+                  </span>
+                  <span className="text-xs text-ink-faint">Admin Executive Audit</span>
+                </div>
+                <h3 className="font-extrabold text-ink text-lg mt-1">Call Logs & AI Summaries</h3>
+                <p className="text-xs text-ink-muted mt-0.5">
+                  Executive summaries, prospect intent, behavioral tags, and WhatsApp recovery status for all calls placed by {employee.name}.
+                </p>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search conversation notes..."
-                value={callSearch}
-                onChange={(e) => setCallSearch(e.target.value)}
-                className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 w-56"
-              />
+              <div className="flex flex-wrap items-center gap-2.5">
+                <input
+                  type="text"
+                  placeholder="Search contact, notes, tags..."
+                  value={callSearch}
+                  onChange={(e) => setCallSearch(e.target.value)}
+                  className="rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 w-64 shadow-xs"
+                />
+              </div>
             </div>
 
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-line text-ink-faint uppercase font-bold text-[10px]">
-                  <tr>
-                    <th className="pb-3">Contact Party / Lead</th>
-                    <th className="pb-3">Direction</th>
-                    <th className="pb-3">Outcome</th>
-                    <th className="pb-3">Duration</th>
-                    <th className="pb-3">Conversation Summary & Behavioral Tags</th>
-                    <th className="pb-3">WhatsApp Sent</th>
-                    <th className="pb-3 text-right">Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/60">
-                  {filteredCalls.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/50">
-                      <td className="py-3 font-bold text-ink">{c.targetName}</td>
-                      <td className="py-3">
-                        <span className="rounded bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-800 border border-sky-200">
-                          {c.direction}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        {c.missed ? (
-                          <span className="rounded-full bg-rose-100 text-rose-800 px-2.5 py-0.5 text-[10px] font-bold">
-                            Missed
+            <div className="mt-5 space-y-4">
+              {filteredCalls.map((c) => {
+                const isMissed = c.missed;
+                const cleanPhone = (c.targetPhone || "").replace(/\D/g, "");
+
+                return (
+                  <div
+                    key={c.id}
+                    className={`rounded-2xl p-5 border transition-all ${
+                      isMissed
+                        ? "border-amber-200/80 bg-amber-50/20 hover:bg-amber-50/40"
+                        : "border-slate-200 bg-white hover:border-slate-300 shadow-xs"
+                    }`}
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      {/* Left: Contact Info & Call Status */}
+                      <div className="space-y-1.5 min-w-[220px]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-black text-ink text-base">{c.targetName}</h4>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+                              isMissed
+                                ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            }`}
+                          >
+                            {isMissed ? "📵 Not Answered / Missed" : "📞 Answered / Connected"}
                           </span>
-                        ) : (
-                          <span className="rounded-full bg-emerald-50 text-emerald-800 px-2.5 py-0.5 text-[10px] font-bold border border-emerald-200">
-                            Connected
-                          </span>
+                        </div>
+
+                        {c.targetPhone && (
+                          <div className="flex items-center gap-2 text-xs font-mono text-ink-muted">
+                            <span>📱 {c.targetPhone}</span>
+                            <a
+                              href={`tel:${cleanPhone}`}
+                              className="text-primary hover:underline font-sans text-[11px] font-bold"
+                            >
+                              Call
+                            </a>
+                            <span>•</span>
+                            <a
+                              href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-700 hover:underline font-sans text-[11px] font-bold"
+                            >
+                              WhatsApp
+                            </a>
+                          </div>
                         )}
-                      </td>
-                      <td className="py-3 font-semibold text-ink-muted">{formatDuration(c.durationSec)}</td>
-                      <td className="py-3 max-w-md">
-                        <p className="text-ink-muted text-[11px]">{c.summary || c.transcript || "Routine follow-up call."}</p>
+
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+                          <span>Direction: <strong className="text-ink">{c.direction}</strong></span>
+                          <span>•</span>
+                          <span>Duration: <strong className="text-ink">{formatDuration(c.durationSec)}</strong></span>
+                          {c.leadTerritory && (
+                            <>
+                              <span>•</span>
+                              <span>📍 {c.leadTerritory}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Middle: AI Call Summary & Key Takeaways */}
+                      <div className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs">🤖</span>
+                            <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
+                              AI Call Summary & Insights
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-ink-faint">
+                            {formatDate(c.occurredAt)} at {formatTime(c.occurredAt)}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-ink leading-relaxed whitespace-pre-line">
+                          {c.aiSummary || c.summary || (isMissed ? "Outbound attempt unanswered. Recommend instant follow-up via WhatsApp." : "Routine follow-up conversation recorded.")}
+                        </p>
+
+                        {/* Behavioral Tags */}
                         {c.behaviorTags.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
+                          <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-line/60">
                             {c.behaviorTags.map((tag) => (
-                              <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-ink-muted">
+                              <span
+                                key={tag}
+                                className="rounded-lg bg-white border border-line px-2 py-0.5 text-[10px] font-bold text-ink-muted shadow-2xs"
+                              >
                                 #{tag}
                               </span>
                             ))}
                           </div>
                         )}
-                      </td>
-                      <td className="py-3">
-                        {c.whatsappSent ? (
-                          <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
-                            ✓ Dispatched
-                          </span>
-                        ) : (
-                          <span className="text-ink-faint text-[10px]">No</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right text-ink-faint">{formatDate(c.occurredAt)}</td>
-                    </tr>
-                  ))}
-                  {filteredCalls.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-ink-faint">
-                        No calls matching &ldquo;{callSearch}&rdquo;
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      </div>
+
+                      {/* Right: WhatsApp Alert Action & Status */}
+                      <div className="flex flex-col items-end justify-between gap-3 shrink-0">
+                        <div>
+                          {c.whatsappSent ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-black">
+                              <span>✓</span> AI WhatsApp Dispatched
+                            </span>
+                          ) : isMissed ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSendAiWhatsAppAlert(c)}
+                              disabled={sendingAlertCallId === c.id}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-extrabold shadow-sm transition disabled:opacity-50 cursor-pointer"
+                              title="Send personalized AI follow-up message to this lead"
+                            >
+                              <span>{sendingAlertCallId === c.id ? "⏳" : "⚡"}</span>
+                              <span>Send AI WhatsApp Alert</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-ink-faint">
+                              Direct connected call
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-[10px] text-ink-faint">
+                          Rep: {c.repName || employee.name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredCalls.length === 0 && (
+                <div className="rounded-2xl p-10 text-center neo-panel bg-slate-50 border border-line">
+                  <p className="text-sm font-bold text-ink">No calls matching &ldquo;{callSearch}&rdquo;</p>
+                  <p className="text-xs text-ink-muted mt-1">Try searching by lead name, phone number, or discussion tags.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

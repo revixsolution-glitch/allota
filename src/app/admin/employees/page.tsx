@@ -89,15 +89,17 @@ export default async function AdminEmployeesPage() {
           const territoryState = employee.clients[0]?.territory?.state || "India";
 
           return (
-            <Link
+            <div
               key={employee.id}
-              href={`/admin/employees/${employee.id}`}
-              className="group block rounded-3xl p-6 neo-panel hover:shadow-xl hover:-translate-y-1 transition-all border border-transparent hover:border-purple-200"
+              className="group block rounded-3xl p-6 neo-panel hover:shadow-xl hover:-translate-y-1 transition-all border border-transparent hover:border-purple-200 bg-white"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3.5">
+                <Link
+                  href={`/admin/employees/${employee.id}`}
+                  className="flex items-center gap-3.5 group/header"
+                >
                   <div className="relative">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-black text-lg shadow-md shadow-purple-500/25 group-hover:scale-105 transition">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-black text-lg shadow-md shadow-purple-500/25 group-hover/header:scale-105 transition">
                       {employee.name.slice(0, 2).toUpperCase()}
                     </div>
                     {isShiftActive && (
@@ -106,16 +108,16 @@ export default async function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-ink text-base group-hover:text-primary transition flex items-center gap-1.5">
+                    <h3 className="font-bold text-ink text-base group-hover/header:text-primary transition flex items-center gap-1.5">
                       {employee.name}
-                      <span className="text-primary opacity-0 group-hover:opacity-100 transition text-sm">→</span>
+                      <span className="text-primary opacity-0 group-hover/header:opacity-100 transition text-sm">→</span>
                     </h3>
                     <p className="text-xs text-ink-faint mt-0.5">{employee.user.email}</p>
                     <p className="text-xs font-semibold text-primary mt-1">
                       📱 {employee.phoneNumber}
                     </p>
                   </div>
-                </div>
+                </Link>
 
                 <div className="flex flex-col items-end gap-1.5">
                   <span className="rounded-full bg-purple-50 border border-purple-200 px-3 py-0.5 text-[10px] font-bold text-purple-800">
@@ -158,16 +160,22 @@ export default async function AdminEmployeesPage() {
                   </p>
                 </div>
 
-                <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
-                  <p className="text-[10px] uppercase font-bold text-rose-800 tracking-wider">Calls</p>
+                <Link
+                  href={`/admin/employees/${employee.id}?tab=calls`}
+                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-rose-50/40 hover:bg-rose-50 hover:border-rose-300 transition block"
+                  title="View AI Calls Summary & Insights"
+                >
+                  <p className="text-[10px] uppercase font-bold text-rose-800 tracking-wider flex items-center justify-center gap-1">
+                    <span>🤖</span> AI Calls
+                  </p>
                   <p className="mt-1 text-sm font-black text-rose-600">
                     {employee.calls.length}
                   </p>
-                </div>
+                </Link>
               </div>
 
               {/* Bottom Card Footer */}
-              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between text-xs text-ink-faint">
+              <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-between gap-2 text-xs text-ink-faint">
                 <span>
                   {deadLeadsCount > 0 ? (
                     <span className="text-rose-700 font-semibold">{deadLeadsCount} Dead Leads marked</span>
@@ -175,11 +183,22 @@ export default async function AdminEmployeesPage() {
                     <span>{employee.tasks.length} Field Tasks</span>
                   )}
                 </span>
-                <span className="font-bold text-primary group-hover:underline flex items-center gap-1">
-                  View Full Employee Insights & Activity <span>→</span>
-                </span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/employees/${employee.id}?tab=calls`}
+                    className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition text-[11px]"
+                  >
+                    <span>🤖</span> AI Calls Summary &rarr;
+                  </Link>
+                  <Link
+                    href={`/admin/employees/${employee.id}`}
+                    className="font-bold text-primary hover:underline flex items-center gap-1 text-[11px]"
+                  >
+                    Full Insights &rarr;
+                  </Link>
+                </div>
               </div>
-            </Link>
+            </div>
           );
         })}
 

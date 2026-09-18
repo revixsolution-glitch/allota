@@ -30,6 +30,7 @@ export default async function AdminLayout({
     { href: "/admin/sources", label: "Sources & Excel" },
     { href: "/admin/leads-reassign", label: "Leads Reassign" },
     { href: "/admin/employees", label: "Employees" },
+    { href: "/admin/calls", label: "AI Calls Summary" },
   ];
 
   // Premium Billing ERP Modules (Shown only when client pays for Marg/Busy API)

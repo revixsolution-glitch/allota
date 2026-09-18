@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { completeFollowupTask, updateEmployeeLeadStatus } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
+import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 
 export default async function EmployeeDashboardPage() {
   const session = await getSession();
@@ -23,6 +24,10 @@ export default async function EmployeeDashboardPage() {
     divisionStats,
     callsToday,
     totalCallsCount,
+    callsPickedCount,
+    callsMissedCount,
+    missedCallsQueue,
+    company,
     pendingTasks,
     recentAllotments,
   ] = await Promise.all([
@@ -52,6 +57,21 @@ export default async function EmployeeDashboardPage() {
       },
     }),
     prisma.call.count({ where: { employeeId } }),
+    prisma.call.count({ where: { employeeId, missed: false } }),
+    prisma.call.count({ where: { employeeId, missed: true } }),
+    prisma.call.findMany({
+      where: { employeeId, missed: true, whatsappSent: false },
+      include: {
+        lead: true,
+        client: true,
+      },
+      orderBy: { occurredAt: "desc" },
+      take: 4,
+    }),
+    prisma.company.findFirst({
+      where: { employees: { some: { id: employeeId } } },
+      select: { name: true },
+    }),
     prisma.followupTask.findMany({
       where: {
         assignedEmployeeId: employeeId,
@@ -78,6 +98,8 @@ export default async function EmployeeDashboardPage() {
   const tpCount =
     divisionStats.find((d) => d.division === "THIRD_PARTY")?._count._all || 0;
   const totalLeads = pcdCount + tpCount;
+
+  const answerRate = totalCallsCount > 0 ? Math.round((callsPickedCount / totalCallsCount) * 100) : 0;
 
   return (
     <div className="space-y-7">
@@ -132,6 +154,99 @@ export default async function EmployeeDashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Field Telecalling Operational Insights (Pure Numbers - Strict Privacy on AI Summaries) */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-rose-500">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Calls Today</p>
+          <p className="mt-1 text-2xl font-black text-rose-600">{callsToday}</p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">{totalCallsCount} all-time calls</p>
+        </div>
+
+        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-emerald-500">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Picked / Answered</p>
+          <p className="mt-1 text-2xl font-black text-emerald-700">{callsPickedCount}</p>
+          <p className="mt-0.5 text-[11px] text-emerald-600 font-bold">{answerRate}% Connection Rate</p>
+        </div>
+
+        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-amber-500">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Not Answered / Missed</p>
+          <p className="mt-1 text-2xl font-black text-amber-700">{callsMissedCount}</p>
+          <p className="mt-0.5 text-[11px] text-amber-700 font-bold">
+            {callsMissedCount > 0 ? `${totalCallsCount > 0 ? Math.round((callsMissedCount / totalCallsCount) * 100) : 0}% Missed` : "Zero missed calls"}
+          </p>
+        </div>
+
+        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-teal-500">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Calling Cadence</p>
+          <p className="mt-1 text-2xl font-black text-teal-700">{answerRate >= 60 ? "🔥 High" : "⚡ Active"}</p>
+          <p className="mt-0.5 text-[11px] text-teal-700">Telecalling Desk Active</p>
+        </div>
+      </section>
+
+      {/* Unanswered Call Recovery Queue (1-Tap WhatsApp Alert) */}
+      {missedCallsQueue.length > 0 && (
+        <section className="rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-white border-2 border-amber-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white text-sm">
+                ⚡
+              </span>
+              <div>
+                <h3 className="font-extrabold text-ink text-sm sm:text-base">
+                  Unanswered Call Follow-Up Desk ({missedCallsQueue.length} Inquiries)
+                </h3>
+                <p className="text-[11px] text-ink-muted">
+                  These prospects missed your call. Send instant WhatsApp alerts to notify them and secure follow-ups.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/employee/leads"
+              className="text-xs font-bold text-amber-800 underline hover:text-amber-900 self-end sm:self-auto"
+            >
+              Go to Leads &rarr;
+            </Link>
+          </div>
+
+          <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
+            {missedCallsQueue.map((call) => {
+              const partyName = call.lead?.name || call.client?.name || "Prospect";
+              const partyPhone = call.lead?.phoneNumber || call.client?.phoneNumber;
+
+              return (
+                <div
+                  key={call.id}
+                  className="rounded-2xl p-3.5 bg-white border border-amber-200 flex items-center justify-between gap-3 shadow-2xs"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-xs text-ink truncate">{partyName}</p>
+                      <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-800 shrink-0">
+                        Missed
+                      </span>
+                    </div>
+                    <p className="font-mono text-[11px] text-ink-muted truncate mt-0.5">
+                      {partyPhone || "No Phone"} • {new Date(call.occurredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+
+                  <MissedCallAlertButton
+                    callId={call.id}
+                    leadName={partyName}
+                    repName={employee?.name}
+                    companyName={company?.name}
+                    division={call.lead?.division}
+                    territory={call.lead?.city || undefined}
+                    phoneNumber={partyPhone}
+                    alreadySent={call.whatsappSent}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Recent Admin Allotments Notice (Connecting Employee with Admin Actions) */}
       {recentAllotments.length > 0 && (

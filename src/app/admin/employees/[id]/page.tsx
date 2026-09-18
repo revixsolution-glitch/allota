@@ -19,10 +19,15 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminEmployeeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const initialTab = sp.tab as "leads" | "reassigned" | "attendance" | "calls" | "clients" | "tasks" | undefined;
+
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
 
@@ -30,6 +35,7 @@ export default async function AdminEmployeeDetailPage({
     prisma.employee.findUnique({
       where: { id },
       include: {
+        company: true,
         user: true,
         clients: {
           include: {
@@ -64,8 +70,12 @@ export default async function AdminEmployeeDetailPage({
         },
         calls: {
           include: {
-            client: true,
-            lead: true,
+            client: {
+              include: { territory: true },
+            },
+            lead: {
+              include: { client: { include: { territory: true } } },
+            },
           },
           orderBy: { occurredAt: "desc" },
         },
@@ -344,19 +354,37 @@ export default async function AdminEmployeeDetailPage({
     })
   );
 
-  const callRows: EmployeeCallRow[] = employee.calls.map((c) => ({
-    id: c.id,
-    targetName: c.client ? c.client.name : c.lead ? (c.lead.name || "Inbound Lead") : "Direct Party",
-    targetType: c.client ? "CLIENT" : c.lead ? "LEAD" : "GENERAL",
-    direction: c.direction,
-    missed: c.missed,
-    durationSec: c.durationSec || 0,
-    transcript: c.transcript,
-    summary: c.aiSummary || c.transcript,
-    behaviorTags: c.behaviorTags || [],
-    whatsappSent: c.whatsappSent,
-    occurredAt: c.occurredAt.toISOString(),
-  }));
+  const callRows: EmployeeCallRow[] = employee.calls.map((c) => {
+    const territoryStr = c.client?.territory
+      ? `${c.client.territory.city}, ${c.client.territory.state}`
+      : c.lead?.client?.territory
+      ? `${c.lead.client.territory.city}, ${c.lead.client.territory.state}`
+      : c.lead?.city
+      ? `${c.lead.city}${c.lead.state ? `, ${c.lead.state}` : ""}`
+      : null;
+
+    return {
+      id: c.id,
+      targetName: c.client ? c.client.name : c.lead ? (c.lead.name || "Inbound Lead") : "Direct Party",
+      targetPhone: c.client?.phoneNumber || c.lead?.phoneNumber || null,
+      targetType: c.client ? "CLIENT" : c.lead ? "LEAD" : "GENERAL",
+      direction: c.direction,
+      missed: c.missed,
+      durationSec: c.durationSec || 0,
+      transcript: c.transcript,
+      summary: c.aiSummary || c.transcript,
+      aiSummary: c.aiSummary,
+      behaviorTags: c.behaviorTags || [],
+      whatsappSent: c.whatsappSent,
+      occurredAt: c.occurredAt.toISOString(),
+      leadId: c.leadId,
+      leadDivision: c.lead?.division || null,
+      leadTerritory: territoryStr,
+      leadSource: c.lead?.source || null,
+      repName: employee.name,
+      companyName: employee.company?.name || "Pharma Desk",
+    };
+  });
 
   // 4. Working Hours & Attendance Sessions
   const sessionRows: EmployeeSessionRow[] = employee.sessions.map((s) => ({
@@ -476,5 +504,5 @@ export default async function AdminEmployeeDetailPage({
     tasks: taskRows,
   };
 
-  return <EmployeeDetailView data={data} />;
+  return <EmployeeDetailView data={data} initialTab={initialTab} />;
 }
