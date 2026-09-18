@@ -5,6 +5,16 @@ import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 // Health check & diagnostic endpoint (returns recent calls)
 export async function GET() {
   try {
+    const naresh = await prisma.employee.findFirst({
+      where: { name: "Naresh" },
+    });
+    if (naresh) {
+      await prisma.call.updateMany({
+        where: { employeeId: "dev_employee_profile" },
+        data: { employeeId: naresh.id },
+      });
+    }
+
     const [recentCalls, allEmployees, allCompanies] = await Promise.all([
       prisma.call.findMany({
         orderBy: { createdAt: "desc" },
