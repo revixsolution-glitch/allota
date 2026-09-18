@@ -12,6 +12,7 @@ export interface GeminiCallAnalysis {
   monopolyTerritory?: string;
   productsInquired: string[];
   recommendedNextAction: string;
+  durationSec?: number;
 }
 
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -54,6 +55,7 @@ Carefully listen to the entire audio and perform:
 5. Detect customer mood/lead status: HOT, WARM, COLD, SKEPTICAL, PRICE_SENSITIVE, or NEUTRAL.
 6. Provide specific next action for the sales rep (e.g., "Send visual aid PDF and price list on WhatsApp for Gorakhpur district").
 7. Generate 2 to 4 concise behavioral tags (e.g. ["Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics Inquired"]).
+8. Approximate duration of the call conversation in seconds (durationSec).
 
 You MUST reply ONLY with a valid JSON object with this exact structure (no markdown fences, no code blocks):
 {
@@ -63,7 +65,8 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
   "monopolyTerritory": "Gorakhpur",
   "productsInquired": ["Cefixime 200mg", "Amoxiclav Dry Syrup"],
   "recommendedNextAction": "Send product catalog & rate list on WhatsApp",
-  "behaviorTags": ["Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics"]
+  "behaviorTags": ["Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics"],
+  "durationSec": 180
 }
 `;
 

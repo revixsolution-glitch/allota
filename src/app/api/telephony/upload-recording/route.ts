@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
           analysis?.behaviorTags ||
           (isMissed ? ["Missed Call", "Follow-up Needed"] : ["Android Recording", "Connected"]),
         whatsappSent: false,
-        durationSec: durationSec > 0 ? durationSec : 0,
+        durationSec: analysis?.durationSec || (durationSec > 0 ? durationSec : 0),
         occurredAt: new Date(),
       },
       include: {
