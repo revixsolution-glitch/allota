@@ -93,6 +93,7 @@ export default async function AdminCallsPage() {
       direction: c.direction,
       missed: c.missed,
       durationSec: c.durationSec || 0,
+      transcript: c.transcript,
       aiSummary: c.aiSummary,
       summary: c.aiSummary || c.transcript,
       behaviorTags: c.behaviorTags || [],

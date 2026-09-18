@@ -12,6 +12,7 @@ import {
 } from "./types";
 import { markWhatsAppAlertSent } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
+import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
 
 function formatINR(amount: number): string {
   if (amount >= 10000000) {
@@ -81,6 +82,13 @@ export function EmployeeDetailView({
   const { employee, summary } = data;
   const [callsList, setCallsList] = useState<EmployeeCallRow[]>(data.calls);
   const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [activeDocCallId, setActiveDocCallId] = useState<string | null>(null);
+
+  function handleOpenCallDoc(callId: string) {
+    setActiveDocCallId(callId);
+    setDocModalOpen(true);
+  }
 
   async function handleSendAiWhatsAppAlert(call: EmployeeCallRow) {
     const rawPhone = call.targetPhone || "";
@@ -1354,6 +1362,16 @@ export function EmployeeDetailView({
                   onChange={(e) => setCallSearch(e.target.value)}
                   className="rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 w-64 shadow-xs"
                 />
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenCallDoc(filteredCalls[0]?.id || callsList[0]?.id)}
+                  disabled={callsList.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer shrink-0"
+                >
+                  <span>📄</span>
+                  <span>Browse AI Call Documents</span>
+                </button>
               </div>
             </div>
 
@@ -1421,13 +1439,20 @@ export function EmployeeDetailView({
                         </div>
                       </div>
 
-                      {/* Middle: AI Call Summary & Key Takeaways */}
-                      <div className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line">
+                      {/* Middle: AI Call Summary & Key Takeaways (Clickable Document Trigger) */}
+                      <div
+                        onClick={() => handleOpenCallDoc(c.id)}
+                        className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line hover:bg-purple-50/30 hover:border-purple-300 transition-all cursor-pointer group/doc"
+                        title="Click to view full AI Intelligence Document & Verbatim Transcript"
+                      >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs">🤖</span>
                             <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
                               AI Call Summary & Insights
+                            </span>
+                            <span className="text-[10px] text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded font-bold group-hover/doc:bg-purple-600 group-hover/doc:text-white transition">
+                              Click to Expand Brief 📄
                             </span>
                           </div>
                           <span className="text-[10px] text-ink-faint">
@@ -1452,6 +1477,12 @@ export function EmployeeDetailView({
                             ))}
                           </div>
                         )}
+
+                        <div className="mt-2 pt-2 border-t border-line/40 flex items-center justify-between">
+                          <span className="text-[10px] text-purple-700 font-bold group-hover/doc:underline flex items-center gap-1">
+                            <span>📄</span> Read Full Executive Document & Transcript &rarr;
+                          </span>
+                        </div>
                       </div>
 
                       {/* Right: WhatsApp Alert Action & Status */}
@@ -1716,6 +1747,20 @@ export function EmployeeDetailView({
           </div>
         </div>
       )}
+
+      {/* Full Executive AI Call Intelligence Document Reader Modal */}
+      <CallIntelligenceDocumentModal
+        isOpen={docModalOpen}
+        onClose={() => setDocModalOpen(false)}
+        calls={callsList}
+        initialCallId={activeDocCallId}
+        employeeName={employee.name}
+        companyName="Pharma Life Sciences Pvt Ltd"
+        onSendWhatsApp={(call) => {
+          const found = callsList.find((c) => c.id === call.id);
+          if (found) handleSendAiWhatsAppAlert(found);
+        }}
+      />
     </div>
   );
 }
