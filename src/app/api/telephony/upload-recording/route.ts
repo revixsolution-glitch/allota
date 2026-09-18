@@ -2,15 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 
-// Health check endpoint (for testing in browser or MacroDroid test button)
+// Health check & diagnostic endpoint (returns recent calls)
 export async function GET() {
-  return NextResponse.json({
-    status: "online",
-    service: "Allota Pharma CRM - Telephony Recording Webhook",
-    supportedMethods: ["POST"],
-    description: "Accepts mobile call recordings via multipart/form-data or raw audio streams.",
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    const recentCalls = await prisma.call.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: {
+        employee: { select: { name: true, phoneNumber: true } },
+        lead: { select: { name: true, phoneNumber: true } },
+        client: { select: { name: true, phoneNumber: true } },
+      },
+    });
+
+    return NextResponse.json({
+      status: "online",
+      service: "Allota Pharma CRM - Telephony Recording Webhook",
+      timestamp: new Date().toISOString(),
+      totalRecentCalls: recentCalls.length,
+      recentCalls,
+    });
+  } catch (err: any) {
+    return NextResponse.json({
+      status: "online",
+      error: err?.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
 
 function extractLast10Digits(phone: string): string {
