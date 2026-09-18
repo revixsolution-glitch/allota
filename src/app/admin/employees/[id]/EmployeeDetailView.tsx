@@ -1367,10 +1367,10 @@ export function EmployeeDetailView({
                   type="button"
                   onClick={() => handleOpenCallDoc(filteredCalls[0]?.id || callsList[0]?.id)}
                   disabled={callsList.length === 0}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 hover:scale-105 active:scale-95 text-white px-4 py-2 text-xs font-black shadow-md shadow-purple-600/25 transition-all duration-200 disabled:opacity-50 cursor-pointer shrink-0"
                 >
                   <span>📄</span>
-                  <span>Browse AI Call Documents</span>
+                  <span>Browse AI Call Documents ({filteredCalls.length})</span>
                 </button>
               </div>
             </div>
@@ -1383,7 +1383,7 @@ export function EmployeeDetailView({
                 return (
                   <div
                     key={c.id}
-                    className={`rounded-2xl p-5 border transition-all ${
+                    className={`rounded-2xl p-5 border transition-all duration-200 ${
                       isMissed
                         ? "border-amber-200/80 bg-amber-50/20 hover:bg-amber-50/40"
                         : "border-slate-200 bg-white hover:border-slate-300 shadow-xs"
@@ -1442,7 +1442,7 @@ export function EmployeeDetailView({
                       {/* Middle: AI Call Summary & Key Takeaways (Clickable Document Trigger) */}
                       <div
                         onClick={() => handleOpenCallDoc(c.id)}
-                        className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line hover:bg-purple-50/30 hover:border-purple-300 transition-all cursor-pointer group/doc"
+                        className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line hover:bg-purple-50/50 hover:border-purple-400 hover:shadow-md hover:scale-[1.015] active:scale-[0.99] transition-all duration-200 cursor-pointer group/doc"
                         title="Click to view full AI Intelligence Document & Verbatim Transcript"
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -1451,8 +1451,8 @@ export function EmployeeDetailView({
                             <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
                               AI Call Summary & Insights
                             </span>
-                            <span className="text-[10px] text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded font-bold group-hover/doc:bg-purple-600 group-hover/doc:text-white transition">
-                              Click to Expand Brief 📄
+                            <span className="text-[10px] text-purple-700 bg-purple-100 group-hover/doc:bg-purple-600 group-hover/doc:text-white px-2 py-0.5 rounded-full font-bold transition-all duration-200 shadow-2xs flex items-center gap-1">
+                              <span>📄</span> Click to Open Brief ↗
                             </span>
                           </div>
                           <span className="text-[10px] text-ink-faint">
@@ -1460,7 +1460,7 @@ export function EmployeeDetailView({
                           </span>
                         </div>
 
-                        <p className="text-xs text-ink leading-relaxed whitespace-pre-line">
+                        <p className="text-xs text-ink leading-relaxed whitespace-pre-line group-hover/doc:text-slate-900">
                           {c.aiSummary || c.summary || (isMissed ? "Outbound attempt unanswered. Recommend instant follow-up via WhatsApp." : "Routine follow-up conversation recorded.")}
                         </p>
 
@@ -1470,7 +1470,7 @@ export function EmployeeDetailView({
                             {c.behaviorTags.map((tag) => (
                               <span
                                 key={tag}
-                                className="rounded-lg bg-white border border-line px-2 py-0.5 text-[10px] font-bold text-ink-muted shadow-2xs"
+                                className="rounded-lg bg-white border border-line px-2 py-0.5 text-[10px] font-bold text-ink-muted shadow-2xs group-hover/doc:border-purple-200"
                               >
                                 #{tag}
                               </span>
@@ -1478,9 +1478,12 @@ export function EmployeeDetailView({
                           </div>
                         )}
 
-                        <div className="mt-2 pt-2 border-t border-line/40 flex items-center justify-between">
-                          <span className="text-[10px] text-purple-700 font-bold group-hover/doc:underline flex items-center gap-1">
-                            <span>📄</span> Read Full Executive Document & Transcript &rarr;
+                        <div className="mt-2.5 pt-2 border-t border-line/40 flex items-center justify-between">
+                          <span className="text-[11px] text-purple-700 font-extrabold group-hover/doc:text-purple-900 flex items-center gap-1.5">
+                            <span>📑</span> Read Verbatim Transcript & AI Audit Document &rarr;
+                          </span>
+                          <span className="text-[10px] text-slate-400 group-hover/doc:text-purple-600 font-bold">
+                            Interactive Document Reader
                           </span>
                         </div>
                       </div>

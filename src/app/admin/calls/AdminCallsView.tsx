@@ -85,17 +85,51 @@ export function AdminCallsView({
   companyName: string;
 }) {
   const [callsList, setCallsList] = useState<CallFeedItem[]>(initialCalls);
-  const [activeViewTab, setActiveViewTab] = useState<"FEED" | "MISSED" | "LEADERBOARD">("FEED");
+  const [activeViewTab, setActiveViewTab] = useState<"DOCUMENTS" | "FEED" | "MISSED" | "LEADERBOARD">("DOCUMENTS");
   const [selectedRepId, setSelectedRepId] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ANSWERED" | "MISSED" | "WHATSAPP_SENT">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [activeDocCallId, setActiveDocCallId] = useState<string | null>(null);
+  const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>("");
+  const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
 
   function handleOpenCallDoc(callId: string) {
     setActiveDocCallId(callId);
     setDocModalOpen(true);
+  }
+
+  function handleCopyEmbeddedDocument(call: CallFeedItem) {
+    if (!call) return;
+    const cleanPhone = call.targetPhone || "Not specified";
+    const text = `=====================================================
+ALLOTA AI CALL INTELLIGENCE REPORT [CONFIDENTIAL]
+Reference ID: DOC-CALL-${call.id.slice(-8).toUpperCase()}
+Company: ${companyName}
+Representative: ${call.repName} (${call.repPhone || "Field"})
+Contact Party: ${call.targetName} (${cleanPhone})
+Date & Time: ${formatDate(call.occurredAt)} at ${formatTime(call.occurredAt)}
+Duration: ${formatDuration(call.durationSec)} (${call.missed ? "MISSED" : "CONNECTED"})
+Territory: ${call.leadTerritory || "General Territory"}
+=====================================================
+
+[EXECUTIVE SUMMARY]
+${call.aiSummary || call.summary || "Call completed without summary."}
+
+[BEHAVIOR & TOPIC TAGS]
+${call.behaviorTags.join(", ") || "None"}
+
+[VERBATIM CALL TRANSCRIPT]
+${call.transcript || "No audio transcript available."}
+
+Report generated via Gemini 2.5 Flash Telephony Engine.
+=====================================================`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedEmbeddedBrief(true);
+      setTimeout(() => setCopiedEmbeddedBrief(false), 2500);
+    });
   }
 
   // Global KPIs
@@ -138,6 +172,16 @@ export function AdminCallsView({
       return matchesRep && matchesStatus && matchesSearch;
     });
   }, [callsList, selectedRepId, statusFilter, searchQuery]);
+
+  const activeEmbeddedCall = useMemo(() => {
+    return (
+      filteredCalls.find((c) => c.id === selectedEmbeddedDocId) ||
+      callsList.find((c) => c.id === selectedEmbeddedDocId) ||
+      filteredCalls[0] ||
+      callsList[0] ||
+      null
+    );
+  }, [selectedEmbeddedDocId, filteredCalls, callsList]);
 
   async function handleSendAiWhatsAppAlert(call: CallFeedItem) {
     const rawPhone = call.targetPhone || "";
@@ -261,6 +305,25 @@ export function AdminCallsView({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={() => setActiveViewTab("DOCUMENTS")}
+            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
+              activeViewTab === "DOCUMENTS"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30 scale-[1.02]"
+                : "bg-white text-ink-muted border border-line hover:border-purple-300 hover:text-purple-700"
+            }`}
+          >
+            <span>📑 Transcripts & AI Summaries</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeViewTab === "DOCUMENTS" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"
+              }`}
+            >
+              {filteredCalls.length} Docs
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveViewTab("FEED")}
             className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
               activeViewTab === "FEED"
@@ -330,6 +393,441 @@ export function AdminCallsView({
           </button>
         )}
       </div>
+
+      {/* ============================================================ */}
+      {/* TAB 0: DEDICATED TRANSCRIPTS & AI SUMMARIES DOCUMENT WORKSPACE */}
+      {/* ============================================================ */}
+      {activeViewTab === "DOCUMENTS" && (
+        <section className="space-y-6">
+          {/* Top Info Banner */}
+          <div className="rounded-3xl p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-xl relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-purple-200 border border-white/20">
+                    <span>📑</span> Executive Telephony Dossier & Audit
+                  </span>
+                  <span className="text-xs text-purple-200 font-semibold">Gemini 2.5 Flash Diarized</span>
+                </div>
+                <h2 className="text-2xl font-black tracking-tight mt-2 text-white">
+                  Field Calls: Verbatim Transcripts & Executive Summaries
+                </h2>
+                <p className="text-xs text-purple-200/90 max-w-3xl mt-1 leading-relaxed">
+                  Review exact call dialog, customer inquiries, and AI-generated Hinglish commercial summaries for any sales representative. Read what was said directly without needing to question employees.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleOpenCallDoc(activeEmbeddedCall?.id || filteredCalls[0]?.id)}
+                  disabled={!activeEmbeddedCall}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white text-purple-900 px-4 py-2.5 text-xs font-black shadow-lg hover:bg-purple-50 active:scale-95 transition cursor-pointer"
+                >
+                  <span>🔲</span>
+                  <span>Expand Full Screen Reader</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Master-Detail Document Workspace */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Left Column: Call Directory & Filter (5 cols) */}
+            <div className="lg:col-span-5 neo-panel rounded-3xl p-5 bg-white border border-line space-y-4">
+              <div className="flex items-center justify-between border-b border-line pb-3">
+                <div>
+                  <h3 className="text-sm font-black text-ink flex items-center gap-1.5">
+                    <span>🎙️</span> Call Audio Logs
+                  </h3>
+                  <p className="text-[11px] text-ink-faint mt-0.5">
+                    Showing {filteredCalls.length} calls logged
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRepId("ALL");
+                    setStatusFilter("ALL");
+                    setSearchQuery("");
+                  }}
+                  className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={selectedRepId}
+                    onChange={(e) => setSelectedRepId(e.target.value)}
+                    className="rounded-xl border border-line bg-slate-50/70 px-2.5 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-inner"
+                  >
+                    <option value="ALL">All Representatives ({reps.length})</option>
+                    {reps.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} ({r.totalCalls})
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="rounded-xl border border-line bg-slate-50/70 px-2.5 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-purple-500 shadow-inner"
+                  >
+                    <option value="ALL">All Outcomes</option>
+                    <option value="ANSWERED">🟢 Connected</option>
+                    <option value="MISSED">🔴 Missed</option>
+                  </select>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Search transcript dialog, contact, tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-slate-50/70 px-3 py-2 text-xs text-ink focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-inner"
+                />
+              </div>
+
+              {/* Call Cards List */}
+              <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
+                {filteredCalls.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    No calls match current filters.
+                  </div>
+                ) : (
+                  filteredCalls.map((c) => {
+                    const isSelected = activeEmbeddedCall?.id === c.id;
+                    const isMissed = c.missed;
+
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => setSelectedEmbeddedDocId(c.id)}
+                        className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-50/90 border-2 border-purple-500 shadow-md scale-[1.015]"
+                            : "bg-white border border-line hover:border-purple-300 hover:bg-purple-50/20 hover:scale-[1.01] hover:shadow-xs"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-black text-xs shadow-xs">
+                              {c.repName.slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-black text-purple-800 truncate">
+                                  {c.repName}
+                                </span>
+                                {c.leadTerritory && (
+                                  <span className="text-[10px] text-slate-400 font-medium truncate">
+                                    • {c.leadTerritory}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-extrabold text-xs text-ink truncate">
+                                {c.targetName}
+                              </h4>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 ${
+                              isMissed
+                                ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            }`}
+                          >
+                            {isMissed ? "Missed" : `${formatDuration(c.durationSec)}`}
+                          </span>
+                        </div>
+
+                        {/* Summary Snippet */}
+                        <p className="mt-2 line-clamp-2 text-[11px] text-slate-600 leading-snug">
+                          {c.aiSummary || c.summary || (isMissed ? "Prospect did not answer attempt." : "Recording saved.")}
+                        </p>
+
+                        <div className="mt-2.5 pt-2 border-t border-line/60 flex items-center justify-between text-[10px] text-ink-faint">
+                          <span>{formatDate(c.occurredAt)} • {formatTime(c.occurredAt)}</span>
+                          <span className={`font-bold flex items-center gap-1 ${isSelected ? "text-purple-700" : "text-slate-400"}`}>
+                            <span>📄</span> {isSelected ? "Viewing Brief" : "Read Brief ↗"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: Clean Executive Document View (7 cols) */}
+            <div className="lg:col-span-7">
+              {activeEmbeddedCall ? (
+                <article className="rounded-3xl bg-white p-6 sm:p-9 shadow-lg border border-slate-200 relative neo-panel">
+                  
+                  {/* Top Letterhead */}
+                  <div className="border-b-2 border-slate-900 pb-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">
+                          {activeEmbeddedCall.companyName || companyName}
+                        </p>
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mt-0.5">
+                          EXECUTIVE CALL INTELLIGENCE BRIEF
+                        </h1>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-slate-900 text-white px-2.5 py-1 text-[10px] font-black tracking-wider uppercase">
+                          CONFIDENTIAL
+                        </span>
+                        <span className="font-mono text-[11px] font-bold text-slate-500">
+                          REF: DOC-CALL-{activeEmbeddedCall.id.slice(-8).toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Metadata Strip */}
+                    <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Field Representative
+                        </span>
+                        <p className="font-extrabold text-slate-900 mt-0.5">
+                          {activeEmbeddedCall.repName}
+                        </p>
+                        {activeEmbeddedCall.repPhone && (
+                          <p className="font-mono text-[11px] text-slate-500">{activeEmbeddedCall.repPhone}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Customer / Lead
+                        </span>
+                        <p className="font-extrabold text-slate-900 mt-0.5">
+                          {activeEmbeddedCall.targetName}
+                        </p>
+                        <p className="font-mono text-[11px] text-slate-500">
+                          {activeEmbeddedCall.targetPhone || "Direct Call"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Timestamp & Duration
+                        </span>
+                        <p className="font-extrabold text-slate-900 mt-0.5">
+                          {formatDate(activeEmbeddedCall.occurredAt)} • {formatTime(activeEmbeddedCall.occurredAt)}
+                        </p>
+                        <p className="text-[11px] text-slate-600 font-bold">
+                          Talk Time: {formatDuration(activeEmbeddedCall.durationSec)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Connection Status
+                        </span>
+                        <div className="mt-0.5">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-black ${
+                              activeEmbeddedCall.missed
+                                ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            }`}
+                          >
+                            {activeEmbeddedCall.missed ? "📵 Missed" : "📞 Connected"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Direction: {activeEmbeddedCall.direction}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 1: Executive Call Summary */}
+                  <div className="mt-6">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-100 text-purple-700 text-xs font-black">
+                        1
+                      </span>
+                      <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        Executive Summary & Commercial Intent
+                      </h2>
+                    </div>
+
+                    <div className="rounded-2xl border-l-4 border-l-purple-600 bg-purple-50/40 p-4 sm:p-5 border border-purple-100">
+                      <p className="text-sm text-slate-800 leading-relaxed font-serif whitespace-pre-line">
+                        {activeEmbeddedCall.aiSummary || activeEmbeddedCall.summary || (
+                          activeEmbeddedCall.missed
+                            ? "Outbound voice connection attempt was unanswered by the customer. Follow-up queued."
+                            : "Call completed without an executive summary."
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Section 2: PCD Commercial Intelligence */}
+                  <div className="mt-6">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-xs font-black">
+                        2
+                      </span>
+                      <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        PCD Franchise & Molecule Intelligence
+                      </h2>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          📍 Exclusive Territory
+                        </p>
+                        <p className="text-xs font-bold text-slate-800 mt-0.5">
+                          {activeEmbeddedCall.leadTerritory || "General Territory / Direct Prospect"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          🏢 Commercial Division
+                        </p>
+                        <p className="text-xs font-bold text-slate-800 mt-0.5">
+                          {activeEmbeddedCall.leadDivision === "THIRD_PARTY"
+                            ? "Third-Party Contract Manufacturing"
+                            : "PCD Pharma Franchise Monopoly"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {activeEmbeddedCall.behaviorTags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-400 mr-1">Tags:</span>
+                        {activeEmbeddedCall.behaviorTags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-lg bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 3: Verbatim Call Transcript */}
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-black">
+                          3
+                        </span>
+                        <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                          Verbatim Audio Transcript (Speaker Diarized)
+                        </h2>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Multimodal Gemini Transcription
+                      </span>
+                    </div>
+
+                    {activeEmbeddedCall.transcript ? (
+                      <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs max-h-72 overflow-y-auto">
+                        {activeEmbeddedCall.transcript.split("\n").filter(l => l.trim().length > 0).map((line, idx) => {
+                          const repFirst = (activeEmbeddedCall.repName || "").split(" ")[0].toLowerCase();
+                        const isRep =
+                          line.toLowerCase().startsWith("employee:") ||
+                          line.toLowerCase().startsWith("representative:") ||
+                          line.toLowerCase().startsWith("rep:") ||
+                          line.toLowerCase().startsWith("speaker 1:") ||
+                          (repFirst.length > 2 && line.toLowerCase().startsWith(`${repFirst}:`));
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`p-2.5 rounded-xl ${
+                                isRep
+                                  ? "bg-white border border-purple-100 text-purple-950 font-medium shadow-2xs"
+                                  : "bg-white/80 border border-slate-200 text-slate-800"
+                              }`}
+                            >
+                              <span
+                                className={`text-[10px] font-extrabold uppercase tracking-wide mr-2 ${
+                                  isRep ? "text-purple-700" : "text-emerald-700"
+                                }`}
+                              >
+                                {isRep ? `[${activeEmbeddedCall.repName}]` : `[Customer]`}
+                              </span>
+                              <span className="font-sans leading-relaxed">
+                                {line.replace(/^[^:]+:\s*/, "")}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500 bg-slate-50/50">
+                        {activeEmbeddedCall.missed
+                          ? "Prospect did not answer the phone call. No verbal conversation was recorded."
+                          : "No verbatim transcript saved for this call."}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 4: Action Bar */}
+                  <div className="mt-7 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[11px] text-slate-500">
+                      Audit Document Verified • Dual Sync Active
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSendAiWhatsAppAlert(activeEmbeddedCall)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-2 text-xs font-black shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                      >
+                        <span>⚡</span>
+                        <span>Send AI WhatsApp</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyEmbeddedDocument(activeEmbeddedCall)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition cursor-pointer"
+                      >
+                        <span>{copiedEmbeddedBrief ? "✓ Copied" : "📋 Copy Brief"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 transition cursor-pointer"
+                      >
+                        <span>🖨️ Print</span>
+                      </button>
+                    </div>
+                  </div>
+
+                </article>
+              ) : (
+                <div className="rounded-3xl bg-white p-12 text-center text-slate-400 neo-panel border border-slate-200">
+                  Select a call from the left to view the official intelligence brief.
+                </div>
+              )}
+            </div>
+
+          </div>
+        </section>
+      )}
 
       {/* TAB 2: Missed Calls Queue */}
       {activeViewTab === "MISSED" && (

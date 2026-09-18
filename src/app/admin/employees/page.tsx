@@ -162,13 +162,13 @@ export default async function AdminEmployeesPage() {
 
                 <Link
                   href={`/admin/employees/${employee.id}?tab=calls`}
-                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-rose-50/40 hover:bg-rose-50 hover:border-rose-300 transition block"
-                  title="View AI Calls Summary & Insights"
+                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-purple-50/60 hover:bg-purple-100/70 hover:border-purple-300 hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200 block group/aicall cursor-pointer"
+                  title="View AI Call Summaries & Verbatim Transcripts"
                 >
-                  <p className="text-[10px] uppercase font-bold text-rose-800 tracking-wider flex items-center justify-center gap-1">
+                  <p className="text-[10px] uppercase font-black text-purple-800 tracking-wider flex items-center justify-center gap-1">
                     <span>🤖</span> AI Calls
                   </p>
-                  <p className="mt-1 text-sm font-black text-rose-600">
+                  <p className="mt-1 text-sm font-black text-purple-700 group-hover/aicall:text-purple-900">
                     {employee.calls.length}
                   </p>
                 </Link>
@@ -186,15 +186,15 @@ export default async function AdminEmployeesPage() {
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/admin/employees/${employee.id}?tab=calls`}
-                    className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl transition text-[11px]"
+                    className="inline-flex items-center gap-1.5 font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 hover:scale-[1.03] active:scale-95 border border-purple-200 px-3 py-1.5 rounded-xl transition-all duration-200 text-[11px] shadow-2xs cursor-pointer"
                   >
-                    <span>🤖</span> AI Calls Summary &rarr;
+                    <span>📄</span> View Transcripts & Summaries &rarr;
                   </Link>
                   <Link
                     href={`/admin/employees/${employee.id}`}
-                    className="font-bold text-primary hover:underline flex items-center gap-1 text-[11px]"
+                    className="font-bold text-slate-600 hover:text-slate-900 hover:scale-[1.03] active:scale-95 flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all duration-200"
                   >
-                    Full Insights &rarr;
+                    Profile &rarr;
                   </Link>
                 </div>
               </div>

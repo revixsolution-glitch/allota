@@ -515,11 +515,13 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                   {transcriptLines.length > 0 ? (
                     <div className="space-y-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-5 font-mono text-xs max-h-80 overflow-y-auto">
                       {transcriptLines.map((line, idx) => {
+                        const repFirst = currentRep.split(" ")[0].toLowerCase();
                         const isEmployee =
                           line.toLowerCase().startsWith("employee:") ||
                           line.toLowerCase().startsWith("representative:") ||
-                          line.toLowerCase().startsWith("naresh:") ||
-                          line.toLowerCase().startsWith("speaker 1:");
+                          line.toLowerCase().startsWith("rep:") ||
+                          line.toLowerCase().startsWith("speaker 1:") ||
+                          (repFirst.length > 2 && line.toLowerCase().startsWith(`${repFirst}:`));
 
                         return (
                           <div
