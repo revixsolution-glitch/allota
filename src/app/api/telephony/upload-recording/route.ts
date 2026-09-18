@@ -98,15 +98,16 @@ export async function POST(req: NextRequest) {
         audioBuffer = Buffer.from(body.audioBase64, "base64");
         mimeType = body.mimeType || "audio/mp3";
       }
-    } else if (
-      contentType.startsWith("audio/") ||
-      contentType === "application/octet-stream"
-    ) {
-      // Direct raw binary stream from automation tool
-      const arrayBuf = await req.arrayBuffer();
-      if (arrayBuf.byteLength > 0) {
-        audioBuffer = Buffer.from(arrayBuf);
-        mimeType = contentType === "application/octet-stream" ? "audio/mp3" : contentType;
+    } else {
+      // Direct raw binary stream from automation tool (MacroDroid "File" option)
+      try {
+        const arrayBuf = await req.arrayBuffer();
+        if (arrayBuf.byteLength > 0) {
+          audioBuffer = Buffer.from(arrayBuf);
+          mimeType = contentType.startsWith("audio/") ? contentType : "audio/mp3";
+        }
+      } catch {
+        // No body provided
       }
     }
 
