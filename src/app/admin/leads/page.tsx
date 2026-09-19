@@ -940,8 +940,8 @@ export default async function AdminLeadsPage({
 
                 {/* Source & Actions Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-ink bg-slate-100 px-2.5 py-1 rounded-lg">
-                    <span>{getSourceIcon(lead.source)}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ink bg-slate-100 px-2.5 py-1 rounded-lg">
+                    <span className="flex items-center justify-center shrink-0">{getSourceIconComponent(lead.source)}</span>
                     <span>{lead.source}</span>
                   </span>
 
@@ -1055,54 +1055,69 @@ const tableSelectClass =
 const smallButtonClass =
   "w-fit rounded-xl px-3 py-1.5 text-xs font-bold text-ink-muted neo-button hover:text-primary hover:border-primary/40";
 
-function getSourceIconComponent(source: string) {
+function getSourceIconComponent(source: string, active?: boolean) {
   switch (source) {
     case LeadSource.META:
       return (
-        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12.001 8.167c-1.884 0-3.528.988-4.508 2.502-1.325-1.89-3.473-3.136-5.945-3.136C-.209 7.533-1.8 12.164.71 15.65c1.472 2.043 3.864 3.25 6.438 3.25 2.161 0 4.077-.852 5.518-2.26 1.442 1.408 3.357 2.26 5.518 2.26 2.574 0 4.966-1.207 6.438-3.25 2.51-3.486.919-8.117-.742-8.117-2.472 0-4.62 1.246-5.945 3.136-.98-1.514-2.624-2.502-4.508-2.502h-.428zm-4.733 8.358c-1.745 0-3.376-.82-4.364-2.193-1.636-2.271-.62-5.289.948-5.289 1.638 0 3.102.83 4.086 2.19 1.134 1.569 1.05 3.738-.67 5.292zm9.466 0c-1.72-1.554-1.804-3.723-.67-5.292.984-1.36 2.448-2.19 4.086-2.19 1.568 0 2.584 3.018.948 5.289-.988 1.373-2.619 2.193-4.364 2.193z"/>
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill={active ? "currentColor" : "#0467DF"}>
+          <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z" />
         </svg>
       );
     case LeadSource.INDIAMART:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
+        <img
+          src="/indiamart-icon.png"
+          alt="IndiaMART"
+          className="h-3.5 w-3.5 rounded-xs object-contain shrink-0"
+        />
       );
     case LeadSource.WEBSITE:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="9" strokeWidth="2" />
+          <path d="M3 12h18M12 3a14.5 14.5 0 0 1 4 9 14.5 14.5 0 0 1-4 9 14.5 14.5 0 0 1-4-9 14.5 14.5 0 0 1 4-9z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case LeadSource.WHATSAPP:
       return (
-        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12.031 0C5.408 0 .034 5.374.034 11.997c0 2.116.552 4.181 1.6 6L.012 24l6.196-1.625a11.93 11.93 0 005.823 1.503h.005c6.623 0 11.997-5.374 11.997-12S18.654 0 12.031 0zm.005 21.902a9.917 9.917 0 01-5.06-1.385l-.363-.215-3.763.987 1.004-3.668-.236-.376A9.918 9.918 0 012.11 12c0-5.47 4.453-9.923 9.926-9.923 2.65 0 5.141 1.033 7.016 2.908A9.873 9.873 0 0121.954 12c0 5.471-4.454 9.923-9.918 9.923zm5.436-7.429c-.298-.15-1.764-.871-2.037-.97-.273-.1-.472-.15-.67.15-.2.298-.77 1.02-.944 1.218-.174.198-.348.223-.646.074-.298-.15-1.258-.464-2.396-1.48-.886-.79-1.484-1.766-1.658-2.064-.174-.298-.019-.459.13-.607.135-.134.298-.347.447-.521.149-.174.199-.298.298-.496.1-.198.05-.372-.025-.521-.075-.15-.67-1.614-.918-2.21-.242-.58-.488-.501-.67-.511-.174-.01-.373-.01-.572-.01-.198 0-.521.074-.794.372s-1.043 1.018-1.043 2.483c0 1.465 1.067 2.88 1.216 3.078.149.198 2.099 3.206 5.085 4.496.71.307 1.265.491 1.698.629.714.227 1.363.195 1.877.118.573-.086 1.764-.72 2.012-1.414.248-.694.248-1.289.174-1.414-.074-.124-.273-.198-.571-.347z"/>
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill={active ? "currentColor" : "#25D366"}>
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
         </svg>
       );
     case LeadSource.SOCIAL:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill={active ? "currentColor" : "#E1306C"}>
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
         </svg>
       );
     case LeadSource.MANUAL:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="9" cy="7" r="4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <line x1="19" y1="8" x2="19" y2="14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <line x1="22" y1="11" x2="16" y2="11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case LeadSource.EXCEL_IMPORT:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 2290 2130" fill="none">
+          <path fill="#185C37" d="M1437.75 1011.75L532.5 852v1180.39c0 53.91 43.7 97.61 97.61 97.61h1562.04c53.9 0 97.6-43.7 97.6-97.61V1597.5L1437.75 1011.75z"/>
+          <path fill="#21A366" d="M1437.75 0H630.11C576.2 0 532.5 43.7 532.5 97.61V532.5l905.25 532.5 479.25 159.75 372.75-159.75V532.5L1437.75 0z"/>
+          <path fill="#107C41" d="M532.5 532.5h905.25V1065H532.5V532.5z"/>
+          <path fill="#33C481" d="M2192.14 0H1437.75v532.5h852V97.61c0-53.91-43.7-97.61-97.61-97.61z"/>
+          <path fill="#107C41" d="M1437.75 1065h852v532.5h-852V1065z"/>
+          <path fill="#18884F" d="M97.61 479.25h976.28c53.91 0 97.61 43.7 97.61 97.61v976.28c0 53.91-43.7 97.61-97.61 97.61H97.61C43.7 1650.75 0 1607.05 0 1553.14V576.86C0 522.95 43.7 479.25 97.61 479.25z"/>
+          <path fill="#FFFFFF" d="M302.3 1382.26l205.33-318.17L319.5 747.68h151.34l102.66 202.35c9.48 19.23 15.98 33.5 19.49 42.92h1.33c6.75-15.33 13.85-30.23 21.3-44.67L725.37 747.8h138.93l-192.93 314.55 197.83 319.91H721.38L602.79 1160.16c-5.59-9.45-10.33-19.38-14.16-29.66h-1.76c-3.47 10.07-8.08 19.72-13.74 28.75l-122.1 223.01H302.3z"/>
         </svg>
       );
     default:
       return (
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
+          <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
+          <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
+          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
         </svg>
       );
   }
@@ -1131,16 +1146,16 @@ function PlatformCard({
       iconBadge: "bg-sky-50 text-sky-600 border border-sky-200/60",
     },
     [LeadSource.META]: {
-      active: "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25",
-      inactive: "border-l-4 border-l-blue-500 hover:border-blue-400",
-      countColor: "text-blue-600",
-      iconBadge: "bg-blue-50 text-blue-600 border border-blue-200/60",
+      active: "bg-gradient-to-br from-[#0467DF] to-blue-700 text-white shadow-lg shadow-blue-600/25",
+      inactive: "border-l-4 border-l-[#0467DF] hover:border-blue-400",
+      countColor: "text-[#0467DF]",
+      iconBadge: "bg-blue-50 text-[#0467DF] border border-blue-200/60",
     },
     [LeadSource.INDIAMART]: {
-      active: "bg-gradient-to-br from-teal-600 to-teal-700 text-white shadow-lg shadow-teal-600/25",
-      inactive: "border-l-4 border-l-teal-500 hover:border-teal-400",
-      countColor: "text-teal-600",
-      iconBadge: "bg-teal-50 text-teal-600 border border-teal-200/60",
+      active: "bg-gradient-to-br from-[#283593] to-[#1a237e] text-white shadow-lg shadow-indigo-900/25",
+      inactive: "border-l-4 border-l-[#283593] hover:border-indigo-600",
+      countColor: "text-[#283593]",
+      iconBadge: "bg-indigo-50 text-[#283593] border border-indigo-200/60",
     },
     [LeadSource.WEBSITE]: {
       active: "bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-600/25",
@@ -1150,15 +1165,15 @@ function PlatformCard({
     },
     [LeadSource.WHATSAPP]: {
       active: "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-600/25",
-      inactive: "border-l-4 border-l-emerald-500 hover:border-emerald-400",
-      countColor: "text-emerald-600",
-      iconBadge: "bg-emerald-50 text-emerald-600 border border-emerald-200/60",
+      inactive: "border-l-4 border-l-[#25D366] hover:border-emerald-400",
+      countColor: "text-[#25D366]",
+      iconBadge: "bg-emerald-50 text-[#25D366] border border-emerald-200/60",
     },
     [LeadSource.SOCIAL]: {
       active: "bg-gradient-to-br from-rose-500 via-pink-600 to-purple-600 text-white shadow-lg shadow-rose-500/25",
       inactive: "border-l-4 border-l-rose-500 hover:border-rose-400",
-      countColor: "text-rose-600",
-      iconBadge: "bg-rose-50 text-rose-600 border border-rose-200/60",
+      countColor: "text-[#E1306C]",
+      iconBadge: "bg-rose-50 text-[#E1306C] border border-rose-200/60",
     },
     [LeadSource.MANUAL]: {
       active: "bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-600/25",
@@ -1167,10 +1182,10 @@ function PlatformCard({
       iconBadge: "bg-amber-50 text-amber-600 border border-amber-200/60",
     },
     [LeadSource.EXCEL_IMPORT]: {
-      active: "bg-gradient-to-br from-teal-600 to-teal-700 text-white shadow-lg shadow-teal-600/25",
-      inactive: "border-l-4 border-l-teal-500 hover:border-teal-400",
-      countColor: "text-teal-600",
-      iconBadge: "bg-teal-50 text-teal-600 border border-teal-200/60",
+      active: "bg-gradient-to-br from-[#107C41] to-[#0d6133] text-white shadow-lg shadow-emerald-900/25",
+      inactive: "border-l-4 border-l-[#107C41] hover:border-emerald-600",
+      countColor: "text-[#107C41]",
+      iconBadge: "bg-emerald-50 text-[#107C41] border border-emerald-200/60",
     },
   };
 
@@ -1197,7 +1212,7 @@ function PlatformCard({
           }`}
           title={label}
         >
-          {getSourceIconComponent(brandColor)}
+          {getSourceIconComponent(brandColor, active)}
         </span>
       </div>
       <p
@@ -1325,22 +1340,5 @@ function extractLeadData(rawPayload: unknown) {
     .join(" / ");
 }
 
-function getSourceIcon(source: LeadSource) {
-  switch (source) {
-    case LeadSource.META:
-      return "📘";
-    case LeadSource.INDIAMART:
-      return "🏪";
-    case LeadSource.WEBSITE:
-      return "🌐";
-    case LeadSource.WHATSAPP:
-      return "💬";
-    case LeadSource.SOCIAL:
-      return "📸";
-    case LeadSource.MANUAL:
-      return "📝";
-    default:
-      return "📌";
-  }
-}
+
 
