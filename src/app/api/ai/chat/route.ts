@@ -138,10 +138,35 @@ Keep your answers direct, crisp (2-4 sentences max), and informative.`;
         try {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
           
-          // Build formatted contents including conversation history
+          // Build formatted contents including conversation history with strict few-shot boundaries
           const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [
             { role: "user", parts: [{ text: systemPrompt }] },
-            { role: "model", parts: [{ text: "Understood. I am Allota AI, ready to assist with real-time CRM intelligence and telephony operations." }] },
+            {
+              role: "model",
+              parts: [
+                {
+                  text: "Understood. I am Allota AI Copilot. I am strictly restricted to Allota AI CRM and PCD pharma operations. If any user asks about anything outside CRM (stories, jokes, celebrities, politics, science, weather, coding outside CRM), I will never entertain it or make up creative links; I will directly refuse and say 'Sorry, I can't help with that.'",
+                },
+              ],
+            },
+            { role: "user", parts: [{ text: "tell me a story about space and aliens" }] },
+            {
+              role: "model",
+              parts: [
+                {
+                  text: "Sorry, I can't help with that. I can only assist with Allota AI CRM, PCD pharma operations, telephony intelligence, leads, and orders.",
+                },
+              ],
+            },
+            { role: "user", parts: [{ text: "Delhi me aaj barish hogi kya?" }] },
+            {
+              role: "model",
+              parts: [
+                {
+                  text: "Maaf kijiye, main isme madad nahi kar sakta. Main sirf Allota AI CRM, PCD pharma operations, telephony calls aur leads ke baare mein assist kar sakta hoon.",
+                },
+              ],
+            },
           ];
 
           if (Array.isArray(history)) {
@@ -159,7 +184,13 @@ Keep your answers direct, crisp (2-4 sentences max), and informative.`;
           const geminiRes = await fetch(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents }),
+            body: JSON.stringify({
+              contents,
+              generationConfig: {
+                temperature: 0.1,
+                topP: 0.7,
+              },
+            }),
           });
 
           if (geminiRes.ok) {
