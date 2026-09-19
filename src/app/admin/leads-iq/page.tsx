@@ -2,11 +2,41 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 
-export default async function LeadsIqPage() {
+interface LeadsIqPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function LeadsIqPage(props: LeadsIqPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
 
   const fortyEightHoursAgo = new Date(Date.now() - 48 * 3600 * 1000);
 
@@ -22,18 +52,19 @@ export default async function LeadsIqPage() {
   ] = await Promise.all([
     prisma.lead.groupBy({
       by: ["source", "status"],
-      where: companyScope,
+      where: { ...companyScope, ...leadDateFilter },
       _count: { _all: true },
     }),
     prisma.lead.groupBy({
       by: ["division", "status"],
-      where: companyScope,
+      where: { ...companyScope, ...leadDateFilter },
       _count: { _all: true },
     }),
     prisma.employee.findMany({
       where: companyScope,
       include: {
         leads: {
+          where: leadDateFilter,
           select: {
             id: true,
             division: true,
@@ -43,6 +74,7 @@ export default async function LeadsIqPage() {
           },
         },
         calls: {
+          where: callDateFilter,
           select: {
             id: true,
             durationSec: true,
@@ -54,7 +86,10 @@ export default async function LeadsIqPage() {
       orderBy: { name: "asc" },
     }),
     prisma.call.findMany({
-      where: activeCompanyId ? { employee: { companyId: activeCompanyId } } : {},
+      where: {
+        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...callDateFilter,
+      },
       select: {
         id: true,
         durationSec: true,
@@ -65,6 +100,7 @@ export default async function LeadsIqPage() {
     prisma.lead.findMany({
       where: {
         ...companyScope,
+        ...leadDateFilter,
         assignedEmployeeId: { not: null },
         status: { in: [LeadStatus.ASSIGNED, LeadStatus.NEW] },
         calls: { none: {} },
@@ -76,8 +112,8 @@ export default async function LeadsIqPage() {
       orderBy: { createdAt: "asc" },
       take: 10,
     }),
-    prisma.lead.count({ where: companyScope }),
-    prisma.lead.count({ where: { ...companyScope, assignedEmployeeId: null } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter, assignedEmployeeId: null } }),
   ]);
 
   // Source-level metrics

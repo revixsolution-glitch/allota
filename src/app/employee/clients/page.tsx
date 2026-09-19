@@ -2,7 +2,17 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export default async function EmployeeClientsPage() {
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
+export default async function EmployeeClientsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}) {
   const session = await getSession();
   const employeeId = session?.employeeId;
 
@@ -14,9 +24,26 @@ export default async function EmployeeClientsPage() {
     );
   }
 
+  const params = searchParams ? await searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    params.range,
+    params.from,
+    params.to
+  );
+
+  const clientDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
   const [clients, employee] = await Promise.all([
     prisma.client.findMany({
-      where: { assignedEmployeeId: employeeId },
+      where: {
+        assignedEmployeeId: employeeId,
+        ...clientDateFilter,
+      },
       include: {
         territory: true,
         _count: { select: { orders: true, creditRecords: true } },

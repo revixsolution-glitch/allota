@@ -82,7 +82,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
           }
         : {},
       include: {
-        calls: true,
+        calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
       },
       orderBy: { name: "asc" },
     }),

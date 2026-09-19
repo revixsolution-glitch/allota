@@ -10,11 +10,49 @@ function formatINR(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 export const dynamic = "force-dynamic";
 
-export default async function AdminEmployeesPage() {
+interface AdminEmployeesPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function AdminEmployeesPage(props: AdminEmployeesPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
+
+  const orderDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { orderDate: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { orderDate: { gte: dateFilter.start } }
+      : {};
 
   const employees = await prisma.employee.findMany({
     where: activeCompanyId ? { companyId: activeCompanyId } : {},
@@ -22,12 +60,12 @@ export default async function AdminEmployeesPage() {
       user: true,
       clients: {
         include: {
-          orders: true,
+          orders: Object.keys(orderDateFilter).length > 0 ? { where: orderDateFilter } : true,
           territory: true,
         },
       },
-      leads: true,
-      calls: true,
+      leads: Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : true,
+      calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
       tasks: true,
       sessions: {
         orderBy: { loginTime: "desc" },

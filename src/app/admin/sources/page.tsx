@@ -4,10 +4,34 @@ import { LeadSource } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ExcelUploader } from "./ExcelUploader";
 
-export default async function SourcesHubPage() {
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
+interface SourcesHubPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function SourcesHubPage(props: SourcesHubPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
 
   // Query pure database metrics
   const [employees, sourceGroups, divisionGroups, excelBatches, unassignedExcelBatches, recentUploads] =
@@ -23,26 +47,26 @@ export default async function SourcesHubPage() {
       }),
       prisma.lead.groupBy({
         by: ["source"],
-        where: companyScope,
+        where: { ...companyScope, ...leadDateFilter },
         _count: { _all: true },
       }),
       prisma.lead.groupBy({
         by: ["division"],
-        where: companyScope,
+        where: { ...companyScope, ...leadDateFilter },
         _count: { _all: true },
       }),
       prisma.lead.groupBy({
         by: ["sourceTag", "division"],
-        where: { source: LeadSource.EXCEL_IMPORT, ...companyScope },
+        where: { source: LeadSource.EXCEL_IMPORT, ...companyScope, ...leadDateFilter },
         _count: { _all: true },
       }),
       prisma.lead.groupBy({
         by: ["sourceTag"],
-        where: { source: LeadSource.EXCEL_IMPORT, assignedEmployeeId: null, ...companyScope },
+        where: { source: LeadSource.EXCEL_IMPORT, assignedEmployeeId: null, ...companyScope, ...leadDateFilter },
         _count: { _all: true },
       }),
       prisma.lead.findMany({
-        where: { source: LeadSource.EXCEL_IMPORT, ...companyScope },
+        where: { source: LeadSource.EXCEL_IMPORT, ...companyScope, ...leadDateFilter },
         orderBy: { createdAt: "desc" },
         take: 10,
         select: {

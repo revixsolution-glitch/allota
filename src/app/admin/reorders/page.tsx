@@ -10,12 +10,17 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 export default async function AdminReordersPage(props: {
   searchParams: Promise<{
     search?: string;
     status?: string;
     territory?: string;
     employee?: string;
+    range?: string;
+    from?: string;
+    to?: string;
   }>;
 }) {
   const session = await getSession();
@@ -47,6 +52,19 @@ export default async function AdminReordersPage(props: {
   const territoryFilter = searchParams.territory || "all";
   const employeeFilter = searchParams.employee || "all";
 
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const orderDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { orderDate: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { orderDate: { gte: dateFilter.start } }
+      : {};
+
   const now = new Date();
 
   // Query active clients with full territory, employee, tasks, orders and product items
@@ -64,6 +82,7 @@ export default async function AdminReordersPage(props: {
           orderBy: { createdAt: "desc" },
         },
         orders: {
+          where: Object.keys(orderDateFilter).length > 0 ? orderDateFilter : undefined,
           orderBy: { orderDate: "desc" },
           include: {
             items: {

@@ -22,12 +22,50 @@ import {
   FollowupTaskRow,
 } from "./types";
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 export const dynamic = "force-dynamic";
 
-export default async function AdminInsightsPage() {
+interface AdminInsightsPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const orderDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { orderDate: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { orderDate: { gte: dateFilter.start } }
+      : {};
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
 
   const [
     clients,
@@ -59,7 +97,10 @@ export default async function AdminInsightsPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.lead.findMany({
-      where: companyScope,
+      where: {
+        ...companyScope,
+        ...leadDateFilter,
+      },
       include: {
         client: {
           include: { territory: true },
@@ -70,7 +111,10 @@ export default async function AdminInsightsPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.order.findMany({
-      where: companyScope,
+      where: {
+        ...companyScope,
+        ...orderDateFilter,
+      },
       include: {
         client: true,
         items: {
@@ -111,13 +155,16 @@ export default async function AdminInsightsPage() {
             orders: true,
           },
         },
-        leads: true,
+        leads: Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : true,
         tasks: true,
-        calls: true,
+        calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
       },
     }),
     prisma.call.findMany({
-      where: activeCompanyId ? { employee: { companyId: activeCompanyId } } : {},
+      where: {
+        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...callDateFilter,
+      },
       include: {
         employee: true,
         lead: true,

@@ -15,6 +15,8 @@ import {
   DailyCallStat,
 } from "./types";
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminEmployeeDetailPage({
@@ -22,7 +24,7 @@ export default async function AdminEmployeeDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; range?: string; from?: string; to?: string }>;
 }) {
   const { id } = await params;
   const sp = searchParams ? await searchParams : {};
@@ -30,6 +32,26 @@ export default async function AdminEmployeeDetailPage({
 
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  const dateFilter = parseDashboardDateFilter(
+    sp.range,
+    sp.from,
+    sp.to
+  );
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
 
   const [employee, reassignmentLogs, settings] = await Promise.all([
     prisma.employee.findUnique({
@@ -53,6 +75,7 @@ export default async function AdminEmployeeDetailPage({
           orderBy: { createdAt: "desc" },
         },
         leads: {
+          where: Object.keys(leadDateFilter).length > 0 ? leadDateFilter : undefined,
           include: {
             client: {
               include: { territory: true },
@@ -69,6 +92,7 @@ export default async function AdminEmployeeDetailPage({
           orderBy: { createdAt: "desc" },
         },
         calls: {
+          where: Object.keys(callDateFilter).length > 0 ? callDateFilter : undefined,
           include: {
             client: {
               include: { territory: true },

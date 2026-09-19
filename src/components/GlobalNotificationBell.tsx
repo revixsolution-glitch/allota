@@ -129,7 +129,7 @@ export function GlobalNotificationBell() {
 
       {/* Notifications Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 sm:w-96 rounded-3xl bg-white shadow-2xl border border-line overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="fixed inset-x-3 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-96 max-w-[calc(100vw-24px)] rounded-3xl bg-white shadow-2xl border border-line overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-b border-line">
             <div className="flex items-center gap-2">

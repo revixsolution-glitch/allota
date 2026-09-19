@@ -297,7 +297,7 @@ export function AllotaChatbot() {
       {/* 2. INTERACTIVE GEMINI-POWERED CHATBOT DRAWER / PANEL         */}
       {/* ============================================================ */}
       {isOpen && (
-        <div className="fixed right-4 sm:right-6 bottom-24 lg:bottom-24 z-50 w-[92vw] sm:w-[420px] max-h-[82vh] h-[580px] flex flex-col rounded-3xl bg-white shadow-2xl border border-line overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed inset-x-3 bottom-20 sm:inset-auto sm:right-6 sm:bottom-24 z-50 sm:w-[420px] max-w-[calc(100vw-24px)] max-h-[82vh] h-[580px] flex flex-col rounded-3xl bg-white shadow-2xl border border-line overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-950 via-indigo-950 to-purple-950 text-white border-b border-purple-800/40 shrink-0">
             <div className="flex items-center gap-3">

@@ -89,9 +89,9 @@ export function GlobalDateFilter() {
   return (
     <div className="relative inline-flex items-center">
       {/* Exact Pill Capsule Matching User Screenshot */}
-      <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 border border-line shadow-xs hover:border-[#0284c7]/40 transition">
+      <div className="flex items-center gap-1.5 sm:gap-2 rounded-full bg-white px-2.5 sm:px-3 py-1 border border-line shadow-xs hover:border-[#0284c7]/40 transition">
         {/* Calendar Icon in CRM Blue */}
-        <span className="flex items-center gap-1.5 text-xs font-bold text-ink shrink-0 select-none">
+        <span className="flex items-center gap-1 sm:gap-1.5 text-xs font-bold text-ink shrink-0 select-none">
           <svg
             className="h-4 w-4 text-[#0284c7]"
             fill="none"
@@ -105,7 +105,7 @@ export function GlobalDateFilter() {
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <span className="text-ink font-bold">Date:</span>
+          <span className="text-ink font-bold hidden sm:inline">Date:</span>
         </span>
 
         {/* Inner Select Pill */}
@@ -115,7 +115,7 @@ export function GlobalDateFilter() {
             onChange={(e) => handleSelectPreset(e.target.value as DashboardDatePreset)}
             disabled={isPending}
             aria-label="Select date range filter"
-            className="rounded-full bg-slate-50/90 hover:bg-slate-100 pl-3 pr-7 py-1 text-xs font-bold text-slate-800 border border-line/80 focus:border-[#0284c7] focus:outline-hidden cursor-pointer appearance-none disabled:opacity-50 transition"
+            className="rounded-full bg-slate-50/90 hover:bg-slate-100 pl-2.5 pr-6 sm:pl-3 sm:pr-7 py-0.5 sm:py-1 text-xs font-bold text-slate-800 border border-line/80 focus:border-[#0284c7] focus:outline-hidden cursor-pointer appearance-none disabled:opacity-50 transition"
           >
             <option value="all_time">All Time</option>
             <option value="today">Today</option>
@@ -128,7 +128,7 @@ export function GlobalDateFilter() {
 
           {/* Custom Chevron Down Icon */}
           <svg
-            className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-slate-600"
+            className="pointer-events-none absolute right-2 sm:right-2.5 h-3.5 w-3.5 text-slate-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -146,7 +146,7 @@ export function GlobalDateFilter() {
       {showCustomModal && (
         <div
           ref={customModalRef}
-          className="absolute right-0 top-full mt-2 z-50 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line animate-in fade-in slide-in-from-top-2 duration-150"
+          className="fixed inset-x-4 top-24 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 z-50 sm:w-72 max-w-[calc(100vw-32px)] rounded-2xl bg-white p-4 shadow-xl border border-line animate-in fade-in slide-in-from-top-2 duration-150"
         >
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-line">
             <span className="text-xs font-bold text-ink">Custom Date Range</span>

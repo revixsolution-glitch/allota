@@ -317,18 +317,18 @@ export function AppShell({
       {/* ============================================================ */}
       <main className="min-w-0 flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 w-full max-w-full overflow-x-hidden">
         {/* Global Top Action Bar Across All Pages (Notification Bell + Date Filter) */}
-        <div className="mb-6 flex items-center justify-between gap-3 border-b border-line/60 pb-3.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-black uppercase tracking-wider text-primary">
+        <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-line/60 pb-3 sm:pb-3.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-primary">
               {portalType} Workspace
             </span>
             <span className="text-ink-faint text-xs">•</span>
-            <span className="text-xs font-semibold text-ink-muted truncate">
+            <span className="text-xs font-semibold text-ink-muted truncate max-w-[130px] sm:max-w-none">
               {title}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 ml-auto shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 ml-auto shrink-0">
             <GlobalTopBarActions />
           </div>
         </div>

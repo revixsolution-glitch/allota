@@ -5,10 +5,34 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
-export default async function AdminClientsPage() {
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
+export default async function AdminClientsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const params = searchParams ? await searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    params.range,
+    params.from,
+    params.to
+  );
+
+  const clientDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
 
   const settings = activeCompanyId
     ? await prisma.companySettings.findFirst({
@@ -31,7 +55,10 @@ export default async function AdminClientsPage() {
 
   const [clients, territories, employees] = await Promise.all([
     prisma.client.findMany({
-      where: companyScope,
+      where: {
+        ...companyScope,
+        ...clientDateFilter,
+      },
       include: {
         territory: true,
         assignedEmployee: true,

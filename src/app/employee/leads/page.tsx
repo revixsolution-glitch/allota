@@ -4,10 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { updateEmployeeLeadStatus, logEmployeeCall } from "@/lib/admin-actions";
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 export default async function EmployeeLeadsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ division?: string; search?: string }>;
+  searchParams?: Promise<{
+    division?: string;
+    search?: string;
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const session = await getSession();
   const employeeId = session?.employeeId;
@@ -24,12 +32,24 @@ export default async function EmployeeLeadsPage({
   const selectedDivision = params?.division || "ALL";
   const search = (params?.search || "").trim().toLowerCase();
 
+  const dateFilter = parseDashboardDateFilter(
+    params?.range,
+    params?.from,
+    params?.to
+  );
+
   const where: Record<string, any> = {
     assignedEmployeeId: employeeId,
   };
 
   if (selectedDivision === "PCD_FRANCHISE" || selectedDivision === "THIRD_PARTY") {
     where.division = selectedDivision;
+  }
+
+  if (dateFilter.start && dateFilter.end) {
+    where.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
+  } else if (dateFilter.start) {
+    where.createdAt = { gte: dateFilter.start };
   }
 
   const [leads, employee, divisionCounts] = await Promise.all([

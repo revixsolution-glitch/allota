@@ -5,7 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 
-export default async function EmployeeDashboardPage() {
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
+interface EmployeeDashboardPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function EmployeeDashboardPage(props: EmployeeDashboardPageProps) {
   const session = await getSession();
   const employeeId = session?.employeeId;
 
@@ -16,6 +26,27 @@ export default async function EmployeeDashboardPage() {
       </div>
     );
   }
+
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const leadDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
 
   const [
     employee,
@@ -37,7 +68,10 @@ export default async function EmployeeDashboardPage() {
     }),
     prisma.client.count({ where: { assignedEmployeeId: employeeId } }),
     prisma.lead.findMany({
-      where: { assignedEmployeeId: employeeId },
+      where: {
+        assignedEmployeeId: employeeId,
+        ...leadDateFilter,
+      },
       include: {
         _count: { select: { calls: true } },
         reassignmentLogs: { take: 1, orderBy: { reassignedAt: "desc" } },
@@ -47,20 +81,47 @@ export default async function EmployeeDashboardPage() {
     }),
     prisma.lead.groupBy({
       by: ["division"],
-      where: { assignedEmployeeId: employeeId },
+      where: {
+        assignedEmployeeId: employeeId,
+        ...leadDateFilter,
+      },
       _count: { _all: true },
     }),
     prisma.call.count({
       where: {
         employeeId,
-        occurredAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        ...(dateFilter.preset !== "all_time"
+          ? callDateFilter
+          : { occurredAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } }),
       },
     }),
-    prisma.call.count({ where: { employeeId } }),
-    prisma.call.count({ where: { employeeId, missed: false } }),
-    prisma.call.count({ where: { employeeId, missed: true } }),
+    prisma.call.count({
+      where: {
+        employeeId,
+        ...callDateFilter,
+      },
+    }),
+    prisma.call.count({
+      where: {
+        employeeId,
+        missed: false,
+        ...callDateFilter,
+      },
+    }),
+    prisma.call.count({
+      where: {
+        employeeId,
+        missed: true,
+        ...callDateFilter,
+      },
+    }),
     prisma.call.findMany({
-      where: { employeeId, missed: true, whatsappSent: false },
+      where: {
+        employeeId,
+        missed: true,
+        whatsappSent: false,
+        ...callDateFilter,
+      },
       include: {
         lead: true,
         client: true,
