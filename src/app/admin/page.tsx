@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
-import { AdminDashboardDateFilter } from "@/components/AdminDashboardDateFilter";
 
 interface AdminDashboardPageProps {
   searchParams?: Promise<{
@@ -310,7 +309,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
 
   return (
     <div className="space-y-7">
-      {/* Top Header Row with Title & Top-Right Date Filter Dropdown */}
+      {/* Top Header Row with Title & Active Period */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
         <div>
           <div className="flex items-center gap-2">
@@ -323,18 +322,8 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
             </span>
           </div>
           <p className="text-xs text-ink-faint mt-0.5">
-            Viewing period: <strong className="text-primary font-bold">{dateFilter.label}</strong>
+            Active Filter: <strong className="text-primary font-bold">{dateFilter.label}</strong> (Use top-right Date Filter to adjust)
           </p>
-        </div>
-
-        {/* TOP RIGHT SMALL DATE FILTER DROPDOWN */}
-        <div className="self-end sm:self-auto shrink-0">
-          <AdminDashboardDateFilter
-            currentPreset={dateFilter.preset}
-            activeLabel={dateFilter.label}
-            customFrom={dateFilter.customFrom}
-            customTo={dateFilter.customTo}
-          />
         </div>
       </div>
 

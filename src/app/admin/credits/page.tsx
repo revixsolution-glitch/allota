@@ -12,14 +12,40 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 
-export default async function AdminCreditManagementPage() {
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
+interface AdminCreditManagementPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function AdminCreditManagementPage(props: AdminCreditManagementPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const creditDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { createdAt: { gte: dateFilter.start } }
+      : {};
 
   const [credits, clients] = await Promise.all([
     prisma.creditRecord.findMany({
-      where: activeCompanyId ? { client: { companyId: activeCompanyId } } : {},
+      where: {
+        ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+        ...creditDateFilter,
+      },
       include: {
         client: {
           include: {

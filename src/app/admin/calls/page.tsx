@@ -1,16 +1,52 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { AdminCallsView, CallFeedItem, RepSummaryItem } from "./AdminCallsView";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminCallsPage() {
+interface AdminCallsPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function AdminCallsPage(props: AdminCallsPageProps) {
   const session = await getSession();
   if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
     redirect("/login");
   }
   const activeCompanyId = getActiveCompanyId(session);
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
+
+  const callDateFilter =
+    dateFilter.start && dateFilter.end
+      ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { occurredAt: { gte: dateFilter.start } }
+      : {};
+
+  const callWhere = {
+    ...(activeCompanyId
+      ? {
+          OR: [
+            { employee: { companyId: activeCompanyId } },
+            { lead: { companyId: activeCompanyId } },
+            { client: { companyId: activeCompanyId } },
+            { employee: { companyId: null } },
+          ],
+        }
+      : {}),
+    ...callDateFilter,
+  };
 
   const [company, calls, employees] = await Promise.all([
     activeCompanyId
@@ -21,16 +57,7 @@ export default async function AdminCallsPage() {
       : null,
 
     prisma.call.findMany({
-      where: activeCompanyId
-        ? {
-            OR: [
-              { employee: { companyId: activeCompanyId } },
-              { lead: { companyId: activeCompanyId } },
-              { client: { companyId: activeCompanyId } },
-              { employee: { companyId: null } },
-            ],
-          }
-        : {},
+      where: callWhere,
       include: {
         employee: true,
         client: {

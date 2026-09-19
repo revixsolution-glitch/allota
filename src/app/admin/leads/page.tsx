@@ -58,12 +58,21 @@ const leadStatuses = [
   LeadStatus.CONVERTED,
 ];
 
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+
 const validSources = new Set<string>(leadSources.map((source) => source.value));
 
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ source?: string; division?: string; search?: string }>;
+  searchParams?: Promise<{
+    source?: string;
+    division?: string;
+    search?: string;
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
@@ -80,6 +89,12 @@ export default async function AdminLeadsPage({
 
   const search = (params?.search || "").trim().toLowerCase();
 
+  const dateFilter = parseDashboardDateFilter(
+    params?.range,
+    params?.from,
+    params?.to
+  );
+
   // Base where clause for filtering leads table and pipeline status
   const leadWhere: Record<string, any> = {
     division: selectedDivision,
@@ -87,6 +102,11 @@ export default async function AdminLeadsPage({
   };
   if (selectedSource) {
     leadWhere.source = selectedSource;
+  }
+  if (dateFilter.start && dateFilter.end) {
+    leadWhere.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
+  } else if (dateFilter.start) {
+    leadWhere.createdAt = { gte: dateFilter.start };
   }
 
   // Fetch all live data in parallel using pure database logic
