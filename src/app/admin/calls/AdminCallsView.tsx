@@ -17,6 +17,7 @@ export interface CallFeedItem {
   aiSummary: string | null;
   summary: string | null;
   behaviorTags: string[];
+  recordingUrl?: string | null;
   whatsappSent: boolean;
   occurredAt: string;
   repId: string;
@@ -509,7 +510,12 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                     return (
                       <div
                         key={c.id}
-                        onClick={() => setSelectedEmbeddedDocId(c.id)}
+                        onClick={() => {
+                          setSelectedEmbeddedDocId(c.id);
+                          if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                            handleOpenCallDoc(c.id);
+                          }
+                        }}
                         className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer ${
                           isSelected
                             ? "bg-purple-50/90 border-2 border-purple-500 shadow-md scale-[1.015]"
@@ -556,9 +562,16 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
 
                         <div className="mt-2.5 pt-2 border-t border-line/60 flex items-center justify-between text-[10px] text-ink-faint">
                           <span>{formatDate(c.occurredAt)} • {formatTime(c.occurredAt)}</span>
-                          <span className={`font-bold flex items-center gap-1 ${isSelected ? "text-purple-700" : "text-slate-400"}`}>
-                            <span>📄</span> {isSelected ? "Viewing Brief" : "Read Brief ↗"}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCallDoc(c.id);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-600 text-purple-800 hover:text-white font-bold text-[10px] transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                          >
+                            <span>📑</span> Open Document & Transcript
+                          </button>
                         </div>
                       </div>
                     );
@@ -779,6 +792,26 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                         {activeEmbeddedCall.missed
                           ? "Prospect did not answer the phone call. No verbal conversation was recorded."
                           : "No verbatim transcript saved for this call."}
+                      </div>
+                    )}
+
+                    {activeEmbeddedCall.recordingUrl && (
+                      <div className="mt-4 flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 shadow-2xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">🎧</span>
+                          <div>
+                            <p className="text-xs font-black text-purple-900">Original Audio (Google Drive)</p>
+                            <p className="text-[10px] text-purple-700 font-medium">Stored on Client's Drive • 0 Server Storage</p>
+                          </div>
+                        </div>
+                        <a
+                          href={activeEmbeddedCall.recordingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
+                        >
+                          <span>▶</span> Listen to Audio ↗
+                        </a>
                       </div>
                     )}
                   </div>

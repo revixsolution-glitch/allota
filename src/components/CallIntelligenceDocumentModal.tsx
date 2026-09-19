@@ -20,6 +20,7 @@ export interface CallDocumentItem {
   leadTerritory?: string | null;
   leadDivision?: string | null;
   companyName?: string | null;
+  recordingUrl?: string | null;
 }
 
 interface CallIntelligenceDocumentModalProps {
@@ -551,6 +552,26 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                       {activeCall.missed
                         ? "Prospect did not pick up. No audio dialog was recorded."
                         : activeCall.transcript || "No verbatim transcript saved for this call."}
+                    </div>
+                  )}
+
+                  {activeCall.recordingUrl && (
+                    <div className="mt-4 flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xl">🎧</span>
+                        <div>
+                          <p className="text-xs font-black text-purple-900">Original Audio (Google Drive)</p>
+                          <p className="text-[10px] text-purple-700 font-medium">Stored on Client's Drive • 0 Server Storage</p>
+                        </div>
+                      </div>
+                      <a
+                        href={activeCall.recordingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black transition shadow-xs cursor-pointer"
+                      >
+                        <span>▶</span> Listen to Audio ↗
+                      </a>
                     </div>
                   )}
                 </div>

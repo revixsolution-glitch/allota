@@ -97,6 +97,7 @@ export default async function AdminCallsPage() {
       aiSummary: c.aiSummary,
       summary: c.aiSummary || c.transcript,
       behaviorTags: c.behaviorTags || [],
+      recordingUrl: c.recordingUrl,
       whatsappSent: c.whatsappSent,
       occurredAt: c.occurredAt.toISOString(),
       repId: c.employee.id,
