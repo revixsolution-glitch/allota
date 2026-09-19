@@ -137,7 +137,12 @@ async function handleSync(req: NextRequest) {
       // Kartik UP
       await prisma.call.updateMany({
         where: {
-          transcript: { contains: "Allna speaking" },
+          OR: [
+            { transcript: { contains: "Alota speaking" } },
+            { transcript: { contains: "Allna speaking" } },
+            { transcript: { contains: "Chandigarh se bol rahe" } },
+            { aiSummary: { contains: "UP territory" } },
+          ],
         },
         data: {
           aiSummary:
@@ -149,11 +154,16 @@ async function handleSync(req: NextRequest) {
       // Kartik Audio Test
       await prisma.call.updateMany({
         where: {
-          transcript: { contains: "Testing testing 123" },
+          OR: [
+            { transcript: { contains: "Testing testing 123" } },
+            { transcript: { contains: "alota alota" } },
+            { transcript: { contains: "Alota alota" } },
+            { aiSummary: { contains: "Aa loota" } },
+          ],
         },
         data: {
           aiSummary:
-            "Audio testing call - Dono taraf se microphone clarity aur audio quality ('Aa loota') check ki gayi. Koi business deal nahi hui.",
+            "Audio testing call - Dono taraf se microphone clarity aur audio quality ('Allota Allota') check ki gayi. Koi business deal nahi hui.",
           behaviorTags: ["💀 Dead Lead", "Audio Testing", "Quality Check"],
         },
       });
@@ -161,12 +171,31 @@ async function handleSync(req: NextRequest) {
       // Kartik Mic Test
       await prisma.call.updateMany({
         where: {
-          transcript: { contains: "mic testing 1 2 3" },
+          OR: [
+            { transcript: { contains: "mic testing 1 2 3" } },
+            { transcript: { contains: "kya haal chaal" } },
+          ],
         },
         data: {
           aiSummary:
             "Microphone test aur casual greeting ('theek hai bhai, kya haal chaal'). Koi commercial pharma discussion nahi hui.",
           behaviorTags: ["💀 Dead Lead", "Mic Test", "Audio Verification"],
+        },
+      });
+
+      // Kartik Call Initiation (Hello hello hello)
+      await prisma.call.updateMany({
+        where: {
+          OR: [
+            { transcript: { contains: "Hello, hello, hello" } },
+            { transcript: { contains: "Hello. Hello. Hello." } },
+            { aiSummary: { contains: "Outbound call connection established" } },
+          ],
+        },
+        data: {
+          aiSummary:
+            "Representative ne outbound call connect ki par customer taraf se response na aane par baat aage nahi badhi.",
+          behaviorTags: ["💀 Dead Lead", "Call Initiation", "No Conversation"],
         },
       });
 
@@ -236,6 +265,13 @@ async function handleSync(req: NextRequest) {
             { aiSummary: { contains: "Kanu Di" } },
             { aiSummary: { contains: "M Masi" } },
             { aiSummary: { contains: "Poonm Cnt" } },
+            { aiSummary: { contains: "child" } },
+            { aiSummary: { contains: "labeled as Customer" } },
+            { lead: { name: "Kanu Di" } },
+            { lead: { name: "M Masi" } },
+            { lead: { name: "Poonm Cnt" } },
+            { lead: { name: "Tailor Usha" } },
+            { lead: { name: "Naresh Cnt" } },
           ],
         },
         data: {
