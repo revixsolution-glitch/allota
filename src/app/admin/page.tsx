@@ -269,8 +269,8 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
       pillClass: "bg-blue-50 text-blue-700 border-blue-200",
     },
     {
-      label: "Active Accounts",
-      value: activeClientCount.toString(),
+      label: "Total Parties",
+      value: clientCount.toString(),
       detail: `${repeatClientCount} repeat customers tracked`,
       accent: "teal" as const,
       icon: (

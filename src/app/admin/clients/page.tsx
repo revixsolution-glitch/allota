@@ -114,7 +114,7 @@ export default async function AdminClientsPage({
           <div className="flex items-center gap-3">
             <div className="rounded-2xl px-4 py-3 neo-pressed border border-line text-center">
               <p className="text-xl font-extrabold text-indigo-600">{clients.length}</p>
-              <p className="text-xs font-semibold text-ink-faint">Total Accounts</p>
+              <p className="text-xs font-semibold text-ink-faint">Total Parties</p>
             </div>
             <div className="rounded-2xl px-4 py-3 neo-pressed border border-line text-center">
               <p className="text-xl font-extrabold text-emerald-600">
