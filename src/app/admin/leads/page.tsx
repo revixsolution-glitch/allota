@@ -820,7 +820,7 @@ export default async function AdminLeadsPage({
                     {/* Platform / Source */}
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold neo-pressed border border-line text-ink">
-                        <span>{getSourceIcon(lead.source)}</span>
+                        <span className="flex items-center justify-center shrink-0">{getSourceIconComponent(lead.source)}</span>
                         <span>{sourceMeta?.shortLabel ?? lead.source}</span>
                       </span>
                     </td>
@@ -1055,6 +1055,59 @@ const tableSelectClass =
 const smallButtonClass =
   "w-fit rounded-xl px-3 py-1.5 text-xs font-bold text-ink-muted neo-button hover:text-primary hover:border-primary/40";
 
+function getSourceIconComponent(source: string) {
+  switch (source) {
+    case LeadSource.META:
+      return (
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.001 8.167c-1.884 0-3.528.988-4.508 2.502-1.325-1.89-3.473-3.136-5.945-3.136C-.209 7.533-1.8 12.164.71 15.65c1.472 2.043 3.864 3.25 6.438 3.25 2.161 0 4.077-.852 5.518-2.26 1.442 1.408 3.357 2.26 5.518 2.26 2.574 0 4.966-1.207 6.438-3.25 2.51-3.486.919-8.117-.742-8.117-2.472 0-4.62 1.246-5.945 3.136-.98-1.514-2.624-2.502-4.508-2.502h-.428zm-4.733 8.358c-1.745 0-3.376-.82-4.364-2.193-1.636-2.271-.62-5.289.948-5.289 1.638 0 3.102.83 4.086 2.19 1.134 1.569 1.05 3.738-.67 5.292zm9.466 0c-1.72-1.554-1.804-3.723-.67-5.292.984-1.36 2.448-2.19 4.086-2.19 1.568 0 2.584 3.018.948 5.289-.988 1.373-2.619 2.193-4.364 2.193z"/>
+        </svg>
+      );
+    case LeadSource.INDIAMART:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+      );
+    case LeadSource.WEBSITE:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        </svg>
+      );
+    case LeadSource.WHATSAPP:
+      return (
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.031 0C5.408 0 .034 5.374.034 11.997c0 2.116.552 4.181 1.6 6L.012 24l6.196-1.625a11.93 11.93 0 005.823 1.503h.005c6.623 0 11.997-5.374 11.997-12S18.654 0 12.031 0zm.005 21.902a9.917 9.917 0 01-5.06-1.385l-.363-.215-3.763.987 1.004-3.668-.236-.376A9.918 9.918 0 012.11 12c0-5.47 4.453-9.923 9.926-9.923 2.65 0 5.141 1.033 7.016 2.908A9.873 9.873 0 0121.954 12c0 5.471-4.454 9.923-9.918 9.923zm5.436-7.429c-.298-.15-1.764-.871-2.037-.97-.273-.1-.472-.15-.67.15-.2.298-.77 1.02-.944 1.218-.174.198-.348.223-.646.074-.298-.15-1.258-.464-2.396-1.48-.886-.79-1.484-1.766-1.658-2.064-.174-.298-.019-.459.13-.607.135-.134.298-.347.447-.521.149-.174.199-.298.298-.496.1-.198.05-.372-.025-.521-.075-.15-.67-1.614-.918-2.21-.242-.58-.488-.501-.67-.511-.174-.01-.373-.01-.572-.01-.198 0-.521.074-.794.372s-1.043 1.018-1.043 2.483c0 1.465 1.067 2.88 1.216 3.078.149.198 2.099 3.206 5.085 4.496.71.307 1.265.491 1.698.629.714.227 1.363.195 1.877.118.573-.086 1.764-.72 2.012-1.414.248-.694.248-1.289.174-1.414-.074-.124-.273-.198-.571-.347z"/>
+        </svg>
+      );
+    case LeadSource.SOCIAL:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
+      );
+    case LeadSource.MANUAL:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      );
+    case LeadSource.EXCEL_IMPORT:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      );
+  }
+}
+
 function PlatformCard({
   href,
   label,
@@ -1070,46 +1123,54 @@ function PlatformCard({
   active: boolean;
   brandColor: string;
 }) {
-  const brandStyles: Record<string, { active: string; inactive: string; countColor: string }> = {
+  const brandStyles: Record<string, { active: string; inactive: string; countColor: string; iconBadge: string }> = {
     all: {
       active: "bg-gradient-to-br from-primary to-primary-strong text-white shadow-lg shadow-primary/25",
       inactive: "border-l-4 border-l-primary hover:border-primary",
       countColor: "text-primary",
+      iconBadge: "bg-sky-50 text-sky-600 border border-sky-200/60",
     },
     [LeadSource.META]: {
       active: "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25",
       inactive: "border-l-4 border-l-blue-500 hover:border-blue-400",
       countColor: "text-blue-600",
+      iconBadge: "bg-blue-50 text-blue-600 border border-blue-200/60",
     },
     [LeadSource.INDIAMART]: {
       active: "bg-gradient-to-br from-teal-600 to-teal-700 text-white shadow-lg shadow-teal-600/25",
       inactive: "border-l-4 border-l-teal-500 hover:border-teal-400",
       countColor: "text-teal-600",
+      iconBadge: "bg-teal-50 text-teal-600 border border-teal-200/60",
     },
     [LeadSource.WEBSITE]: {
       active: "bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-600/25",
       inactive: "border-l-4 border-l-purple-500 hover:border-purple-400",
       countColor: "text-purple-600",
+      iconBadge: "bg-purple-50 text-purple-600 border border-purple-200/60",
     },
     [LeadSource.WHATSAPP]: {
       active: "bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-600/25",
       inactive: "border-l-4 border-l-emerald-500 hover:border-emerald-400",
       countColor: "text-emerald-600",
+      iconBadge: "bg-emerald-50 text-emerald-600 border border-emerald-200/60",
     },
     [LeadSource.SOCIAL]: {
       active: "bg-gradient-to-br from-rose-500 via-pink-600 to-purple-600 text-white shadow-lg shadow-rose-500/25",
       inactive: "border-l-4 border-l-rose-500 hover:border-rose-400",
       countColor: "text-rose-600",
+      iconBadge: "bg-rose-50 text-rose-600 border border-rose-200/60",
     },
     [LeadSource.MANUAL]: {
       active: "bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-600/25",
       inactive: "border-l-4 border-l-amber-500 hover:border-amber-400",
       countColor: "text-amber-600",
+      iconBadge: "bg-amber-50 text-amber-600 border border-amber-200/60",
     },
     [LeadSource.EXCEL_IMPORT]: {
       active: "bg-gradient-to-br from-teal-600 to-teal-700 text-white shadow-lg shadow-teal-600/25",
       inactive: "border-l-4 border-l-teal-500 hover:border-teal-400",
       countColor: "text-teal-600",
+      iconBadge: "bg-teal-50 text-teal-600 border border-teal-200/60",
     },
   };
 
@@ -1120,13 +1181,25 @@ function PlatformCard({
       href={href}
       className={
         active
-          ? `rounded-3xl p-5 ${currentTheme.active} transition-all duration-200 transform scale-[1.02]`
-          : `rounded-3xl p-5 neo-panel-soft ${currentTheme.inactive} transition-all duration-200 hover:-translate-y-1 hover:shadow-md`
+          ? `rounded-3xl p-4 sm:p-5 ${currentTheme.active} transition-all duration-200 transform scale-[1.02]`
+          : `rounded-3xl p-4 sm:p-5 neo-panel-soft ${currentTheme.inactive} transition-all duration-200 hover:-translate-y-1 hover:shadow-md`
       }
     >
-      <p className={`text-2xl font-black ${active ? "text-white" : currentTheme.countColor}`}>
-        {count}
-      </p>
+      <div className="flex items-center justify-between gap-1.5">
+        <p className={`text-2xl font-black ${active ? "text-white" : currentTheme.countColor}`}>
+          {count}
+        </p>
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-lg text-xs shrink-0 transition ${
+            active
+              ? "bg-white/20 text-white shadow-xs"
+              : currentTheme.iconBadge
+          }`}
+          title={label}
+        >
+          {getSourceIconComponent(brandColor)}
+        </span>
+      </div>
       <p
         className={`mt-2 text-sm font-bold truncate ${
           active ? "text-white" : "text-ink"
