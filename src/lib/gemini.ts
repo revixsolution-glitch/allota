@@ -15,7 +15,7 @@ export interface GeminiCallAnalysis {
   durationSec?: number;
 }
 
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 /**
  * Analyzes audio recording directly with Gemini Flash
@@ -93,10 +93,11 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
 
   const modelsToTry = [
     model,
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
     "gemini-2.5-flash",
-    "gemini-3.6-flash",
-    "gemini-flash-latest",
-    "gemini-2.5-flash-lite",
   ].filter((v, i, a) => a.indexOf(v) === i);
 
   let lastErrorText = "";

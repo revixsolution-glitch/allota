@@ -97,12 +97,37 @@ export function AdminCallsView({
   const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
 
+  const runDriveSync = async (forceNext = false) => {
+    try {
+      setIsSyncingDrive(true);
+      const res = await fetch("/api/telephony/sync-drive", {
+        cache: "no-store",
+        method: "GET",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.calls && Array.isArray(data.calls) && data.calls.length > 0) {
+          setCallsList(data.calls);
+        }
+        if (data.remainingToSync > 0) {
+          setTimeout(() => runDriveSync(true), 1200);
+        }
+      }
+    } catch (err) {
+      console.error("Drive sync error:", err);
+    } finally {
+      if (!forceNext) {
+        setIsSyncingDrive(false);
+      }
+    }
+  };
+
   useEffect(() => {
     // Initial and periodic background sync from Google Drive
-    fetch("/api/telephony/sync-drive").catch(() => {});
+    runDriveSync();
     const interval = setInterval(() => {
-      fetch("/api/telephony/sync-drive").catch(() => {});
-    }, 25000);
+      runDriveSync();
+    }, 20000);
     return () => clearInterval(interval);
   }, []);
 
@@ -261,13 +286,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
             <button
               type="button"
               disabled={isSyncingDrive}
-              onClick={async () => {
-                setIsSyncingDrive(true);
-                try {
-                  await fetch("/api/telephony/sync-drive", { method: "POST" });
-                } catch {}
-                window.location.reload();
-              }}
+              onClick={() => runDriveSync()}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/25 active:scale-95 transition cursor-pointer disabled:opacity-50"
             >
               <span className={isSyncingDrive ? "animate-spin" : ""}>🔄</span>
