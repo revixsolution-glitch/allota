@@ -49,23 +49,28 @@ Carefully listen to the entire audio and perform:
 1. Verbatim speaker-diarized transcript in conversational Hinglish:
    Employee: [words spoken]
    Customer: [words spoken]
-2. Professional 2-3 sentence executive summary in natural Hinglish for Admin review. Highlight key pain points, commercial interest, and budget.
-3. Extract PCD monopoly territory/district requested (if any).
-4. Extract key products, molecules, or segments inquired (e.g., Antibiotics, Syrups, Injectables, Derma, Cardiac-Diabetic).
-5. Detect customer mood/lead status: HOT, WARM, COLD, SKEPTICAL, PRICE_SENSITIVE, or NEUTRAL.
-6. Provide specific next action for the sales rep (e.g., "Send visual aid PDF and price list on WhatsApp for Gorakhpur district").
-7. Generate 2 to 4 concise behavioral tags (e.g. ["Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics Inquired"]).
-8. Approximate duration of the call conversation in seconds (durationSec).
+2. Professional 2-3 sentence executive summary STRICTLY in natural, fluent business Hinglish (conversational Hindi written in English/Latin script). Highlight commercial intent, area/products requested, and next steps. Do NOT write in pure English.
+   - Example: "Customer ne Bhopal district ke liye PCD franchise ki inquiry ki hai. Unhone Excel product list aur prices WhatsApp par mangi hain. High buying intent ke sath monopoly area confirm kiya hai."
+3. Classify the lead status strictly into one of:
+   - "HOT": High commercial interest, asked for pricing/catalog/monopoly territory, or booked order.
+   - "WARM": Interested in PCD franchise or pharma products, asked for details or follow-up.
+   - "COLD": Low engagement, asked to call later, or price hesitant.
+   - "DEAD": No commercial business (mic testing, casual/personal call, wrong number, or unanswered).
+4. Extract PCD monopoly territory/district requested (if any).
+5. Extract key products, molecules, or segments inquired (e.g., Antibiotics, Syrups, Injectables, Derma, Cardiac-Diabetic).
+6. Generate 2 to 4 concise tags where the FIRST tag MUST be one of: "🔥 Hot Lead", "⚡ Warm Lead", "❄️ Cold Lead", or "💀 Dead Lead". Followed by territory or product tags.
+7. Approximate duration of the call conversation in seconds (durationSec).
 
 You MUST reply ONLY with a valid JSON object with this exact structure (no markdown fences, no code blocks):
 {
   "transcript": "Employee: ...\\nCustomer: ...",
-  "aiSummary": "Summary in natural Hinglish for management",
+  "aiSummary": "Summary strictly in natural Hinglish for management",
+  "leadCategory": "HOT",
   "sentiment": "HOT",
   "monopolyTerritory": "Gorakhpur",
   "productsInquired": ["Cefixime 200mg", "Amoxiclav Dry Syrup"],
   "recommendedNextAction": "Send product catalog & rate list on WhatsApp",
-  "behaviorTags": ["Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics"],
+  "behaviorTags": ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics"],
   "durationSec": 180
 }
 `;

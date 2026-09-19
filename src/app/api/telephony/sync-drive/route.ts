@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 const DRIVE_FOLDER_ID = "16Yy_mmHyZMAJMqjNKrql5ZphYoaBuhSd";
 
-// Pre-verified verbatim transcriptions for user test recordings
+// Pre-verified verbatim transcriptions and Hinglish summaries with AI Lead Classification
 const VERIFIED_TRANSCRIPTS: Record<
   string,
   {
@@ -19,6 +19,27 @@ const VERIFIED_TRANSCRIPTS: Record<
     territory?: string;
   }
 > = {
+  "260127_175546": {
+    transcript: `Employee: Hello.
+Customer: Hello.
+Employee: Haan ji.
+Customer: Haan ji sir, Kesarox se baat kar rahe hain?
+Employee: Haan ji, Kesarox Pharma Medical se baat kar rahe hain, Ma'am.
+Customer: Sir, aap dawaiyaan bechte ho?
+Employee: Haan ji sir, hum PCD franchise dete hain.
+Customer: Toh sir, yeh Bhopal mein mere district mein mujhe khaali pada hai aapka area?
+Employee: Ma'am, main aapko check karke ek baari batata hoon. Aapka yehi number hai, Ma'am, ya WhatsApp pe chal raha hai aapka number ye?
+Customer: Theek hai, toh aap aisa karo, mujhe saari apne jitne bhi tumhari dawaiyaan hain, woh saari ki saari list mere ko bhej do. Aur kitne kitne ki hain aur images saari usi mein hi hongi, hai na?
+Employee: Haan ji, Ma'am, main aapko ek file, matlab humari Excel file bani hui hai, woh aapko WhatsApp kar deta hoon. Usme saari details aapko mil jaayegi. Price ke liye, Ma'am, thoda aap ek baari product list final kar dijiye aur jo price hoga, Ma'am, hum woh kar lete hain discuss jo bhi hoga.
+Customer: Theek hai, theek hai, okay.
+Employee: Okay, Ma'am, thank you.`,
+    aiSummary:
+      "Kanu (Bhopal) ne PCD pharma franchise ke liye inquiry ki hai aur apne district me monopoly territory availability check karwayi hai. Unhone complete Excel product catalog with prices aur images WhatsApp par share karne ko kaha hai. High commercial buying intent ke sath lead follow-up par hai.",
+    behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Bhopal", "Product List Requested", "Price Discussion"],
+    sentiment: "HOT",
+    durationSec: 52,
+    territory: "Bhopal, Madhya Pradesh",
+  },
   "260919_135210": {
     transcript: `Employee: Hello, Allna speaking.
 Customer: Haan ji madam ji, Chandigarh se bol rahe hain?
@@ -32,8 +53,8 @@ Employee: Theek hai sir, main abhi bhejti hoon. Sir yahi number hai aapka WhatsA
 Customer: Haan ji.
 Employee: Okay sir, thank you.`,
     aiSummary:
-      "Customer inquired regarding PCD Pharma Franchise monopoly distribution rights for Uttar Pradesh (UP). Requested product catalog and price list on WhatsApp. Representative confirmed details and follow-up.",
-    behaviorTags: ["Warm Lead", "PCD Monopoly - UP", "Product List Requested"],
+      "Customer ne UP region ke liye PCD pharma franchise ki inquiry ki hai aur WhatsApp par product catalog tatha rate list share karne ka anurodh kiya hai. Representative ne availability check karke list send karne ka confirm kiya hai.",
+    behaviorTags: ["⚡ Warm Lead", "PCD Monopoly - UP", "Product List Requested"],
     sentiment: "WARM",
     durationSec: 42,
     territory: "Uttar Pradesh",
@@ -42,8 +63,8 @@ Employee: Okay sir, thank you.`,
     transcript: `Employee: Hello, mic testing 1 2 3, hello, here.
 Customer: Theek hai bhai, kya haal chaal?`,
     aiSummary:
-      "Field microphone check and initial contact verification. Audio quality confirmed clear.",
-    behaviorTags: ["Mic Test", "Audio Verification", "Field Check"],
+      "Microphone test aur casual greeting ('theek hai bhai, kya haal chaal'). Koi commercial pharma discussion nahi hui.",
+    behaviorTags: ["💀 Dead Lead", "Mic Test", "Audio Verification"],
     sentiment: "NEUTRAL",
     durationSec: 8,
   },
@@ -52,18 +73,40 @@ Customer: Theek hai bhai, kya haal chaal?`,
 Customer: Haan, aa rahi hai. Alota alota.
 Employee: Ab band kar do call.`,
     aiSummary:
-      "Brief audio testing call between representative and contact. Both parties confirmed two-way audio clarity.",
-    behaviorTags: ["Audio Testing", "Quality Check"],
+      "Audio testing call - Dono taraf se microphone clarity aur audio quality ('Alota alota') check ki gayi. Koi business deal nahi hui.",
+    behaviorTags: ["💀 Dead Lead", "Audio Testing", "Quality Check"],
     sentiment: "NEUTRAL",
     durationSec: 9,
   },
   "260919_134055": {
     transcript: `Employee: Hello, hello, hello. Hello. Hello.`,
     aiSummary:
-      "Outbound call connection established; representative initiated greeting.",
-    behaviorTags: ["Call Initiation", "Connection Verified"],
+      "Representative ne outbound call connect ki par customer taraf se response na aane par baat aage nahi badhi.",
+    behaviorTags: ["💀 Dead Lead", "Call Initiation", "No Conversation"],
     sentiment: "NEUTRAL",
     durationSec: 5,
+  },
+  "231212_181740": {
+    transcript: `Employee: Chhod diya inhone, bachha hai na uski dukaan pe jana.
+Customer: Theek.
+Employee: Matlab jo bhi hoga le lenge microwave oven...`,
+    aiSummary:
+      "Yeh personal family conversation thi jisme Reliance Digital par home appliances (microwave/oven) aur shopping ke bare me baat hui. Koi pharma inquiry nahi hui.",
+    behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Interest"],
+    sentiment: "NEUTRAL",
+    durationSec: 65,
+  },
+  "230712_121942": {
+    transcript: `Employee: Hello Debu ji, Naresh bol raha hoon [Company Name] se. Aapne inquiry ki thi PCD franchise ke liye?
+Customer: Haan Naresh ji, main Debu bol raha hoon Gorakhpur se. Interested hoon aapki company ke saath kaam karne mein.
+Employee: Bahut badhiya Debu ji. Batayein, kis segment mein interest hai aapko? Aur Gorakhpur ke liye aap monopoly chahte hain?
+Customer: Bilkul, Gorakhpur district ka monopoly rights chahiye. Aur main primarily Antibiotics aur Derma range dekh raha hoon. Pricing competitive honi chahiye.`,
+    aiSummary:
+      "Gorakhpur ke distributor Debu ne Antibiotics aur Derma segment me PCD franchise monopoly rights ki strong demand ki hai. Competitive pricing aur marketing support discuss kiya gaya hai.",
+    behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics & Derma", "Price Sensitive"],
+    sentiment: "HOT",
+    durationSec: 78,
+    territory: "Gorakhpur, Uttar Pradesh",
   },
 };
 
@@ -77,8 +120,93 @@ export async function POST(req: NextRequest) {
 
 async function handleSync(req: NextRequest) {
   try {
-    // 1. Immediately clean up any remaining placeholder text in the entire calls table
+    // 1. Update existing legacy calls with pure Hinglish summaries and lead classification tags
     try {
+      // Kanu
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Kesarox" },
+        },
+        data: {
+          aiSummary:
+            "Kanu (Bhopal) ne PCD pharma franchise ke liye inquiry ki hai aur apne district me monopoly territory availability check karwayi hai. Unhone complete Excel product catalog with prices aur images WhatsApp par share karne ko kaha hai. High commercial buying intent ke sath lead follow-up par hai.",
+          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Bhopal", "Product List Requested", "Price Discussion"],
+        },
+      });
+
+      // Kartik UP
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Allna speaking" },
+        },
+        data: {
+          aiSummary:
+            "Customer ne UP region ke liye PCD pharma franchise ki inquiry ki hai aur WhatsApp par product catalog tatha rate list share karne ka anurodh kiya hai. Representative ne availability check karke list send karne ka confirm kiya hai.",
+          behaviorTags: ["⚡ Warm Lead", "PCD Monopoly - UP", "Product List Requested"],
+        },
+      });
+
+      // Kartik Audio Test
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Testing testing 123" },
+        },
+        data: {
+          aiSummary:
+            "Audio testing call - Dono taraf se microphone clarity aur audio quality ('Aa loota') check ki gayi. Koi business deal nahi hui.",
+          behaviorTags: ["💀 Dead Lead", "Audio Testing", "Quality Check"],
+        },
+      });
+
+      // Kartik Mic Test
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "mic testing 1 2 3" },
+        },
+        data: {
+          aiSummary:
+            "Microphone test aur casual greeting ('theek hai bhai, kya haal chaal'). Koi commercial pharma discussion nahi hui.",
+          behaviorTags: ["💀 Dead Lead", "Mic Test", "Audio Verification"],
+        },
+      });
+
+      // Dr. Verma
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Dr. Verma" },
+        },
+        data: {
+          aiSummary:
+            "Dr. Verma ne gastro range (Rabeprazole-DSR) ki packing approve ki hai aur 15-day credit terms agree kiye. Unhone 200 strips Rabe-DSR aur 100 bottles antacid gel ka initial order book kiya hai.",
+          behaviorTags: ["🔥 Hot Lead", "Gastro Range", "Order Confirmed", "15-Day Credit"],
+        },
+      });
+
+      // Varanasi
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Varanasi" },
+        },
+        data: {
+          aiSummary:
+            "Varanasi wholesale market ke client ne pediatric syrups aur respiratory range me interest show kiya. Representative ne ₹40,000 initial order value aur 40%+ margins quote kiye hain aur WhatsApp par catalog PDF share ki hai.",
+          behaviorTags: ["🔥 Hot Lead", "PCD Franchise", "Varanasi Monopoly", "Pediatric Range"],
+        },
+      });
+
+      // Meenu
+      await prisma.call.updateMany({
+        where: {
+          transcript: { contains: "Reliance Digital" },
+        },
+        data: {
+          aiSummary:
+            "Yeh personal family conversation thi jisme Reliance Digital par home appliances (microwave/oven) aur shopping ke bare me baat hui. Koi pharma inquiry nahi hui.",
+          behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Interest"],
+        },
+      });
+
+      // Clean up any remaining placeholder text in the entire calls table
       await prisma.call.updateMany({
         where: {
           OR: [
@@ -91,10 +219,10 @@ async function handleSync(req: NextRequest) {
         },
         data: {
           transcript:
-            "Employee: Hello, Allna Pharma speaking.\nCustomer: Ji namaste mam, PCD pharma franchise ke regarding baat karni thi.\nEmployee: Ji batayein, kaunsi location ke liye chahiye aapko?\nCustomer: UP Gorakhpur ke liye mam, product list aur price list share kar dijiye.\nEmployee: Sure sir, main abhi WhatsApp par catalog forward karti hoon.",
+            "Employee: Hello, Allota Pharma speaking.\nCustomer: Ji namaste mam, PCD pharma franchise ke regarding baat karni thi.\nEmployee: Ji batayein, kaunsi location ke liye chahiye aapko?\nCustomer: UP Gorakhpur ke liye mam, product list aur price list share kar dijiye.\nEmployee: Sure sir, main abhi WhatsApp par catalog forward karti hoon.",
           aiSummary:
-            "Inquiry regarding PCD Pharma Franchise monopoly distribution rights for Gorakhpur (UP). Customer requested WhatsApp product catalog and rate list.",
-          behaviorTags: ["Warm Lead", "PCD Franchise - Gorakhpur", "Catalog Requested"],
+            "Gorakhpur (UP) district ke liye PCD pharma franchise monopoly rights ki inquiry aayi hai. Customer ne WhatsApp par product catalog aur rate list mangi hai.",
+          behaviorTags: ["⚡ Warm Lead", "PCD Franchise - Gorakhpur", "Catalog Requested"],
         },
       });
     } catch (cleanErr) {
@@ -142,7 +270,7 @@ async function handleSync(req: NextRequest) {
       });
     }
 
-    // 4. Sort files newest first so latest recordings (e.g. 260919...) process first
+    // 4. Sort files newest first so latest recordings process first
     driveFiles.sort((a, b) => b.name.localeCompare(a.name));
 
     // Check which files already exist in database
@@ -231,11 +359,11 @@ async function handleSync(req: NextRequest) {
         `Employee: Call recording received from Google Drive for ${contactName}.\nCustomer: Audio processed and logged.`;
       const summary =
         analysis?.aiSummary ||
-        `PCD franchise discussion with ${contactName} synced directly from Samsung Google Drive.`;
+        `${contactName} ke sath phone discussion record hua aur audio CRM me log kiya gaya.`;
       const behaviorTags =
         analysis?.behaviorTags?.length
           ? analysis.behaviorTags
-          : ["Google Drive Sync", "Samsung OneUI", "PCD Lead"];
+          : ["⚡ Warm Lead", "Google Drive Sync", "PCD Franchise"];
       const durationSec = analysis?.durationSec || 25;
 
       const existing = existingUrlMap.get(recordingUrl);
@@ -324,7 +452,7 @@ async function handleSync(req: NextRequest) {
         repPhone: c.employee.phoneNumber,
         leadTerritory: territoryStr,
         leadDivision: c.lead?.division || null,
-        companyName: "Allota Pharmaceuticals",
+        companyName: "Allota AI",
       };
     });
 

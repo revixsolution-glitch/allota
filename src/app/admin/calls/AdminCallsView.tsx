@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { markWhatsAppAlertSent } from "@/lib/admin-actions";
-import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
+import { craftAiWhatsAppMissedMessage, classifyCallLead } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
 
 export interface CallFeedItem {
@@ -89,6 +89,10 @@ export function AdminCallsView({
   const [activeViewTab, setActiveViewTab] = useState<"DOCUMENTS" | "FEED" | "MISSED" | "LEADERBOARD">("DOCUMENTS");
   const [selectedRepId, setSelectedRepId] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ANSWERED" | "MISSED" | "WHATSAPP_SENT">("ALL");
+  const [datePreset, setDatePreset] = useState<"ALL" | "TODAY" | "YESTERDAY" | "7DAYS" | "THIS_MONTH" | "CUSTOM">("ALL");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const [leadCategoryFilter, setLeadCategoryFilter] = useState<"ALL" | "HOT" | "WARM" | "COLD" | "DEAD">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
@@ -139,14 +143,17 @@ export function AdminCallsView({
   function handleCopyEmbeddedDocument(call: CallFeedItem) {
     if (!call) return;
     const cleanPhone = call.targetPhone || "Not specified";
+    const leadVerdict = classifyCallLead(call);
     const text = `=====================================================
 ALLOTA AI CALL INTELLIGENCE REPORT [CONFIDENTIAL]
+Domain: allota.in
 Reference ID: DOC-CALL-${call.id.slice(-8).toUpperCase()}
-Company: ${companyName}
+Company: Allota AI
 Representative: ${call.repName} (${call.repPhone || "Field"})
 Contact Party: ${call.targetName} (${cleanPhone})
 Date & Time: ${formatDate(call.occurredAt)} at ${formatTime(call.occurredAt)}
 Duration: ${formatDuration(call.durationSec)} (${call.missed ? "MISSED" : "CONNECTED"})
+AI Lead Verdict: ${leadVerdict.label} (${leadVerdict.reason})
 Territory: ${call.leadTerritory || "General Territory"}
 =====================================================
 
@@ -159,7 +166,7 @@ ${call.behaviorTags.join(", ") || "None"}
 [VERBATIM CALL TRANSCRIPT]
 ${call.transcript || "No audio transcript available."}
 
-Report generated via Gemini 2.5 Flash Telephony Engine.
+Report generated via Allota AI Telephony Engine • allota.in
 =====================================================`;
 
     navigator.clipboard.writeText(text).then(() => {
@@ -194,6 +201,36 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
         (statusFilter === "MISSED" && c.missed) ||
         (statusFilter === "WHATSAPP_SENT" && c.whatsappSent);
 
+      // Date Filtering
+      if (datePreset !== "ALL") {
+        const callDate = new Date(c.occurredAt);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        const startOf7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        if (datePreset === "TODAY") {
+          if (callDate < startOfToday) return false;
+        } else if (datePreset === "YESTERDAY") {
+          if (callDate < startOfYesterday || callDate > endOfYesterday) return false;
+        } else if (datePreset === "7DAYS") {
+          if (callDate < startOf7Days) return false;
+        } else if (datePreset === "THIS_MONTH") {
+          if (callDate < startOfMonth) return false;
+        } else if (datePreset === "CUSTOM") {
+          if (customStartDate && callDate < new Date(`${customStartDate}T00:00:00`)) return false;
+          if (customEndDate && callDate > new Date(`${customEndDate}T23:59:59`)) return false;
+        }
+      }
+
+      // Lead Category Filtering
+      if (leadCategoryFilter !== "ALL") {
+        const leadClass = classifyCallLead(c);
+        if (leadClass.category !== leadCategoryFilter) return false;
+      }
+
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -207,7 +244,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
 
       return matchesRep && matchesStatus && matchesSearch;
     });
-  }, [callsList, selectedRepId, statusFilter, searchQuery]);
+  }, [callsList, selectedRepId, statusFilter, datePreset, customStartDate, customEndDate, leadCategoryFilter, searchQuery]);
 
   const activeEmbeddedCall = useMemo(() => {
     return (
@@ -453,13 +490,13 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-purple-200 border border-white/20">
                     <span>📑</span> Executive Telephony Dossier & Audit
                   </span>
-                  <span className="text-xs text-purple-200 font-semibold">Gemini 2.5 Flash Diarized</span>
+                  <span className="text-[11px] font-bold text-purple-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/20">allota.in</span>
                 </div>
                 <h2 className="text-2xl font-black tracking-tight mt-2 text-white">
-                  Field Calls: Verbatim Transcripts & Executive Summaries
+                  Allota AI Telephony: Verbatim Transcripts & Hinglish Summaries
                 </h2>
                 <p className="text-xs text-purple-200/90 max-w-3xl mt-1 leading-relaxed">
-                  Review exact call dialog, customer inquiries, and AI-generated Hinglish commercial summaries for any sales representative. Read what was said directly without needing to question employees.
+                  Review exact call dialog, customer inquiries, and AI-generated Hinglish commercial summaries for any sales representative. Filter by date or AI lead status (Hot, Warm, Dead).
                 </p>
               </div>
 
@@ -497,16 +534,121 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                   onClick={() => {
                     setSelectedRepId("ALL");
                     setStatusFilter("ALL");
+                    setDatePreset("ALL");
+                    setCustomStartDate("");
+                    setCustomEndDate("");
+                    setLeadCategoryFilter("ALL");
                     setSearchQuery("");
                   }}
                   className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
                 >
-                  Reset Filters
+                  Reset All Filters
                 </button>
               </div>
 
-              {/* Filters */}
-              <div className="space-y-2.5">
+              {/* Filters Suite */}
+              <div className="space-y-3">
+                {/* 1. Date Filter Toolbar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">📅 Date Range</span>
+                    {datePreset !== "ALL" && (
+                      <button
+                        type="button"
+                        onClick={() => setDatePreset("ALL")}
+                        className="text-[10px] font-bold text-purple-700 hover:underline"
+                      >
+                        All Dates
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                    {[
+                      { key: "ALL", label: "All Time" },
+                      { key: "TODAY", label: "Today" },
+                      { key: "YESTERDAY", label: "Yesterday" },
+                      { key: "7DAYS", label: "7 Days" },
+                      { key: "THIS_MONTH", label: "This Month" },
+                      { key: "CUSTOM", label: "Custom" },
+                    ].map((p) => (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setDatePreset(p.key as any)}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          datePreset === p.key
+                            ? "bg-purple-700 text-white shadow-xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {datePreset === "CUSTOM" && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-[9px] font-bold uppercase text-slate-400">From Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-2 py-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold uppercase text-slate-400">To Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="w-full text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg px-2 py-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. AI Lead Status Filter Toolbar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">🎯 AI Lead Status</span>
+                    {leadCategoryFilter !== "ALL" && (
+                      <button
+                        type="button"
+                        onClick={() => setLeadCategoryFilter("ALL")}
+                        className="text-[10px] font-bold text-purple-700 hover:underline"
+                      >
+                        All Leads
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                    {[
+                      { key: "ALL", label: "All Leads" },
+                      { key: "HOT", label: "🔥 Hot Lead" },
+                      { key: "WARM", label: "⚡ Warm Lead" },
+                      { key: "COLD", label: "❄️ Cold Lead" },
+                      { key: "DEAD", label: "💀 Dead / Test" },
+                    ].map((l) => (
+                      <button
+                        key={l.key}
+                        type="button"
+                        onClick={() => setLeadCategoryFilter(l.key as any)}
+                        className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          leadCategoryFilter === l.key
+                            ? "bg-slate-900 text-white shadow-xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Rep & Status Selectors */}
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     value={selectedRepId}
@@ -589,15 +731,20 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                             </div>
                           </div>
 
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 ${
-                              isMissed
-                                ? "bg-rose-100 text-rose-800 border border-rose-200"
-                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                            }`}
-                          >
-                            {isMissed ? "Missed" : `${formatDuration(c.durationSec)}`}
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 ${classifyCallLead(c).badgeClass}`}>
+                              {classifyCallLead(c).label}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 ${
+                                isMissed
+                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                  : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              }`}
+                            >
+                              {isMissed ? "Missed" : `${formatDuration(c.durationSec)}`}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Summary Snippet */}
@@ -635,7 +782,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">
-                          {activeEmbeddedCall.companyName || companyName}
+                          Allota AI • allota.in
                         </p>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mt-0.5">
                           EXECUTIVE CALL INTELLIGENCE BRIEF
@@ -710,6 +857,27 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                         </p>
                       </div>
                     </div>
+
+                    {/* AI Lead Verdict Banner */}
+                    {(() => {
+                      const activeLeadClass = classifyCallLead(activeEmbeddedCall);
+                      return (
+                        <div className="mt-4 rounded-2xl bg-gradient-to-r from-purple-50/70 via-slate-50 to-indigo-50/50 p-4 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className={`rounded-xl px-3 py-1.5 text-xs font-black shadow-xs ${activeLeadClass.badgeClass}`}>
+                              {activeLeadClass.label}
+                            </span>
+                            <div>
+                              <p className="text-xs font-bold text-slate-900">{activeLeadClass.reason}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">AI Lead Classification based on call audio dialogue</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold text-purple-700 bg-white px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
+                            allota.in
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Section 1: Executive Call Summary */}
@@ -719,7 +887,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                         1
                       </span>
                       <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                        Executive Summary & Commercial Intent
+                        Executive Summary & Commercial Intent (Hinglish)
                       </h2>
                     </div>
 
@@ -790,11 +958,11 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                           3
                         </span>
                         <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                          Verbatim Audio Transcript (Speaker Diarized)
+                          Verbatim Audio Transcript
                         </h2>
                       </div>
                       <span className="text-[10px] font-bold text-slate-400">
-                        Multimodal Gemini Transcription
+                        Audio Dialogue
                       </span>
                     </div>
 

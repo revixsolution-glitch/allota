@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { classifyCallLead } from "@/lib/call-helpers";
 
 export interface CallDocumentItem {
   id: string;
@@ -142,7 +143,7 @@ ${activeCall.behaviorTags.join(", ") || "None"}
 [VERBATIM CALL TRANSCRIPT]
 ${activeCall.transcript || "No audio transcript available."}
 
-Report generated via Gemini 2.5 Flash Telephony Engine.
+Report generated via Allota AI Telephony Engine • allota.in
 =====================================================`;
 
     navigator.clipboard.writeText(text).then(() => {
@@ -160,6 +161,8 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
     ? activeCall.transcript.split("\n").filter((l) => l.trim().length > 0)
     : [];
 
+  const activeClassification = activeCall ? classifyCallLead(activeCall) : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-6 backdrop-blur-md animate-in fade-in duration-200">
       <div className="flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-slate-100 shadow-2xl border border-slate-300">
@@ -173,14 +176,19 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-extrabold text-slate-900">
-                  AI Call Intelligence Brief & Transcripts
+                  Allota AI Call Intelligence Dossier
                 </h2>
-                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[10px] font-black text-purple-800 border border-purple-200">
-                  Gemini 2.5 Flash
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                  allota.in
                 </span>
+                {activeClassification && (
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${activeClassification.badgeClass}`}>
+                    {activeClassification.label}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500">
-                Audit logs, Hinglish call summaries, and verbatim dialog for <strong className="text-slate-800">{currentRep}</strong>
+                Verbatim transcripts, Hinglish summaries, and lead verdicts for <strong className="text-slate-800">{currentRep}</strong>
               </p>
             </div>
           </div>
@@ -301,9 +309,14 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-extrabold text-xs text-slate-900 truncate">
-                            {c.targetName}
-                          </h4>
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate">
+                              {c.targetName}
+                            </h4>
+                            <span className={`rounded-full px-1.5 py-0.2 text-[8px] font-black shrink-0 ${classifyCallLead(c).badgeClass}`}>
+                              {classifyCallLead(c).label}
+                            </span>
+                          </div>
                           <p className="text-[10px] font-mono text-slate-500 truncate">
                             {c.targetPhone || "Direct Call"}
                           </p>
@@ -416,7 +429,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                               : "bg-emerald-100 text-emerald-800 border border-emerald-200"
                           }`}
                         >
-                          {activeCall.missed ? "📵 Unanswered / Missed" : "📞 Connected & Diarized"}
+                          {activeCall.missed ? "📵 Unanswered / Missed" : "📞 Connected"}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
@@ -426,16 +439,30 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                   </div>
                 </div>
 
-                {/* SECTION 1: AI Executive Summary */}
+                {/* SECTION 1: AI Executive Summary & Lead Verdict */}
                 <div className="mt-7">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-100 text-purple-700 text-xs font-black">
-                      1
-                    </span>
-                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
-                      Executive Summary & Commercial Intent
-                    </h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-100 text-purple-700 text-xs font-black">
+                        1
+                      </span>
+                      <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
+                        Executive Summary & Lead Verdict
+                      </h2>
+                    </div>
+                    {activeClassification && (
+                      <span className={`rounded-full px-3 py-1 text-xs font-black shadow-xs ${activeClassification.badgeClass}`}>
+                        {activeClassification.label}
+                      </span>
+                    )}
                   </div>
+
+                  {activeClassification && (
+                    <div className="mb-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 text-xs">
+                      <span className="font-extrabold text-slate-800">AI Suggested Status:</span>
+                      <span className="font-medium text-slate-700">{activeClassification.reason}</span>
+                    </div>
+                  )}
 
                   <div className="rounded-2xl border-l-4 border-l-purple-600 bg-purple-50/40 p-5 border border-purple-100">
                     <p className="text-sm text-slate-800 leading-relaxed font-serif whitespace-pre-line">
@@ -505,7 +532,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
                         3
                       </span>
                       <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
-                        Verbatim Audio Transcript (Gemini Multimodal Diarization)
+                        Verbatim Audio Transcript
                       </h2>
                     </div>
                     <span className="text-[10px] text-slate-400">
