@@ -1,18 +1,60 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { AdminDashboardDateFilter } from "@/components/AdminDashboardDateFilter";
 
-export default async function AdminDashboardPage() {
+interface AdminDashboardPageProps {
+  searchParams?: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+  }>;
+}
+
+export default async function AdminDashboardPage(props: AdminDashboardPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+  const searchParams = props.searchParams ? await props.searchParams : {};
+
+  const dateFilter = parseDashboardDateFilter(
+    searchParams.range,
+    searchParams.from,
+    searchParams.to
+  );
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  // Build Prisma date filters
+  const callDateFilter = dateFilter.start && dateFilter.end
+    ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
+    : dateFilter.start
+    ? { occurredAt: { gte: dateFilter.start } }
+    : {};
+
+  const leadDateFilter = dateFilter.start && dateFilter.end
+    ? { createdAt: { gte: dateFilter.start, lte: dateFilter.end } }
+    : dateFilter.start
+    ? { createdAt: { gte: dateFilter.start } }
+    : {};
+
+  const orderDateFilter = dateFilter.start && dateFilter.end
+    ? { orderDate: { gte: dateFilter.start, lte: dateFilter.end } }
+    : dateFilter.start
+    ? { orderDate: { gte: dateFilter.start } }
+    : {};
+
+  const callCompanyFilter = activeCompanyId
+    ? {
+        OR: [
+          { employee: { companyId: activeCompanyId } },
+          { lead: { companyId: activeCompanyId } },
+          { client: { companyId: activeCompanyId } },
+          { employee: { companyId: null } },
+        ],
+      }
+    : {};
 
   const [
     territoryCount,
@@ -20,13 +62,13 @@ export default async function AdminDashboardPage() {
     activeClientCount,
     repeatClientCount,
     employeeCount,
+    periodLeadCount,
     newLeadCount,
     assignedLeadCount,
     convertedLeadCount,
-    monthlySales,
-    previousMonthlySales,
-    callsToday,
-    missedCallsToday,
+    periodSales,
+    callsInPeriod,
+    missedCallsInPeriod,
     pendingPoCount,
     recentLeads,
     topEmployees,
@@ -42,41 +84,45 @@ export default async function AdminDashboardPage() {
     prisma.client.count({ where: { ...companyScope, status: "ACTIVE" } }),
     prisma.client.count({ where: { ...companyScope, isRepeatCustomer: true } }),
     prisma.employee.count({ where: companyScope }),
-    prisma.lead.count({ where: { ...companyScope, status: "NEW" } }),
-    prisma.lead.count({ where: { ...companyScope, status: "ASSIGNED" } }),
-    prisma.lead.count({ where: { ...companyScope, status: "CONVERTED" } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter, status: "NEW" } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter, status: "ASSIGNED" } }),
+    prisma.lead.count({ where: { ...companyScope, ...leadDateFilter, status: "CONVERTED" } }),
     prisma.order.aggregate({
       _sum: { amount: true },
-      where: { ...companyScope, orderDate: { gte: monthStart } },
-    }),
-    prisma.order.aggregate({
-      _sum: { amount: true },
-      where: { ...companyScope, orderDate: { gte: previousMonthStart, lt: monthStart } },
+      _count: { id: true },
+      where: { ...companyScope, ...orderDateFilter },
     }),
     prisma.call.count({
       where: {
-        occurredAt: { gte: todayStart },
+        ...callDateFilter,
         ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
       },
     }),
     prisma.call.count({
       where: {
-        occurredAt: { gte: todayStart },
+        ...callDateFilter,
         missed: true,
         ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
       },
     }),
     prisma.purchaseOrderAlert.count({ where: { status: "PENDING" } }),
     prisma.lead.findMany({
-      where: companyScope,
+      where: { ...companyScope, ...leadDateFilter },
       include: { assignedEmployee: true },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 6,
     }),
     prisma.employee.findMany({
       where: companyScope,
       include: {
-        _count: { select: { clients: true, leads: true, calls: true } },
+        _count: {
+          select: {
+            clients: true,
+            leads: { where: leadDateFilter },
+            calls: { where: callDateFilter },
+          },
+        },
       },
       orderBy: { leads: { _count: "desc" } },
       take: 4,
@@ -129,23 +175,17 @@ export default async function AdminDashboardPage() {
       },
     }),
     prisma.call.findMany({
-      where: activeCompanyId
-        ? {
-            OR: [
-              { employee: { companyId: activeCompanyId } },
-              { lead: { companyId: activeCompanyId } },
-              { client: { companyId: activeCompanyId } },
-              { employee: { companyId: null } },
-            ],
-          }
-        : {},
+      where: {
+        ...callDateFilter,
+        ...callCompanyFilter,
+      },
       include: {
         employee: true,
         lead: true,
         client: true,
       },
       orderBy: { occurredAt: "desc" },
-      take: 3,
+      take: 9,
     }),
   ]);
 
@@ -192,24 +232,21 @@ export default async function AdminDashboardPage() {
     return daysAgo > cadence + 4;
   }).length;
 
-  const monthRevenue = Number(monthlySales._sum.amount ?? 0);
-  const previousRevenue = Number(previousMonthlySales._sum.amount ?? 0);
-  const revenueChange =
-    previousRevenue > 0
-      ? Math.round(((monthRevenue - previousRevenue) / previousRevenue) * 100)
-      : null;
-  const pipelineCount = newLeadCount + assignedLeadCount;
+  const periodRevenue = Number(periodSales._sum.amount ?? 0);
+  const periodOrderCount = periodSales._count.id ?? 0;
+  const connectedCallsInPeriod = Math.max(0, callsInPeriod - missedCallsInPeriod);
   const missedCallRate =
-    callsToday > 0 ? Math.round((missedCallsToday / callsToday) * 100) : 0;
+    callsInPeriod > 0 ? Math.round((missedCallsInPeriod / callsInPeriod) * 100) : 0;
+  const pipelineCount = periodLeadCount > 0 ? periodLeadCount : newLeadCount + assignedLeadCount;
 
   const stats = [
     {
-      label: "Monthly Revenue",
-      value: formatCurrency(monthRevenue),
+      label: dateFilter.preset === "all_time" ? "Total Revenue" : `Sales (${dateFilter.label})`,
+      value: formatCurrency(periodRevenue),
       detail:
-        revenueChange === null
-          ? "No previous month baseline"
-          : `${revenueChange >= 0 ? "+" : ""}${revenueChange}% vs last month`,
+        periodOrderCount > 0
+          ? `${periodOrderCount} orders booked in ${dateFilter.label}`
+          : `No orders in ${dateFilter.label}`,
       accent: "emerald" as const,
       icon: (
         <span className="text-base font-bold">₹</span>
@@ -219,13 +256,13 @@ export default async function AdminDashboardPage() {
       pillClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
     {
-      label: "Lead Pipeline",
-      value: pipelineCount.toString(),
-      detail: `${newLeadCount} new / ${assignedLeadCount} assigned`,
+      label: dateFilter.preset === "all_time" ? "Total Inquiries" : `Leads (${dateFilter.label})`,
+      value: periodLeadCount.toString(),
+      detail: `${newLeadCount} new / ${convertedLeadCount} converted`,
       accent: "indigo" as const,
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
       iconBg: "from-blue-500 to-indigo-600 text-white shadow-blue-500/20",
@@ -233,13 +270,13 @@ export default async function AdminDashboardPage() {
       pillClass: "bg-blue-50 text-blue-700 border-blue-200",
     },
     {
-      label: "Active Clients",
+      label: "Active Accounts",
       value: activeClientCount.toString(),
       detail: `${repeatClientCount} repeat customers tracked`,
       accent: "teal" as const,
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
       iconBg: "from-teal-500 to-cyan-600 text-white shadow-teal-500/20",
@@ -247,13 +284,13 @@ export default async function AdminDashboardPage() {
       pillClass: "bg-teal-50 text-teal-700 border-teal-200",
     },
     {
-      label: "Missed Call Rate",
-      value: `${missedCallRate}%`,
-      detail: `${missedCallsToday} missed from ${callsToday} calls today`,
+      label: `Telephony Calls (${dateFilter.label})`,
+      value: `${callsInPeriod}`,
+      detail: `${connectedCallsInPeriod} picked · ${missedCallsInPeriod} missed (${missedCallRate}%)`,
       accent: "rose" as const,
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
         </svg>
       ),
       iconBg: "from-rose-500 to-red-600 text-white shadow-rose-500/20",
@@ -273,6 +310,34 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-7">
+      {/* Top Header Row with Title & Top-Right Date Filter Dropdown */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-ink">
+              Business Command Center
+            </h1>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+              Allota AI Live
+            </span>
+          </div>
+          <p className="text-xs text-ink-faint mt-0.5">
+            Viewing period: <strong className="text-primary font-bold">{dateFilter.label}</strong>
+          </p>
+        </div>
+
+        {/* TOP RIGHT SMALL DATE FILTER DROPDOWN */}
+        <div className="self-end sm:self-auto shrink-0">
+          <AdminDashboardDateFilter
+            currentPreset={dateFilter.preset}
+            activeLabel={dateFilter.label}
+            customFrom={dateFilter.customFrom}
+            customTo={dateFilter.customTo}
+          />
+        </div>
+      </div>
+
       {/* Top Banner with Pharma Accents */}
       <section className="relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/60">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 h-48 w-48 rounded-full bg-gradient-to-br from-teal-400/10 to-primary/10 blur-2xl pointer-events-none" />
@@ -289,12 +354,12 @@ export default async function AdminDashboardPage() {
               </span>
             </div>
             
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              Business Command Center
-            </h1>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+              Pharma Telephony & Commercial Intelligence
+            </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-              Live operating cockpit tracking marketing leads across Meta & IndiaMART, 
-              territory exclusivity, franchise compliance, and stock alert thresholds.
+              Operating cockpit tracking marketing leads across Meta & IndiaMART, 
+              territory exclusivity, franchise compliance, and verbatim telephony summaries.
             </p>
           </div>
 
@@ -312,14 +377,14 @@ export default async function AdminDashboardPage() {
               bgColor="bg-sky-50 border-sky-200/60"
             />
             <MiniMetric 
-              label="Franchises" 
-              value={clientCount} 
+              label={`Calls (${dateFilter.label})`} 
+              value={callsInPeriod} 
               iconColor="text-indigo-600"
               bgColor="bg-indigo-50 border-indigo-200/60"
             />
             <MiniMetric 
-              label="Active Credit" 
-              value={`₹${(totalCreditOutstanding / 100000).toFixed(1)}L`} 
+              label={`Sales (${dateFilter.label})`} 
+              value={`₹${(periodRevenue / 100000).toFixed(1)}L`} 
               iconColor="text-emerald-600"
               bgColor="bg-emerald-50 border-emerald-200/60"
             />
@@ -360,37 +425,37 @@ export default async function AdminDashboardPage() {
       </section>
 
       {/* 📞 Live AI Calls & Discussion Summaries Showcase */}
-      {recentCalls.length > 0 && (
-        <section className="rounded-3xl p-6 neo-panel bg-white border-t-2 border-t-purple-500 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-line pb-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xl shadow-md shadow-purple-500/25">
-                📞
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-black px-2.5 py-0.5 border border-purple-200">
-                    LIVE AI TELEPHONY INTELLIGENCE
-                  </span>
-                  <span className="text-xs text-ink-faint font-semibold">
-                    {callsToday} Calls Today
-                  </span>
-                </div>
-                <h2 className="text-lg font-black text-ink mt-0.5">
-                  Recent AI Call Discussion Summaries
-                </h2>
+      <section className="rounded-3xl p-6 neo-panel bg-white border-t-2 border-t-purple-500 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-line pb-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xl shadow-md shadow-purple-500/25">
+              📞
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-black px-2.5 py-0.5 border border-purple-200">
+                  LIVE AI TELEPHONY INTELLIGENCE
+                </span>
+                <span className="text-xs text-ink-faint font-semibold">
+                  {callsInPeriod} Calls in {dateFilter.label}
+                </span>
               </div>
+              <h2 className="text-lg font-black text-ink mt-0.5">
+                AI Call Discussion Summaries — {dateFilter.label}
+              </h2>
             </div>
-
-            <Link
-              href="/admin/calls"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition shadow-2xs self-start md:self-auto"
-            >
-              <span>🤖</span>
-              <span>Open AI Calls Summary Hub &rarr;</span>
-            </Link>
           </div>
 
+          <Link
+            href="/admin/calls"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition shadow-2xs self-start md:self-auto"
+          >
+            <span>🤖</span>
+            <span>Open Allota AI Telephony Hub &rarr;</span>
+          </Link>
+        </div>
+
+        {recentCalls.length > 0 ? (
           <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recentCalls.map((call) => {
               const isMissed = call.missed;
@@ -430,7 +495,7 @@ export default async function AdminDashboardPage() {
                         <span>🤖</span> AI Summary (Hinglish)
                       </p>
                       <p className="text-xs text-ink leading-relaxed mt-1 line-clamp-3">
-                        {call.aiSummary || "Discussion recorded and analyzed via Gemini."}
+                        {call.aiSummary || "Discussion recorded and analyzed via Allota AI."}
                       </p>
                     </div>
 
@@ -439,9 +504,9 @@ export default async function AdminDashboardPage() {
                         {call.behaviorTags.slice(0, 3).map((tag) => (
                           <span
                             key={tag}
-                            className="rounded-md bg-purple-50 text-purple-700 border border-purple-200/60 px-1.5 py-0.5 text-[9px] font-bold"
+                            className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200"
                           >
-                            #{tag}
+                            {tag}
                           </span>
                         ))}
                       </div>
@@ -449,25 +514,37 @@ export default async function AdminDashboardPage() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
-                    <span className="text-ink-faint text-[10px]">
-                      {new Date(call.occurredAt).toLocaleTimeString("en-IN", {
+                    <span className="text-ink-faint">
+                      {new Date(call.occurredAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
                     <Link
                       href="/admin/calls"
-                      className="font-bold text-purple-700 hover:underline flex items-center gap-1"
+                      className="font-bold text-purple-700 hover:text-purple-900 transition"
                     >
-                      View Full Call &rarr;
+                      Read Verbatim &rarr;
                     </Link>
                   </div>
                 </div>
               );
             })}
           </div>
-        </section>
-      )}
+        ) : (
+          <div className="py-10 text-center">
+            <span className="text-3xl">📞</span>
+            <p className="mt-2 text-sm font-bold text-ink">
+              No calls recorded for {dateFilter.label}
+            </p>
+            <p className="text-xs text-ink-faint mt-1">
+              Select &quot;Last Week&quot; or &quot;All Time&quot; in the top-right date filter to view call recordings and Hinglish summaries.
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* AI Priority Desk & Build Roadmap */}
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -492,8 +569,8 @@ export default async function AdminDashboardPage() {
             />
             <PriorityRow
               label="Missed-Call Recovery"
-              value={`${missedCallsToday} missed`}
-              detail="Immediate WhatsApp engagement queue for missed inbound inquiries."
+              value={`${missedCallsInPeriod} missed`}
+              detail={`Immediate WhatsApp recovery queue for calls missed in ${dateFilter.label}.`}
               tone="rose"
             />
             <PriorityRow
@@ -505,7 +582,7 @@ export default async function AdminDashboardPage() {
             <PriorityRow
               label="Pipeline Conversions"
               value={`${convertedLeadCount} won`}
-              detail="Total converted franchise leads across Meta, IndiaMART, and website."
+              detail={`Franchise leads converted in ${dateFilter.label}.`}
               tone="emerald"
             />
           </div>
@@ -561,7 +638,10 @@ export default async function AdminDashboardPage() {
 
       {/* 3 Analytics Columns with Rich Badges */}
       <div className="grid gap-6 xl:grid-cols-3">
-        <DashboardPanel title="Recent Leads" description="Newest demand signals by source">
+        <DashboardPanel
+          title={`Recent Leads (${dateFilter.label})`}
+          description={`Demand signals captured in ${dateFilter.label}`}
+        >
           {recentLeads.map((lead) => (
             <div key={lead.id} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/50 transition">
               <div className="min-w-0">
@@ -580,10 +660,15 @@ export default async function AdminDashboardPage() {
               </span>
             </div>
           ))}
-          {!recentLeads.length && <EmptyState label="No leads captured yet." />}
+          {!recentLeads.length && (
+            <EmptyState label={`No leads captured for ${dateFilter.label}.`} />
+          )}
         </DashboardPanel>
 
-        <DashboardPanel title="Top Employees" description="Client & call ownership snapshot">
+        <DashboardPanel
+          title="Top Employees"
+          description={`Ownership & calls activity in ${dateFilter.label}`}
+        >
           {topEmployees.map((employee) => (
             <div key={employee.id} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/50 transition">
               <div className="flex items-center gap-3 min-w-0">
@@ -593,7 +678,7 @@ export default async function AdminDashboardPage() {
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-ink text-sm">{employee.name}</p>
                   <p className="mt-0.5 truncate text-xs text-ink-faint">
-                    {employee._count.clients} clients • {employee._count.calls} calls
+                    {employee._count.clients} clients • {employee._count.calls} calls in period
                   </p>
                 </div>
               </div>
@@ -602,7 +687,7 @@ export default async function AdminDashboardPage() {
               </span>
             </div>
           ))}
-          {!topEmployees.length && <EmptyState label="No employees yet." />}
+          {!topEmployees.length && <EmptyState label="No employees active yet." />}
         </DashboardPanel>
 
         <DashboardPanel title="Territory Coverage" description="Active regional presence">
