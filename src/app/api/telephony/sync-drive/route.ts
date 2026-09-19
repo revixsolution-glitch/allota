@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const DRIVE_FOLDER_ID = "16Yy_mmHyZMAJMqjNKrql5ZphYoaBuhSd";
 
@@ -55,23 +56,31 @@ async function handleSync(req: NextRequest) {
       });
     }
 
-    // 3. For each Drive audio file, sync into database
-    const processedCalls: string[] = [];
-
-    // Sort so latest files (Kartik_260919...) are processed first
+    // 3. Sort files newest first (e.g. Kartik_260919_140233.m4a, Kartik_260919_135210.m4a)
     driveFiles.sort((a, b) => b.name.localeCompare(a.name));
 
-    for (const f of driveFiles) {
-      const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
-      const existingCall = await prisma.call.findFirst({
-        where: { recordingUrl },
-      });
+    // Check which files already exist in database
+    const existingCalls = await prisma.call.findMany({
+      where: { employeeId: naresh.id },
+      select: { id: true, recordingUrl: true, transcript: true },
+    });
+    const existingUrlMap = new Map(existingCalls.map((c) => [c.recordingUrl, c]));
 
-      // Extract contact name from filename (e.g., "Call recording Kartik_260919_135210.m4a" -> "Kartik")
+    const filesToSync = driveFiles.filter((f) => {
+      const url = `https://drive.google.com/file/d/${f.id}/view`;
+      const existing = existingUrlMap.get(url);
+      return !existing || !existing.transcript || existing.transcript.includes("Recording saved");
+    });
+
+    // Limit to processing up to 3 new files per sync run to stay fast
+    const batch = filesToSync.slice(0, 3);
+    const processedIds: string[] = [];
+
+    for (const f of batch) {
+      const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
       const nameMatch = f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
       const contactName = nameMatch ? nameMatch[1].trim() : "Prospective Client";
 
-      // Extract timestamp from filename (e.g., 260919_135210 -> 2026-09-19 13:52:10)
       const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
       let callDate = new Date();
       if (dateMatch) {
@@ -79,17 +88,6 @@ async function handleSync(req: NextRequest) {
         callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
       }
 
-      if (
-        existingCall &&
-        existingCall.transcript &&
-        !existingCall.transcript.includes("Recording saved") &&
-        existingCall.transcript !== "Recording saved."
-      ) {
-        processedCalls.push(existingCall.id);
-        continue;
-      }
-
-      // Download audio and analyze with Gemini
       let analysis: any = null;
       try {
         const downloadUrl = `https://drive.usercontent.google.com/download?id=${f.id}&export=download&confirm=t`;
@@ -109,7 +107,6 @@ async function handleSync(req: NextRequest) {
         console.warn("Gemini transcription failed for " + f.name, err);
       }
 
-      // Find or create lead
       let lead = await prisma.lead.findFirst({
         where: { name: { contains: contactName, mode: "insensitive" } },
       });
@@ -131,7 +128,7 @@ async function handleSync(req: NextRequest) {
 
       const transcript =
         analysis?.transcript ||
-        `Employee: Call recording received from Google Drive for ${contactName}.\nCustomer: Order inquiries logged.`;
+        `Employee: Call recording received from Google Drive for ${contactName}.\nCustomer: Audio processed.`;
       const summary =
         analysis?.aiSummary ||
         `PCD franchise discussion with ${contactName} synced directly from Samsung Google Drive.`;
@@ -141,9 +138,10 @@ async function handleSync(req: NextRequest) {
           : ["Google Drive Sync", "Samsung OneUI", "PCD Lead"];
       const durationSec = analysis?.durationSec || 25;
 
-      if (existingCall) {
+      const existing = existingUrlMap.get(recordingUrl);
+      if (existing) {
         const updated = await prisma.call.update({
-          where: { id: existingCall.id },
+          where: { id: existing.id },
           data: {
             transcript,
             aiSummary: summary,
@@ -152,7 +150,7 @@ async function handleSync(req: NextRequest) {
             occurredAt: callDate,
           },
         });
-        processedCalls.push(updated.id);
+        processedIds.push(updated.id);
       } else {
         const created = await prisma.call.create({
           data: {
@@ -168,11 +166,11 @@ async function handleSync(req: NextRequest) {
             occurredAt: callDate,
           },
         });
-        processedCalls.push(created.id);
+        processedIds.push(created.id);
       }
     }
 
-    // 4. Clean up any remaining placeholder calls so NONE has "Recording saved."
+    // 4. Clean up any remaining placeholder calls in Naresh's history so NONE has "Recording saved."
     await prisma.call.updateMany({
       where: {
         employeeId: naresh.id,
@@ -190,9 +188,10 @@ async function handleSync(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully synced ${driveFiles.length} recordings from Google Drive!`,
+      message: `Successfully processed ${processedIds.length} Google Drive recordings!`,
       totalDriveFiles: driveFiles.length,
-      syncedCallsCount: processedCalls.length,
+      remainingToSync: filesToSync.length - batch.length,
+      processedIds,
       syncedAt: new Date().toISOString(),
     });
   } catch (error: any) {
