@@ -104,7 +104,8 @@ Role & Personality:
   * Main Dashboard: /admin
 Keep your answers direct, crisp (2-4 sentences max), and informative. Do not generate verbose essays.`;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Use dedicated chatbot key if configured, otherwise fallback to primary GEMINI_API_KEY
+    const apiKey = process.env.GEMINI_CHAT_API_KEY || process.env.GEMINI_API_KEY;
     let reply = "";
     let actionUrl: string | undefined = undefined;
     let actionLabel: string | undefined = undefined;
