@@ -76,7 +76,7 @@ export function CallIntelligenceDocumentModal({
   calls,
   initialCallId,
   employeeName,
-  companyName = "Pharma Life Sciences Pvt Ltd",
+  companyName = "Allota AI",
   onSendWhatsApp,
 }: CallIntelligenceDocumentModalProps) {
   const [selectedCallId, setSelectedCallId] = useState<string>(

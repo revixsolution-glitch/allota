@@ -382,7 +382,7 @@ export default async function AdminEmployeeDetailPage({
       leadTerritory: territoryStr,
       leadSource: c.lead?.source || null,
       repName: employee.name,
-      companyName: employee.company?.name || "Pharma Desk",
+      companyName: employee.company?.name || "Allota AI",
     };
   });
 

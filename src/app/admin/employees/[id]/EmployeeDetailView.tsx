@@ -102,7 +102,7 @@ export function EmployeeDetailView({
     const text = craftAiWhatsAppMissedMessage({
       leadName: call.targetName,
       repName: call.repName || employee.name,
-      companyName: call.companyName || "Pharma Desk",
+      companyName: call.companyName || "Allota AI",
       division: call.leadDivision,
       territory: call.leadTerritory,
     });

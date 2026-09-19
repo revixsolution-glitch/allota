@@ -13,7 +13,7 @@ export function craftAiWhatsAppMissedMessage({
 }) {
   const name = leadName?.trim() || "Sir/Madam";
   const rep = repName?.trim() || "Our Sales Team";
-  const company = companyName?.trim() || "Pharma Desk";
+  const company = companyName?.trim() || "Allota AI";
   const div = division === "THIRD_PARTY" ? "Third-Party Pharma Manufacturing" : "PCD Pharma Franchise";
   const area = territory?.trim() ? ` for ${territory}` : "";
 

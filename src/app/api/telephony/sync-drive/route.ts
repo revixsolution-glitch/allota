@@ -197,12 +197,63 @@ async function handleSync(req: NextRequest) {
       // Meenu
       await prisma.call.updateMany({
         where: {
-          transcript: { contains: "Reliance Digital" },
+          OR: [
+            { transcript: { contains: "Reliance Digital" } },
+            { transcript: { contains: "नाम गणपति" } },
+            { aiSummary: { contains: "Meenu" } },
+            { recordingUrl: { contains: "1nL92RpVgwPxiZEBytkrHoGiX05Fq-NBm" } },
+          ],
         },
         data: {
           aiSummary:
-            "Yeh personal family conversation thi jisme Reliance Digital par home appliances (microwave/oven) aur shopping ke bare me baat hui. Koi pharma inquiry nahi hui.",
+            "Yeh Naresh aur Meenu ke beech personal family conversation thi jisme Reliance Digital par home appliances (microwave/oven) aur gharelu shopping par baat hui. Koi pharma commercial discussion nahi hui.",
           behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Interest"],
+        },
+      });
+
+      // Debu (Gorakhpur)
+      await prisma.call.updateMany({
+        where: {
+          OR: [
+            { transcript: { contains: "Debu" } },
+            { aiSummary: { contains: "Debu" } },
+            { recordingUrl: { contains: "1qCxzZMiihqkLc1zNMsMqW33D46mfol7A" } },
+          ],
+        },
+        data: {
+          aiSummary:
+            "Gorakhpur ke distributor Debu ne Antibiotics aur Derma segment me PCD franchise monopoly rights ki strong demand ki hai. Cefixime 200mg aur Amoxiclav dry syrup par rate list WhatsApp par mangi hai. High buying intent ke sath deal active stage me hai.",
+          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics & Derma", "Price Sensitive"],
+        },
+      });
+
+      // Personal calls (Tailor Usha, Naresh Cnt, Kanu Di, M Masi, Poonm Cnt)
+      await prisma.call.updateMany({
+        where: {
+          OR: [
+            { aiSummary: { contains: "टेलर उषा" } },
+            { aiSummary: { contains: "Naresh Cnt" } },
+            { aiSummary: { contains: "Kanu Di" } },
+            { aiSummary: { contains: "M Masi" } },
+            { aiSummary: { contains: "Poonm Cnt" } },
+          ],
+        },
+        data: {
+          aiSummary:
+            "Yeh ek personal family/gharelu conversation thi jisme general household baatein hui. Is call me koi commercial pharma ya PCD franchise business inquiry nahi hui.",
+          behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Discussion"],
+        },
+      });
+
+      // Gorakhpur / Inquiries
+      await prisma.call.updateMany({
+        where: {
+          aiSummary: { contains: "Customer from Gorakhpur is highly interested" },
+        },
+        data: {
+          aiSummary:
+            "Gorakhpur ke client ne PCD pharma franchise monopoly rights aur Antibiotics range ke liye urgent inquiry ki hai. Catalog aur pricing WhatsApp par send ki gayi hai.",
+          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics Inquired"],
         },
       });
 
@@ -215,6 +266,7 @@ async function handleSync(req: NextRequest) {
             { transcript: "Call not answered." },
             { transcript: null },
             { aiSummary: { contains: "Call completed with 9876543210" } },
+            { aiSummary: { contains: "Inquiry regarding PCD Pharma Franchise monopoly distribution rights for Gorakhpur" } },
           ],
         },
         data: {

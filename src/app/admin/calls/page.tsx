@@ -61,7 +61,7 @@ export default async function AdminCallsPage() {
     }),
   ]);
 
-  const companyName = company?.name || "Pharma Desk";
+  const companyName = company?.name || "Allota AI";
 
   const callFeed: CallFeedItem[] = calls.map((c) => {
     const territoryStr = c.client?.territory
