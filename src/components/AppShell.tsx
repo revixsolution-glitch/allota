@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 
 interface NavItem {
@@ -74,8 +75,15 @@ export function AppShell({
             )}
           </button>
 
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Image
+              src="/logo.png"
+              alt="Allota AI"
+              width={28}
+              height={28}
+              className="h-7 w-7 shrink-0 rounded-lg object-contain"
+              priority
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-black text-ink leading-tight" title={title}>
                 {title}
@@ -123,9 +131,13 @@ export function AppShell({
         {/* Brand Header */}
         <div className="flex items-center justify-between gap-3 rounded-2xl p-3 neo-pressed">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 via-primary to-indigo-600 text-white shadow-md shadow-primary/25 font-bold text-base">
-              ⚡
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Allota AI"
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-xs"
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-ink">{title}</p>
               <p className="text-xs font-semibold text-primary">{portalType} Workspace</p>
@@ -207,12 +219,17 @@ export function AppShell({
       <aside className="hidden lg:flex m-4 w-68 flex-col rounded-3xl p-5 neo-panel shrink-0">
         {/* Brand Header */}
         <div className="flex items-center gap-3.5 rounded-2xl p-3 neo-pressed">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 via-primary to-indigo-600 text-white shadow-md shadow-primary/25 font-black text-lg">
-            ⚡
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Allota AI"
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-xs"
+            priority
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <p className="truncate text-sm font-bold tracking-tight text-ink" title={title}>
                 {title}
               </p>

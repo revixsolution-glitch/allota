@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -53,10 +54,15 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
       <div className="w-full max-w-md rounded-3xl p-8 neo-panel border border-line/60 shadow-xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft text-primary-strong">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
+          <div className="mx-auto mb-3 flex items-center justify-center">
+            <Image
+              src="/logo.png"
+              alt="Allota AI"
+              width={56}
+              height={56}
+              className="h-14 w-14 rounded-2xl object-contain shadow-md shadow-purple-500/20"
+              priority
+            />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-ink">Allota AI</h1>
           <p className="mt-1 text-xs text-ink-faint">Telephony Intelligence & PCD Pharma Commercial OS • allota.in</p>

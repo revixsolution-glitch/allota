@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { classifyCallLead } from "@/lib/call-helpers";
 
 export interface CallDocumentItem {
@@ -170,9 +171,13 @@ Report generated via Allota AI Telephony Engine • allota.in
         {/* Modal Top Action Bar */}
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3.5 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black shadow-md shadow-purple-500/20">
-              📄
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Allota AI"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-lg object-contain shadow-2xs shrink-0"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-extrabold text-slate-900">
@@ -359,14 +364,23 @@ Report generated via Allota AI Telephony Engine • allota.in
                 
                 {/* Formal Document Header / Letterhead */}
                 <div className="border-b-2 border-slate-900 pb-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">
-                        {companyName}
-                      </p>
-                      <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mt-0.5">
-                        EXECUTIVE CALL INTELLIGENCE BRIEF
-                      </h1>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src="/logo.png"
+                        alt={companyName || "Allota AI"}
+                        width={44}
+                        height={44}
+                        className="h-11 w-11 rounded-xl object-contain shadow-xs shrink-0"
+                      />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">
+                          {companyName}
+                        </p>
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mt-0.5">
+                          EXECUTIVE CALL INTELLIGENCE BRIEF
+                        </h1>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-start sm:self-auto">

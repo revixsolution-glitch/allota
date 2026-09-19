@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -41,9 +42,14 @@ export default async function SuperAdminPage() {
         <div className="mx-auto flex max-w-7xl flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center justify-between sm:justify-start gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-md shadow-purple-500/20 text-white font-black text-lg">
-                ⚡
-              </div>
+              <Image
+                src="/logo.png"
+                alt="Allota AI"
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-md shadow-purple-500/20"
+                priority
+              />
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-base font-black tracking-tight text-white">Allota AI</span>

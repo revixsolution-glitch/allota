@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Allota AI — Telephony Intelligence & PCD Pharma CRM",
   description: "Allota AI Telephony Intelligence & Commercial Operating System at allota.in",
+  icons: {
+    icon: "/logo-sm.png",
+    shortcut: "/logo-sm.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
