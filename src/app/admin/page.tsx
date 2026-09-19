@@ -314,11 +314,11 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
         <div>
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-ink">
-              Business Command Center
+              Allota AI CRM
             </h1>
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
               Allota AI Live
             </span>
           </div>
@@ -337,60 +337,6 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
           />
         </div>
       </div>
-
-      {/* Top Banner with Pharma Accents */}
-      <section className="relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/60">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 h-48 w-48 rounded-full bg-gradient-to-br from-teal-400/10 to-primary/10 blur-2xl pointer-events-none" />
-        
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between relative z-10">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Allota AI Live
-              </span>
-              <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-                v1.2 Active
-              </span>
-            </div>
-            
-            <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
-              Pharma Telephony & Commercial Intelligence
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
-              Operating cockpit tracking marketing leads across Meta & IndiaMART, 
-              territory exclusivity, franchise compliance, and verbatim telephony summaries.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-center shrink-0">
-            <MiniMetric 
-              label="Territories" 
-              value={territoryCount} 
-              iconColor="text-teal-600"
-              bgColor="bg-teal-50 border-teal-200/60"
-            />
-            <MiniMetric 
-              label="Employees" 
-              value={employeeCount} 
-              iconColor="text-primary"
-              bgColor="bg-sky-50 border-sky-200/60"
-            />
-            <MiniMetric 
-              label={`Calls (${dateFilter.label})`} 
-              value={callsInPeriod} 
-              iconColor="text-indigo-600"
-              bgColor="bg-indigo-50 border-indigo-200/60"
-            />
-            <MiniMetric 
-              label={`Sales (${dateFilter.label})`} 
-              value={`₹${(periodRevenue / 100000).toFixed(1)}L`} 
-              iconColor="text-emerald-600"
-              bgColor="bg-emerald-50 border-emerald-200/60"
-            />
-          </div>
-        </div>
-      </section>
 
       {/* 4 Colored Neumorphic Stat Cards */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -830,25 +776,6 @@ function formatCurrency(value: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function MiniMetric({
-  label,
-  value,
-  iconColor,
-  bgColor,
-}: {
-  label: string;
-  value: number | string;
-  iconColor: string;
-  bgColor: string;
-}) {
-  return (
-    <div className={`rounded-2xl px-4 py-3 border ${bgColor} neo-pressed`}>
-      <p className={`text-xl font-extrabold ${iconColor}`}>{value}</p>
-      <p className="text-xs font-medium text-ink-muted mt-0.5">{label}</p>
-    </div>
-  );
 }
 
 function PanelHeader({
