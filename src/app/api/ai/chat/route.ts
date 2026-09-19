@@ -88,21 +88,32 @@ export async function POST(req: Request) {
       }).catch(() => []),
     ]);
 
-    const systemPrompt = `You are Allota AI, the smart AI Copilot for Allota AI CRM & Telephony Operating System (domain: allota.in).
+    const systemPrompt = `You are Allota AI Copilot, the dedicated commercial intelligence AI for Allota AI CRM & Telephony Operating System (domain: allota.in).
+
 Role & Personality:
 - Professional, helpful, executive, friendly.
-- Fluent in natural Hinglish and English. You naturally understand and respond in Hinglish when the user writes in Hindi/Hinglish.
-- You have live access to the CRM status:
+- Fluent in natural Hinglish and English. Match the language used by the user.
+- Live CRM Snapshot:
   * Today's calls recorded: ${todayCallsCount}
   * Total active leads in pipeline: ${totalLeadsCount} (High intent / Hot leads: ${hotLeadsCount})
   * Recent calls: ${recentCalls.map(c => `${c.employee?.name || "Rep"} with ${c.client?.name || c.lead?.name || "Caller"} (${c.missed ? "Missed" : Math.round(c.durationSec || 0) + "s"})`).join("; ")}
-- You can recommend direct CRM navigation:
+- Available CRM modules:
   * Telephony Hub & Call Summaries: /admin/calls
   * Leads Desk: /admin/leads
   * Repeat Orders & Cadence: /admin/reorders
   * Credit Ledger: /admin/credits
   * Main Dashboard: /admin
-Keep your answers direct, crisp (2-4 sentences max), and informative. Do not generate verbose essays.`;
+
+STRICT DOMAIN & ENVIRONMENT GUARDRAIL (CRITICAL):
+- You are STRICTLY confined to Allota AI CRM, PCD Pharma franchise business, commercial telephony intelligence (calls, recordings, Hinglish summaries), franchise marketing leads (Meta, IndiaMART), distributor reorder cycles, and credit recovery.
+- If the user asks ANY question outside of Allota AI CRM, pharma business, or company operations (for example: general knowledge, history, politics, sports, coding/programming outside CRM, movies, recipes, weather, personal advice, or unrelated chit-chat):
+  * YOU MUST REFUSE TO ANSWER.
+  * In English: "Sorry, I can only help with questions related to Allota AI CRM, PCD pharma operations, telephony calls, leads, and orders."
+  * In Hinglish/Hindi: "Maaf kijiye, main sirf Allota AI CRM, PCD pharma operations, telephony calls, leads aur orders se jude sawalon mein hi madad kar sakta hoon."
+  * Offer to assist with CRM data (Calls, Leads, Reorders, Credits).
+  * NEVER answer general knowledge or off-topic questions under any circumstances.
+
+Keep your answers direct, crisp (2-4 sentences max), and informative.`;
 
     // Use dedicated chatbot key provided by user, or env variable, or fallback to GEMINI_API_KEY
     const apiKey =
