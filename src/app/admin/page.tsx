@@ -76,7 +76,6 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     lowStockProducts,
     activeCredits,
     nearExpiryCount,
-    recentCalls,
   ] = await Promise.all([
     prisma.territory.count({ where: companyScope }),
     prisma.client.count({ where: companyScope }),
@@ -172,19 +171,6 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
           gt: now,
         },
       },
-    }),
-    prisma.call.findMany({
-      where: {
-        ...callDateFilter,
-        ...callCompanyFilter,
-      },
-      include: {
-        employee: true,
-        lead: true,
-        client: true,
-      },
-      orderBy: { occurredAt: "desc" },
-      take: 9,
     }),
   ]);
 
@@ -298,6 +284,9 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     },
   ];
 
+  // Set to true to restore System Operations & Health module on the dashboard in future
+  const SHOW_SYSTEM_OPERATIONS = false;
+
   const operationalModules = [
     { label: "Franchise & Party Accounts", metric: `${clientCount} Verified Partners`, live: clientCount > 0 },
     { label: "Territory Monopoly Boundaries", metric: `${territoryCount} Allotted Markets`, live: territoryCount > 0 },
@@ -359,130 +348,8 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
         ))}
       </section>
 
-      {/* 📞 Live AI Calls & Discussion Summaries Showcase */}
-      <section className="rounded-3xl p-6 neo-panel bg-white border-t-2 border-t-purple-500 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-line pb-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xl shadow-md shadow-purple-500/25">
-              📞
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-black px-2.5 py-0.5 border border-purple-200">
-                  LIVE AI TELEPHONY INTELLIGENCE
-                </span>
-                <span className="text-xs text-ink-faint font-semibold">
-                  {callsInPeriod} Calls in {dateFilter.label}
-                </span>
-              </div>
-              <h2 className="text-lg font-black text-ink mt-0.5">
-                AI Call Discussion Summaries — {dateFilter.label}
-              </h2>
-            </div>
-          </div>
-
-          <Link
-            href="/admin/calls"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-black transition shadow-2xs self-start md:self-auto"
-          >
-            <span>🤖</span>
-            <span>Open Allota AI Telephony Hub &rarr;</span>
-          </Link>
-        </div>
-
-        {recentCalls.length > 0 ? (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentCalls.map((call) => {
-              const isMissed = call.missed;
-              const callerName = call.client?.name || call.lead?.name || "Direct Mobile Call";
-              const callerPhone = call.client?.phoneNumber || call.lead?.phoneNumber || "";
-
-              return (
-                <div
-                  key={call.id}
-                  className="rounded-2xl p-4 bg-slate-50/70 border border-line flex flex-col justify-between hover:border-purple-300 transition"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-extrabold text-sm text-ink">{callerName}</p>
-                        {callerPhone && (
-                          <p className="text-xs font-mono text-ink-muted">{callerPhone}</p>
-                        )}
-                      </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          isMissed
-                            ? "bg-rose-100 text-rose-800 border border-rose-200"
-                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        }`}
-                      >
-                        {isMissed ? "📵 Missed" : `🟢 ${Math.round(call.durationSec || 0)}s`}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-ink-faint mt-1">
-                      Rep: <strong className="text-ink">{call.employee.name}</strong>
-                    </p>
-
-                    <div className="mt-3 rounded-xl bg-white p-3 border border-purple-100 shadow-2xs">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-700 flex items-center gap-1">
-                        <span>🤖</span> AI Summary (Hinglish)
-                      </p>
-                      <p className="text-xs text-ink leading-relaxed mt-1 line-clamp-3">
-                        {call.aiSummary || "Discussion recorded and analyzed via Allota AI."}
-                      </p>
-                    </div>
-
-                    {call.behaviorTags && call.behaviorTags.length > 0 && (
-                      <div className="mt-2.5 flex flex-wrap gap-1">
-                        {call.behaviorTags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px]">
-                    <span className="text-ink-faint">
-                      {new Date(call.occurredAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <Link
-                      href="/admin/calls"
-                      className="font-bold text-purple-700 hover:text-purple-900 transition"
-                    >
-                      Read Verbatim &rarr;
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="py-10 text-center">
-            <span className="text-3xl">📞</span>
-            <p className="mt-2 text-sm font-bold text-ink">
-              No calls recorded for {dateFilter.label}
-            </p>
-            <p className="text-xs text-ink-faint mt-1">
-              Select &quot;Last Week&quot; or &quot;All Time&quot; in the top-right date filter to view call recordings and Hinglish summaries.
-            </p>
-          </div>
-        )}
-      </section>
-
       {/* AI Priority Desk & Build Roadmap */}
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className={SHOW_SYSTEM_OPERATIONS ? "grid gap-6 xl:grid-cols-[1.15fr_0.85fr]" : "w-full"}>
         <section className="rounded-3xl neo-panel overflow-hidden">
           <PanelHeader
             title="AI Priority Desk"
@@ -523,52 +390,55 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
           </div>
         </section>
 
-        <section className="rounded-3xl neo-panel overflow-hidden">
-          <PanelHeader
-            title="System Operations & Health"
-            description="Live status of connected CRM modules and database entities."
-            badge="Live Telemetry"
-          />
-          <div className="space-y-3 p-6">
-            {operationalModules.map((item, idx) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-xl p-3 neo-pressed transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                    item.live ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-400"
-                  }`}>
-                    {item.live ? (
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <span className="text-[10px] font-bold">{idx + 1}</span>
-                    )}
+        {/* System Operations & Health (Hidden by default; set SHOW_SYSTEM_OPERATIONS = true to re-enable) */}
+        {SHOW_SYSTEM_OPERATIONS && (
+          <section className="rounded-3xl neo-panel overflow-hidden">
+            <PanelHeader
+              title="System Operations & Health"
+              description="Live status of connected CRM modules and database entities."
+              badge="Live Telemetry"
+            />
+            <div className="space-y-3 p-6">
+              {operationalModules.map((item, idx) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between rounded-xl p-3 neo-pressed transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                      item.live ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-400"
+                    }`}>
+                      {item.live ? (
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span className="text-[10px] font-bold">{idx + 1}</span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm ${
+                        item.live ? "font-semibold text-ink" : "text-ink-muted"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
                   </div>
+
                   <span
-                    className={`text-sm ${
-                      item.live ? "font-semibold text-ink" : "text-ink-muted"
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${
+                      item.live
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        : "bg-slate-100 text-slate-500 border border-slate-200"
                     }`}
                   >
-                    {item.label}
+                    {item.metric}
                   </span>
                 </div>
-
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${
-                    item.live
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                      : "bg-slate-100 text-slate-500 border border-slate-200"
-                  }`}
-                >
-                  {item.metric}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* 3 Analytics Columns with Rich Badges */}
