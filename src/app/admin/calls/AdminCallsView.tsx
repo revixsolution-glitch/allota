@@ -95,6 +95,7 @@ export function AdminCallsView({
   const [activeDocCallId, setActiveDocCallId] = useState<string | null>(null);
   const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>("");
   const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
+  const [isSyncingDrive, setIsSyncingDrive] = useState(false);
 
   function handleOpenCallDoc(callId: string) {
     setActiveDocCallId(callId);
@@ -248,6 +249,22 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              type="button"
+              disabled={isSyncingDrive}
+              onClick={async () => {
+                setIsSyncingDrive(true);
+                try {
+                  await fetch("/api/telephony/sync-drive", { method: "POST" });
+                } catch {}
+                window.location.reload();
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md shadow-purple-600/25 active:scale-95 transition cursor-pointer disabled:opacity-50"
+            >
+              <span className={isSyncingDrive ? "animate-spin" : ""}>🔄</span>
+              <span>{isSyncingDrive ? "Syncing Google Drive..." : "Sync Google Drive Calls"}</span>
+            </button>
+
             <Link
               href="/admin/employees"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-ink border border-line neo-button hover:text-primary transition"
