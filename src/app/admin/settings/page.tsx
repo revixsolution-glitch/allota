@@ -22,7 +22,7 @@ export default async function AdminSettingsPage() {
     settings = await prisma.companySettings.create({
       data: {
         id: "default",
-        companyName: "Pharma Life Sciences",
+        companyName: "Allota AI",
         planTier: "CORE_LEAD_SUITE",
         enableBillingErp: false,
         enableStockIq: false,

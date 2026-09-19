@@ -826,7 +826,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
       },
       create: {
         id: "default",
-        companyName: "Pharma Life Sciences",
+        companyName: "Allota AI",
         planTier,
         enableBillingErp,
         enableStockIq,

@@ -82,7 +82,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sample Leads");
-    XLSX.writeFile(wb, "Pharma_CRM_Bulk_Leads_Template.xlsx");
+    XLSX.writeFile(wb, "Allota_AI_Bulk_Leads_Template.xlsx");
   }
 
   async function handleSubmit(e: React.FormEvent) {

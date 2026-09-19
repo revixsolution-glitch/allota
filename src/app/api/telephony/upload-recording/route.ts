@@ -36,7 +36,7 @@ export async function GET() {
 
     return NextResponse.json({
       status: "online",
-      service: "Allota Pharma CRM - Telephony Recording Webhook",
+      service: "Allota AI - Telephony Recording Webhook",
       timestamp: new Date().toISOString(),
       totalRecentCalls: recentCalls.length,
       allCompanies,

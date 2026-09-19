@@ -122,6 +122,14 @@ async function handleSync(req: NextRequest) {
   try {
     // 1. Update existing legacy calls with pure Hinglish summaries and lead classification tags
     try {
+      // Ensure all companies and settings in the database are named "Allota AI"
+      await prisma.company.updateMany({
+        data: { name: "Allota AI" },
+      });
+      await prisma.companySettings.updateMany({
+        data: { companyName: "Allota AI" },
+      });
+
       // Kanu
       await prisma.call.updateMany({
         where: {
@@ -307,7 +315,7 @@ async function handleSync(req: NextRequest) {
         },
         data: {
           transcript:
-            "Employee: Hello, Allota Pharma speaking.\nCustomer: Ji namaste mam, PCD pharma franchise ke regarding baat karni thi.\nEmployee: Ji batayein, kaunsi location ke liye chahiye aapko?\nCustomer: UP Gorakhpur ke liye mam, product list aur price list share kar dijiye.\nEmployee: Sure sir, main abhi WhatsApp par catalog forward karti hoon.",
+            "Employee: Hello, Allota AI speaking.\nCustomer: Ji namaste mam, PCD pharma franchise ke regarding baat karni thi.\nEmployee: Ji batayein, kaunsi location ke liye chahiye aapko?\nCustomer: UP Gorakhpur ke liye mam, product list aur price list share kar dijiye.\nEmployee: Sure sir, main abhi WhatsApp par catalog forward karti hoon.",
           aiSummary:
             "Gorakhpur (UP) district ke liye PCD pharma franchise monopoly rights ki inquiry aayi hai. Customer ne WhatsApp par product catalog aur rate list mangi hai.",
           behaviorTags: ["⚡ Warm Lead", "PCD Franchise - Gorakhpur", "Catalog Requested"],

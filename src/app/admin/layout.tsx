@@ -53,16 +53,21 @@ export default async function AdminLayout({
   // Settings & Plan Configurator
   navItems.push({ href: "/admin/settings", label: "Settings & Plans" });
 
+  const displayTitle =
+    company?.name && !company.name.includes("Pharma Life") && !company.name.includes("Pharma CRM")
+      ? company.name
+      : "Allota AI";
+
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
       {isImpersonating && (
         <SupportModeBanner
-          companyName={company?.name || "Client Company"}
+          companyName={displayTitle}
           planTier={company?.planTier || "CORE_LEAD_SUITE"}
         />
       )}
       <AppShell
-        title={company?.name ? company.name : "Pharma CRM"}
+        title={displayTitle}
         portalType="Admin"
         navItems={navItems}
       >

@@ -46,12 +46,12 @@ export default async function SuperAdminPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-black tracking-tight text-white">Pharma CRM</span>
+                  <span className="text-base font-black tracking-tight text-white">Allota AI</span>
                   <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-300 border border-purple-500/30">
                     Super Admin
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">Master B2B Multi-Tenant Platform</p>
+                <p className="text-xs text-slate-400">Allota AI Master Platform • allota.in</p>
               </div>
             </div>
           </div>

@@ -28,9 +28,14 @@ export default async function EmployeeLayout({
     navItems.push({ href: "/employee/clients", label: "My Clients" });
   }
 
+  const displayTitle =
+    company?.name && !company.name.includes("Pharma Life") && !company.name.includes("Pharma CRM")
+      ? company.name
+      : "Allota AI";
+
   return (
     <AppShell
-      title={company?.name ? company.name : "Pharma CRM"}
+      title={displayTitle}
       portalType="Employee"
       navItems={navItems}
     >

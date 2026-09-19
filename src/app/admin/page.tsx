@@ -282,7 +282,7 @@ export default async function AdminDashboardPage() {
             <div className="flex items-center gap-2.5">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live Franchise CRM
+                Allota AI Live
               </span>
               <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
                 v1.2 Active

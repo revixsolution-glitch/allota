@@ -1758,7 +1758,7 @@ export function EmployeeDetailView({
         calls={callsList}
         initialCallId={activeDocCallId}
         employeeName={employee.name}
-        companyName="Pharma Life Sciences Pvt Ltd"
+        companyName="Allota AI"
         onSendWhatsApp={(call) => {
           const found = callsList.find((c) => c.id === call.id);
           if (found) handleSendAiWhatsAppAlert(found);

@@ -525,7 +525,7 @@ export default async function AdminReordersPage(props: {
             .map((rp) => `• ${rp.product.name}: ${rp.lastQuantity} Boxes @ ₹${rp.lastRate.toFixed(2)}/box`)
             .join("\n");
           const waMessage = encodeURIComponent(
-            `*REVIX PHARMACEUTICALS - REORDER REMINDER* 📦\n\nHello *${client.name}*,\nThis is a friendly reminder that your monthly order cadence (~${profile.cadenceIntervalDays} days) is ${profile.cadenceStatus === "OVERDUE" ? "OVERDUE" : "DUE"}.\n\n*Recommended Replenishment Basket:*\n${waProductLines}\n\n*Billing Estimate:* ₹${Number(profile.avgMonthlySpend).toLocaleString("en-IN")} (${profile.billingSource})\n\nKindly confirm if we should release this dispatch to ${client.territory?.city || "your area"}.\n\n*Assigned MR:* ${client.assignedEmployee?.name || "Field Rep"} (${client.assignedEmployee?.phoneNumber || ""})`
+            `*ALLOTA AI - REORDER REMINDER* 📦\n\nHello *${client.name}*,\nThis is a friendly reminder that your monthly order cadence (~${profile.cadenceIntervalDays} days) is ${profile.cadenceStatus === "OVERDUE" ? "OVERDUE" : "DUE"}.\n\n*Recommended Replenishment Basket:*\n${waProductLines}\n\n*Billing Estimate:* ₹${Number(profile.avgMonthlySpend).toLocaleString("en-IN")} (${profile.billingSource})\n\nKindly confirm if we should release this dispatch to ${client.territory?.city || "your area"}.\n\n*Assigned MR:* ${client.assignedEmployee?.name || "Field Rep"} (${client.assignedEmployee?.phoneNumber || ""})`
           );
           const whatsappUrl = cleanPhone.length >= 10 ? `https://wa.me/${formattedPhone}?text=${waMessage}` : "#";
 
