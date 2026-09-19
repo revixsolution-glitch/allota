@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { markWhatsAppAlertSent } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
@@ -96,6 +96,15 @@ export function AdminCallsView({
   const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>("");
   const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
+
+  useEffect(() => {
+    // Initial and periodic background sync from Google Drive
+    fetch("/api/telephony/sync-drive").catch(() => {});
+    const interval = setInterval(() => {
+      fetch("/api/telephony/sync-drive").catch(() => {});
+    }, 25000);
+    return () => clearInterval(interval);
+  }, []);
 
   function handleOpenCallDoc(callId: string) {
     setActiveDocCallId(callId);
@@ -1252,7 +1261,7 @@ Report generated via Gemini 2.5 Flash Telephony Engine.
       <CallIntelligenceDocumentModal
         isOpen={docModalOpen}
         onClose={() => setDocModalOpen(false)}
-        calls={callsList}
+        calls={filteredCalls.length > 0 ? filteredCalls : callsList}
         initialCallId={activeDocCallId}
         companyName={companyName}
         onSendWhatsApp={(docCall) => {

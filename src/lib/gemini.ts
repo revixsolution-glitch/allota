@@ -91,20 +91,47 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
+  const modelsToTry = [
+    model,
+    "gemini-2.5-flash",
+    "gemini-3.6-flash",
+    "gemini-flash-latest",
+    "gemini-2.5-flash-lite",
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+  let lastErrorText = "";
+  let result = null;
+
+  for (const currentModel of modelsToTry) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        result = await response.json();
+        break;
+      } else {
+        lastErrorText = await response.text();
+        console.warn(`Gemini model ${currentModel} returned ${response.status}: ${lastErrorText}`);
+        // If high demand 503, brief pause before trying next model
+        if (response.status === 503 || response.status === 429) {
+          await new Promise((r) => setTimeout(r, 1200));
+        }
+      }
+    } catch (e: any) {
+      lastErrorText = e?.message || "Network error";
+    }
   }
 
-  const result = await response.json();
+  if (!result) {
+    throw new Error(`Gemini API error across all models: ${lastErrorText}`);
+  }
   const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
   try {
