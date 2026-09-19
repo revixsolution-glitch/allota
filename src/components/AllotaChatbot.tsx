@@ -17,6 +17,12 @@ export function AllotaChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechLang, setSpeechLang] = useState<"hi-IN" | "en-IN">("hi-IN");
+  const [micSupported, setMicSupported] = useState(true);
+  const [micError, setMicError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   const [quotaInfo, setQuotaInfo] = useState<{ dailyUsed: number; dailyCap: number; remaining: number }>({
     dailyUsed: 0,
     dailyCap: 1500,
@@ -27,7 +33,7 @@ export function AllotaChatbot() {
     {
       id: "welcome",
       sender: "allota",
-      text: "Namaste! Main Allota AI Assistant hoon (powered by Gemini Flash). Mai aapke telephony calls, leads, reorder cadence aur credit ledger mein live assist kar sakti hoon. Aap kya check karna chahenge?",
+      text: "Namaste! Main Allota AI Copilot hoon. Mai aapke telephony calls, leads, reorder cadence aur credit ledger mein live assist kar sakti hoon. Aap mic se bol kar ya type karke pooch sakte hain!",
       timestamp: "Just now",
       actionUrl: "/admin/calls",
       actionLabel: "Open Telephony Hub →",
@@ -35,6 +41,92 @@ export function AllotaChatbot() {
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setMicSupported(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+    };
+  }, []);
+
+  function toggleListening() {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    setMicError(null);
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setMicError("Mic speech-to-text is not supported in this browser. Please use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.lang = speechLang;
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setMicError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        if (currentTranscript) {
+          setInputText(currentTranscript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn("Speech recognition error:", event.error);
+        if (event.error === "not-allowed") {
+          setMicError("Microphone permission denied. Please allow microphone access in your browser.");
+        } else if (event.error !== "no-speech") {
+          setMicError(`Mic error: ${event.error}`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err: any) {
+      console.error("Failed to start speech recognition:", err);
+      setMicError(err?.message || "Failed to start microphone.");
+      setIsListening(false);
+    }
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -125,7 +217,7 @@ export function AllotaChatbot() {
           onClick={() => setIsOpen(!isOpen)}
           className={`allota-3d-launcher group ${isOpen ? "allota-launcher-active" : ""}`}
           aria-label={isOpen ? "Close Allota AI Chatbot" : "Open Allota AI Chatbot"}
-          title={isOpen ? "Close Allota AI" : "Open Allota AI Assistant (Gemini Flash)"}
+          title={isOpen ? "Close Allota AI" : "Open Allota AI Copilot"}
         >
           {/* A. OUTER 2 RINGS ANIMATED IN CIRCLE ORBIT (USER REQ) */}
           <div className="allota-orbit-layer">
@@ -222,8 +314,9 @@ export function AllotaChatbot() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-black text-white">Allota AI Copilot</h3>
-                  <span className="rounded-full bg-purple-500/25 px-2 py-0.2 text-[9px] font-extrabold text-purple-200 border border-purple-500/30">
-                    Gemini Flash
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300 border border-emerald-500/30">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Online
                   </span>
                 </div>
                 <p className="text-[11px] text-purple-200/80">Telephony & Commercial Intelligence</p>
@@ -231,14 +324,6 @@ export function AllotaChatbot() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Daily Usage Cap Indicator (Gemini Free Tier) */}
-              <span
-                className="hidden sm:inline-block rounded-lg bg-white/10 px-2 py-1 text-[10px] font-mono text-purple-200 border border-white/15"
-                title="Daily Free Gemini Tier Quota (1,500 requests/day)"
-              >
-                {quotaInfo.remaining} / {quotaInfo.dailyCap} left
-              </span>
-
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -325,6 +410,63 @@ export function AllotaChatbot() {
             </button>
           </div>
 
+          {/* Active Listening Audio Banner */}
+          {isListening && (
+            <div className="px-3 py-2 bg-gradient-to-r from-rose-50 via-rose-100 to-amber-50 border-t border-rose-200 flex items-center justify-between text-xs text-rose-900 animate-in fade-in slide-in-from-bottom-2 duration-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+                </span>
+                <span className="font-bold text-[11px]">
+                  {speechLang === "hi-IN" ? "🎙️ Sun rahe hain (Hinglish/Hindi)..." : "🎙️ Listening (English)..."}
+                </span>
+                {/* Pulsing soundwave equalizer */}
+                <div className="flex items-center gap-0.5 ml-1">
+                  <span className="h-2 w-0.5 rounded-full bg-rose-600 animate-pulse" style={{ animationDuration: "0.4s" }} />
+                  <span className="h-4 w-0.5 rounded-full bg-rose-600 animate-pulse" style={{ animationDuration: "0.25s" }} />
+                  <span className="h-3 w-0.5 rounded-full bg-rose-600 animate-pulse" style={{ animationDuration: "0.5s" }} />
+                  <span className="h-5 w-0.5 rounded-full bg-rose-600 animate-pulse" style={{ animationDuration: "0.3s" }} />
+                  <span className="h-2.5 w-0.5 rounded-full bg-rose-600 animate-pulse" style={{ animationDuration: "0.45s" }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSpeechLang((prev) => (prev === "hi-IN" ? "en-IN" : "hi-IN"))}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white border border-rose-300 text-rose-800 hover:bg-rose-50 shadow-xs cursor-pointer"
+                  title="Switch speech recognition language"
+                >
+                  {speechLang === "hi-IN" ? "🇮🇳 Hindi" : "🇬🇧 English"}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer transition active:scale-95"
+                >
+                  Done ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mic Error Banner */}
+          {micError && (
+            <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-900 flex items-center justify-between shrink-0">
+              <span className="flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>{micError}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setMicError(null)}
+                className="text-amber-950 font-bold ml-2 hover:bg-amber-100 px-1.5 rounded-md cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Input Footer */}
           <form
             onSubmit={(e) => {
@@ -337,13 +479,58 @@ export function AllotaChatbot() {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask Allota AI (Gemini Flash)..."
+              placeholder={
+                isListening
+                  ? "🎙️ Boliyen... (Listening in real-time)"
+                  : "Ask Allota AI or tap mic to speak..."
+              }
               disabled={isThinking}
-              className="flex-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-ink placeholder:text-ink-faint border border-line focus:outline-hidden focus:border-purple-500 transition disabled:opacity-50"
+              className={`flex-1 rounded-xl px-3 py-2 text-xs text-ink placeholder:text-ink-faint border transition disabled:opacity-50 ${
+                isListening
+                  ? "bg-rose-50/40 border-rose-400 ring-2 ring-rose-200"
+                  : "bg-slate-50 border-line focus:outline-hidden focus:border-purple-500"
+              }`}
             />
+
+            {/* MIC BUTTON */}
+            {micSupported && (
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isThinking}
+                title={
+                  isListening
+                    ? "Stop listening"
+                    : `Speak using Mic (${speechLang === "hi-IN" ? "Hindi / Hinglish" : "English"})`
+                }
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition cursor-pointer ${
+                  isListening
+                    ? "bg-rose-600 text-white ring-4 ring-rose-300 animate-pulse shadow-md shadow-rose-500/40"
+                    : "bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-700 border border-slate-200 hover:border-purple-300"
+                }`}
+              >
+                {isListening ? (
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+
+            {/* SEND BUTTON */}
             <button
               type="submit"
               disabled={!inputText.trim() || isThinking}
+              title="Send query"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white disabled:opacity-40 hover:opacity-90 active:scale-95 transition cursor-pointer shadow-xs"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,10 +539,20 @@ export function AllotaChatbot() {
             </button>
           </form>
 
-          {/* Footer Quota Info */}
-          <div className="px-3 py-1 bg-slate-100 border-t border-line/40 text-[9px] text-ink-faint flex items-center justify-between">
-            <span>Powered by Google Gemini 2.5 Flash</span>
-            <span>Free Tier: 1,500 queries/day max</span>
+          {/* Footer Quota Info & Voice Language Toggle */}
+          <div className="px-3 py-1.5 bg-slate-100 border-t border-line/40 text-[9px] text-ink-faint flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setSpeechLang((prev) => (prev === "hi-IN" ? "en-IN" : "hi-IN"))}
+              className="flex items-center gap-1 font-semibold text-purple-700 hover:text-purple-900 cursor-pointer"
+              title="Toggle speech language"
+            >
+              <span>🎙️ Voice:</span>
+              <span className="underline underline-offset-2">
+                {speechLang === "hi-IN" ? "🇮🇳 Hinglish / Hindi" : "🇬🇧 English"}
+              </span>
+            </button>
+            <span className="font-semibold text-slate-400">allota.in</span>
           </div>
         </div>
       )}
