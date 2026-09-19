@@ -88,32 +88,36 @@ export async function POST(req: Request) {
       }).catch(() => []),
     ]);
 
-    const systemPrompt = `You are Allota AI Copilot, the dedicated commercial intelligence AI for Allota AI CRM & Telephony Operating System (domain: allota.in).
+    const systemPrompt = `You are Allota AI Copilot, the commercial intelligence AI for Allota AI CRM (allota.in).
 
-Role & Personality:
-- Professional, helpful, executive, friendly.
-- Fluent in natural Hinglish and English. Match the language used by the user.
-- Live CRM Snapshot:
-  * Today's calls recorded: ${todayCallsCount}
-  * Total active leads in pipeline: ${totalLeadsCount} (High intent / Hot leads: ${hotLeadsCount})
-  * Recent calls: ${recentCalls.map(c => `${c.employee?.name || "Rep"} with ${c.client?.name || c.lead?.name || "Caller"} (${c.missed ? "Missed" : Math.round(c.durationSec || 0) + "s"})`).join("; ")}
-- Available CRM modules:
-  * Telephony Hub & Call Summaries: /admin/calls
-  * Leads Desk: /admin/leads
-  * Repeat Orders & Cadence: /admin/reorders
-  * Credit Ledger: /admin/credits
-  * Main Dashboard: /admin
+CRITICAL RESPONSE FORMAT RULE:
+1. Give a crisp 1-LINER DIRECT ANSWER to the user's question.
+2. Followed by a 1-liner navigation direction pointing to where to get the full info in the CRM using the EXACT FEATURE NAVIGATION NAME.
+3. Keep the entire response strictly 2 sentences max (1 sentence direct answer + 1 sentence navigation pointer).
 
-STRICT DOMAIN & ENVIRONMENT GUARDRAIL (CRITICAL):
-- You are STRICTLY confined to Allota AI CRM, PCD Pharma franchise business, commercial telephony intelligence (calls, recordings, Hinglish summaries), franchise marketing leads (Meta, IndiaMART), distributor reorder cycles, and credit recovery.
-- If the user asks ANY question outside of Allota AI CRM, pharma business, or company operations (for example: general knowledge, history, politics, sports, coding/programming outside CRM, movies, recipes, weather, personal advice, or unrelated chit-chat):
-  * YOU MUST REFUSE TO ANSWER.
-  * In English: "Sorry, I can only help with questions related to Allota AI CRM, PCD pharma operations, telephony calls, leads, and orders."
-  * In Hinglish/Hindi: "Maaf kijiye, main sirf Allota AI CRM, PCD pharma operations, telephony calls, leads aur orders se jude sawalon mein hi madad kar sakta hoon."
-  * Offer to assist with CRM data (Calls, Leads, Reorders, Credits).
-  * NEVER answer general knowledge or off-topic questions under any circumstances.
+EXACT CRM NAVIGATION FEATURE NAMES (ALWAYS USE THESE EXACT NAMES):
+- "Dashboard" (/admin): Executive overview, top metrics, date filters.
+- "Lead Center" (/admin/leads): All active leads pipeline, lead details, status tags.
+- "Leads IQ" (/admin/leads-iq): AI-ranked hot leads and conversion intelligence.
+- "AI Calls Summary" (/admin/calls): Recorded telephony audio, verbatim transcripts, Hinglish summaries.
+- "Employees" (/admin/employees): Sales reps, calling performance, rep quotas.
+- "Sources & Excel" (/admin/sources): Meta ads, IndiaMART leads, bulk Excel uploader.
+- "Leads Reassign" (/admin/leads-reassign): Territory reassignments and rep lead transfers.
+- "Clients" (/admin/clients): Chemist & distributor accounts directory.
+- "Territories" (/admin/territories): District PCD monopoly and PIN code allocations.
+- "Reorders" (/admin/reorders): Monthly repeat purchase cadence & WhatsApp alerts.
+- "Credit Management" (/admin/credits): Outstanding balances, payment ledgers, recovery.
+- "Stock IQ" (/admin/stock-iq): Medicine inventory and warehouse stock levels.
 
-Keep your answers direct, crisp (2-4 sentences max), and informative.`;
+Live CRM Snapshot:
+* Today's calls recorded: ${todayCallsCount}
+* Total active leads: ${totalLeadsCount} (High intent / Hot leads: ${hotLeadsCount})
+* Recent calls: ${recentCalls.map(c => `${c.employee?.name || "Rep"} with ${c.client?.name || c.lead?.name || "Caller"} (${c.missed ? "Missed" : Math.round(c.durationSec || 0) + "s"})`).join("; ")}
+
+STRICT SCOPE & GUARDRAIL:
+- If the user asks ANY question outside Allota AI CRM or PCD pharma operations:
+  * REFUSE IMMEDIATELY: "Sorry, I can't help with that. I can only assist with Allota AI CRM, PCD pharma operations, telephony intelligence, leads, and orders." (or Hinglish equivalent).
+  * Do NOT answer off-topic questions under any circumstances.`;
 
     // Use dedicated chatbot key provided by user, or env variable, or fallback to GEMINI_API_KEY
     const apiKey =
@@ -138,14 +142,14 @@ Keep your answers direct, crisp (2-4 sentences max), and informative.`;
         try {
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
           
-          // Build formatted contents including conversation history with strict few-shot boundaries
+          // Build formatted contents including conversation history with strict few-shot boundaries & 1-liner format
           const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [
             { role: "user", parts: [{ text: systemPrompt }] },
             {
               role: "model",
               parts: [
                 {
-                  text: "Understood. I am Allota AI Copilot. I am strictly restricted to Allota AI CRM and PCD pharma operations. If any user asks about anything outside CRM (stories, jokes, celebrities, politics, science, weather, coding outside CRM), I will never entertain it or make up creative links; I will directly refuse and say 'Sorry, I can't help with that.'",
+                  text: "Understood. I am Allota AI Copilot. I will strictly give a 1-liner direct answer followed by a 1-liner navigation pointer using the exact CRM feature name (e.g. 'Lead Center', 'AI Calls Summary', 'Reorders', 'Credit Management'). If asked about anything outside the CRM, I will immediately refuse.",
                 },
               ],
             },
@@ -158,12 +162,21 @@ Keep your answers direct, crisp (2-4 sentences max), and informative.`;
                 },
               ],
             },
-            { role: "user", parts: [{ text: "Delhi me aaj barish hogi kya?" }] },
+            { role: "user", parts: [{ text: "aaj kitni calls hui hain?" }] },
             {
               role: "model",
               parts: [
                 {
-                  text: "Maaf kijiye, main isme madad nahi kar sakta. Main sirf Allota AI CRM, PCD pharma operations, telephony calls aur leads ke baare mein assist kar sakta hoon.",
+                  text: `Aaj CRM mein kul ${todayCallsCount} calls record hui hain. Full audio recordings aur verbatim transcripts ke liye **AI Calls Summary** (/admin/calls) par jayein.`,
+                },
+              ],
+            },
+            { role: "user", parts: [{ text: "how many leads are in pipeline?" }] },
+            {
+              role: "model",
+              parts: [
+                {
+                  text: `There are currently ${totalLeadsCount} active leads in your sales pipeline. To view complete lead details and follow-ups, visit **Lead Center** (/admin/leads).`,
                 },
               ],
             },
@@ -211,43 +224,52 @@ Keep your answers direct, crisp (2-4 sentences max), and informative.`;
     if (!reply) {
       const q = query.toLowerCase();
       if (q.includes("call") || q.includes("summary") || q.includes("telephony")) {
-        reply = `Allota AI Telephony par aaj ${todayCallsCount} calls record hui hain. Call recordings Google Drive se synchronized hain aur verbatim transcripts with Hinglish summaries ready hain.`;
+        reply = `Aaj CRM par kul ${todayCallsCount} calls record hui hain. Full audio recordings aur verbatim Hinglish transcripts ke liye **AI Calls Summary** (/admin/calls) par jayein.`;
         actionUrl = "/admin/calls";
-        actionLabel = "Open Telephony Hub →";
+        actionLabel = "Open AI Calls Summary →";
       } else if (q.includes("lead") || q.includes("hot") || q.includes("inquiry")) {
-        reply = `Abhi CRM mein total ${totalLeadsCount} leads active hain, jisme se ${hotLeadsCount} high-priority hot leads hain Meta aur IndiaMART se.`;
+        reply = `Pipeline mein kul ${totalLeadsCount} active leads hain, jisme se ${hotLeadsCount} hot leads hain. Complete list aur lead details ke liye **Lead Center** (/admin/leads) par jayein.`;
         actionUrl = "/admin/leads";
-        actionLabel = "View Leads Management →";
+        actionLabel = "Open Lead Center →";
       } else if (q.includes("reorder") || q.includes("order") || q.includes("cadence")) {
-        reply = "Franchise accounts ke monthly purchase cadence Marg ERP & Busy se track ho rahe hain. Due aur overdue orders par 1-click WhatsApp alerts ready hain.";
+        reply = "Franchise accounts ka monthly purchase cadence Marg ERP aur Busy se sync hai. Due reorders aur WhatsApp alerts ke liye **Reorders** (/admin/reorders) par jayein.";
         actionUrl = "/admin/reorders";
-        actionLabel = "Check Reorder Alerts →";
+        actionLabel = "Open Reorders →";
       } else if (q.includes("credit") || q.includes("payment")) {
-        reply = "Active credit records aur overdue accounts monitored hain. Aap direct Credit Ledger se reminders dispatch kar sakte hain.";
+        reply = "Active credit ledgers aur overdue balances monitored hain. Outstanding accounts aur payment reminders ke liye **Credit Management** (/admin/credits) par jayein.";
         actionUrl = "/admin/credits";
-        actionLabel = "Manage Credits →";
+        actionLabel = "Open Credit Management →";
       } else {
-        reply = `Hello! Main Allota AI hoon. Aapke CRM database par ${todayCallsCount} calls aaj record hui hain aur ${totalLeadsCount} leads active hain. Bataiye kis baare mein information chahiye?`;
+        reply = `Aaj CRM mein ${todayCallsCount} calls record hui hain aur ${totalLeadsCount} leads active hain. Live executive metrics ke liye **Dashboard** (/admin) par jayein.`;
         actionUrl = "/admin";
-        actionLabel = "Open Allota Dashboard →";
+        actionLabel = "Open Dashboard →";
       }
     }
 
-    // Auto-detect module deep links if not already set
+    // Auto-detect module deep links matching exact navigation names
     if (!actionUrl) {
       const textLower = (reply + " " + query).toLowerCase();
       if (textLower.includes("call") || textLower.includes("telephony") || textLower.includes("summary")) {
         actionUrl = "/admin/calls";
-        actionLabel = "Open Telephony Hub →";
-      } else if (textLower.includes("lead")) {
+        actionLabel = "Open AI Calls Summary →";
+      } else if (textLower.includes("lead center") || textLower.includes("lead")) {
         actionUrl = "/admin/leads";
-        actionLabel = "View Leads Desk →";
-      } else if (textLower.includes("reorder") || textLower.includes("order")) {
+        actionLabel = "Open Lead Center →";
+      } else if (textLower.includes("reorder")) {
         actionUrl = "/admin/reorders";
-        actionLabel = "Open Reorder Cadence →";
+        actionLabel = "Open Reorders →";
       } else if (textLower.includes("credit")) {
         actionUrl = "/admin/credits";
-        actionLabel = "Credit Management →";
+        actionLabel = "Open Credit Management →";
+      } else if (textLower.includes("employee") || textLower.includes("rep")) {
+        actionUrl = "/admin/employees";
+        actionLabel = "Open Employees →";
+      } else if (textLower.includes("source") || textLower.includes("excel")) {
+        actionUrl = "/admin/sources";
+        actionLabel = "Open Sources & Excel →";
+      } else if (textLower.includes("territor")) {
+        actionUrl = "/admin/territories";
+        actionLabel = "Open Territories →";
       }
     }
 

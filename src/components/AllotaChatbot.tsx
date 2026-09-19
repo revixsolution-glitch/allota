@@ -36,7 +36,7 @@ export function AllotaChatbot() {
       text: "Namaste! Main Allota AI Copilot hoon. Mai aapke telephony calls, leads, reorder cadence aur credit ledger mein live assist kar sakti hoon. Aap mic se bol kar ya type karke pooch sakte hain!",
       timestamp: "Just now",
       actionUrl: "/admin/calls",
-      actionLabel: "Open Telephony Hub →",
+      actionLabel: "Open AI Calls Summary →",
     },
   ]);
 
