@@ -9,5 +9,11 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  redirect(session.role === Role.ADMIN ? "/admin" : "/employee");
+  if (session.role === Role.SUPER_ADMIN) {
+    redirect("/super-admin");
+  } else if (session.role === Role.ADMIN) {
+    redirect("/admin");
+  } else {
+    redirect("/employee");
+  }
 }

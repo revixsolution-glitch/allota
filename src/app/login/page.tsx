@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, Suspense, type FormEvent } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@pharmacrm.test");
-  const [password, setPassword] = useState("admin123");
+  const searchParams = useSearchParams();
+  const showDemo = searchParams.get("demo") === "true" || searchParams.get("demo") === "1";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,14 +23,14 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPass }),
+        body: JSON.stringify({ email: loginEmail.trim(), password: loginPass }),
       });
 
       setLoading(false);
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ?? "Invalid credentials. Please try again.");
+        setError(data?.error ?? "Invalid email or password. Please check your credentials.");
         return;
       }
 
@@ -41,148 +45,200 @@ export default function LoginPage() {
       router.refresh();
     } catch {
       setLoading(false);
-      setError("Network error connecting to server. Please try again.");
+      setError("Network connection error. Please verify your internet and try again.");
     }
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!email || !password) {
+      setError("Please enter both your work email and password.");
+      return;
+    }
     await performLogin(email, password);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
-      <div className="w-full max-w-md rounded-3xl p-8 neo-panel border border-line/60 shadow-xl">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="Allota AI"
-              width={56}
-              height={56}
-              className="h-14 w-14 rounded-2xl object-contain shadow-md shadow-purple-500/20"
-              priority
-            />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-ink">Allota AI</h1>
-          <p className="mt-1 text-xs text-ink-faint">Telephony Intelligence & PCD Pharma Commercial OS • allota.in</p>
+    <div className="w-full max-w-md rounded-3xl p-8 sm:p-9 bg-white border border-slate-200/80 shadow-2xl shadow-slate-900/5">
+      {/* Brand Header */}
+      <div className="text-center mb-8">
+        <div className="mx-auto mb-3.5 flex items-center justify-center">
+          <Image
+            src="/logo.png"
+            alt="Allota AI"
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-2xl object-contain shadow-lg shadow-purple-500/20"
+            priority
+          />
         </div>
+        <h1 className="text-2xl font-black tracking-tight text-slate-900">
+          Allota AI
+        </h1>
+        <p className="mt-1 text-xs font-semibold text-slate-500">
+          Pharmaceutical Commercial Intelligence OS
+        </p>
+        <p className="mt-2 text-[11px] text-slate-400">
+          Sign in to access your organization workspace
+        </p>
+      </div>
 
-        {/* 1-Click Quick Demo Login Shortcuts */}
-        <div className="mb-6 space-y-2 rounded-2xl bg-slate-50/80 p-3.5 border border-line">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-ink-muted text-center">
-            ⚡ Quick 1-Click Demo Login
-          </p>
+      {/* Secret Demo Login (Only visible if ?demo=true in URL) */}
+      {showDemo && (
+        <div className="mb-6 space-y-2 rounded-2xl bg-purple-50/70 p-3.5 border border-purple-200/70">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
+              🛠️ Quick Test Login
+            </span>
+            <span className="text-[10px] text-purple-500 font-medium">Demo Mode</span>
+          </div>
           <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
               type="button"
               disabled={loading}
-              onClick={() => {
-                setEmail("superadmin@pharmacrm.com");
-                setPassword("superadmin123");
-                performLogin("superadmin@pharmacrm.com", "superadmin123");
-              }}
-              className="flex flex-col items-center justify-center rounded-xl bg-purple-700 px-2 py-2 text-center text-white transition hover:bg-purple-800 disabled:opacity-50 shadow-sm"
+              onClick={() => performLogin("superadmin@pharmacrm.com", "superadmin123")}
+              className="rounded-xl bg-purple-700 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-purple-800 disabled:opacity-50 cursor-pointer"
             >
-              <span className="text-[11px] font-bold">Super Admin</span>
-              <span className="text-[9px] text-white/80">Owner Deck</span>
+              Super Admin
             </button>
-
             <button
               type="button"
               disabled={loading}
-              onClick={() => {
-                setEmail("admin@pharmacrm.test");
-                setPassword("admin123");
-                performLogin("admin@pharmacrm.test", "admin123");
-              }}
-              className="flex flex-col items-center justify-center rounded-xl bg-primary px-2 py-2 text-center text-white transition hover:bg-primary-strong disabled:opacity-50 shadow-sm"
+              onClick={() => performLogin("admin@pharmacrm.test", "admin123")}
+              className="rounded-xl bg-indigo-600 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
             >
-              <span className="text-[11px] font-bold">Client Admin</span>
-              <span className="text-[9px] text-white/80">Allota AI</span>
+              Client Admin
             </button>
-
             <button
               type="button"
               disabled={loading}
-              onClick={() => {
-                setEmail("employee@pharmacrm.test");
-                setPassword("employee123");
-                performLogin("employee@pharmacrm.test", "employee123");
-              }}
-              className="flex flex-col items-center justify-center rounded-xl bg-slate-800 px-2 py-2 text-center text-white transition hover:bg-slate-900 disabled:opacity-50 shadow-sm"
+              onClick={() => performLogin("employee@pharmacrm.test", "employee123")}
+              className="rounded-xl bg-slate-800 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-slate-900 disabled:opacity-50 cursor-pointer"
             >
-              <span className="text-[11px] font-bold">Field Rep</span>
-              <span className="text-[9px] text-white/80">Rep Portal</span>
+              Field Rep
             </button>
           </div>
         </div>
+      )}
 
-        <div className="relative my-4 flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-line/60" />
-          </div>
-          <span className="relative bg-white px-3 text-[11px] font-bold uppercase text-ink-faint">
-            or enter credentials
-          </span>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-1 block text-xs font-bold text-ink-muted"
-            >
-              Email Address
-            </label>
+      {/* Login Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
+            Work Email Address
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" />
+              </svg>
+            </div>
             <input
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-inner"
-              placeholder="admin@pharmacrm.test"
+              placeholder="name@company.com"
+              className="w-full rounded-xl border border-slate-300/80 bg-slate-50/50 py-2.5 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition"
             />
           </div>
+        </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1 block text-xs font-bold text-ink-muted"
-            >
-              Password
-            </label>
+        <div>
+          <label htmlFor="password" className="block text-xs font-bold text-slate-700 mb-1.5">
+            Password
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-inner"
               placeholder="••••••••"
+              className="w-full rounded-xl border border-slate-300/80 bg-slate-50/50 py-2.5 pl-10 pr-10 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
           </div>
-
-          {error && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200 p-2.5 text-center text-xs font-medium text-rose-700">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-ink py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 shadow-md"
-          >
-            {loading ? "Signing in..." : "Sign in to Dashboard →"}
-          </button>
-        </form>
-
-        <div className="mt-5 border-t border-line/60 pt-3 text-center text-[11px] text-ink-faint">
-          Password for both test accounts is <code className="rounded bg-slate-100 px-1 py-0.5 text-ink font-mono font-bold">admin123</code> / <code className="rounded bg-slate-100 px-1 py-0.5 text-ink font-mono font-bold">employee123</code>
         </div>
+
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-center text-xs font-semibold text-rose-700 shadow-xs flex items-center justify-center gap-1.5">
+            <svg className="h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 py-2.5 text-xs font-bold text-white shadow-md shadow-slate-900/10 hover:from-purple-950 hover:to-slate-900 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer mt-2"
+        >
+          {loading ? (
+            <>
+              <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Authenticating Workspace...</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In to Workspace</span>
+              <span className="text-purple-300">→</span>
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* Security & Support Footer */}
+      <div className="mt-8 pt-5 border-t border-slate-100 flex flex-col items-center gap-2 text-center">
+        <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+          <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>256-Bit SSL Encrypted Enterprise Workspace</span>
+        </div>
+        <p className="text-[10px] text-slate-400">
+          Need access or password assistance? Contact your organization administrator.
+        </p>
       </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <Suspense fallback={<div className="text-xs text-slate-400">Loading workspace portal...</div>}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }
