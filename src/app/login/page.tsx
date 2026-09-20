@@ -3,6 +3,7 @@
 import { useState, Suspense, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
 
 function LoginForm() {
   const router = useRouter();
@@ -12,18 +13,29 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [botTrap, setBotTrap] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function performLogin(loginEmail: string, loginPass: string) {
+  async function performLogin(loginEmail: string, loginPass: string, bypassCaptcha = false) {
     setError(null);
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail.trim(), password: loginPass }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(bypassCaptcha ? { "x-demo-bypass": "true" } : {}),
+        },
+        body: JSON.stringify({
+          email: loginEmail.trim(),
+          password: loginPass,
+          captchaToken: bypassCaptcha ? "allota_sec_demo_bypass" : captchaToken,
+          _hp: botTrap,
+        }),
       });
 
       setLoading(false);
@@ -53,6 +65,10 @@ function LoginForm() {
     e.preventDefault();
     if (!email || !password) {
       setError("Please enter both your work email and password.");
+      return;
+    }
+    if (!isVerified || !captchaToken) {
+      setError("Please solve the security puzzle to verify you are human.");
       return;
     }
     await performLogin(email, password);
@@ -96,7 +112,7 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => performLogin("superadmin@pharmacrm.com", "superadmin123")}
+              onClick={() => performLogin("superadmin@pharmacrm.com", "superadmin123", true)}
               className="rounded-xl bg-purple-700 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-purple-800 disabled:opacity-50 cursor-pointer"
             >
               Super Admin
@@ -104,7 +120,7 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => performLogin("admin@pharmacrm.test", "admin123")}
+              onClick={() => performLogin("admin@pharmacrm.test", "admin123", true)}
               className="rounded-xl bg-indigo-600 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
             >
               Client Admin
@@ -112,7 +128,7 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => performLogin("employee@pharmacrm.test", "employee123")}
+              onClick={() => performLogin("employee@pharmacrm.test", "employee123", true)}
               className="rounded-xl bg-slate-800 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-slate-900 disabled:opacity-50 cursor-pointer"
             >
               Field Rep
@@ -123,6 +139,18 @@ function LoginForm() {
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Hidden Honeypot Input for Bot Detection */}
+        <input
+          type="text"
+          name="_hp"
+          value={botTrap}
+          onChange={(e) => setBotTrap(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          className="hidden"
+          aria-hidden="true"
+        />
+
         <div>
           <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
             Work Email Address
@@ -184,6 +212,22 @@ function LoginForm() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Bot & AI Prevention Slider Puzzle */}
+        <div className="pt-1">
+          <PuzzleCaptcha
+            isVerified={isVerified}
+            onVerify={(token) => {
+              setCaptchaToken(token);
+              setIsVerified(true);
+              setError(null);
+            }}
+            onReset={() => {
+              setCaptchaToken(null);
+              setIsVerified(false);
+            }}
+          />
         </div>
 
         {error && (

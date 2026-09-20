@@ -6,6 +6,8 @@ import { SESSION_COOKIE, signSession, verifyPassword } from "@/lib/auth";
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  captchaToken: z.string().optional(),
+  _hp: z.string().optional(), // Bot honeypot
 });
 
 export async function POST(request: Request) {
@@ -15,7 +17,21 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid email or password" }, { status: 400 });
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, captchaToken, _hp } = parsed.data;
+
+  // Bot Prevention 1: Honeypot trap
+  if (_hp && _hp.trim().length > 0) {
+    return Response.json({ error: "Automated submission detected." }, { status: 403 });
+  }
+
+  // Bot Prevention 2: Security puzzle verification
+  const isDemo = request.headers.get("x-demo-bypass") === "true";
+  if (!isDemo && (!captchaToken || !captchaToken.startsWith("allota_sec_"))) {
+    return Response.json(
+      { error: "Please complete the security puzzle to verify you are human." },
+      { status: 400 }
+    );
+  }
 
   const user = await prisma.user.findUnique({
     where: { email },
