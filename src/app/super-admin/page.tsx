@@ -5,12 +5,15 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EnterCrmButton } from "@/components/EnterCrmButton";
 import { PlanTierSelect } from "@/components/PlanTierSelect";
+import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 
 export default async function SuperAdminPage() {
   const session = await getSession();
   if (!session || session.role !== "SUPER_ADMIN") {
     redirect("/login");
   }
+
+  await ensureCompanySettingsColumns();
 
   const [companies, totalReps, totalLeads, totalClients] = await Promise.all([
     prisma.company.findMany({

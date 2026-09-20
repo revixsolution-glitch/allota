@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { updateCompanyPlanSettings } from "@/lib/admin-actions";
+import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 
 export default async function AdminSettingsPage() {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  await ensureCompanySettingsColumns();
 
   let settings = activeCompanyId
     ? await prisma.companySettings.findFirst({

@@ -2,6 +2,7 @@ import { AppShell } from "@/components/AppShell";
 import { SupportModeBanner } from "@/components/SupportModeBanner";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 
 export default async function AdminLayout({
   children,
@@ -10,6 +11,8 @@ export default async function AdminLayout({
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  await ensureCompanySettingsColumns();
 
   const company = activeCompanyId
     ? await prisma.company.findUnique({
