@@ -363,6 +363,142 @@ export default function OnboardCompanyPage() {
               </div>
             </div>
 
+            {/* Step 4: Integration APIs & Call Storage (Optional) */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-purple-400">
+                    Step 4: Integration APIs & Cloud Storage (Optional)
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-400">
+                    Add API keys and storage links now, or configure them later in Company Settings. All fields are optional.
+                  </p>
+                </div>
+                <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+                  Optional
+                </span>
+              </div>
+
+              {/* Master Google Drive Folder URL */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-white">
+                    Master Google Drive Folder Link (AI Call Storage)
+                  </label>
+                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 border border-blue-500/20">
+                    Cloud Storage
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Master folder where call recordings will be automatically categorized as: <code className="text-purple-300 font-mono text-[10px]">Employee Name / YYYY-MM-DD / Recording.mp3</code>
+                </p>
+                <input
+                  type="url"
+                  name="driveFolderUrl"
+                  placeholder="https://drive.google.com/drive/folders/1AbCdEfGhIjKlMn..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                />
+              </div>
+
+              {/* 5 API Keys Grid */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* IndiaMART API */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-white">
+                      IndiaMART CRM API Key
+                    </label>
+                    <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-bold text-teal-400 border border-teal-500/20">
+                      Leads
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    name="indiaMartApiKey"
+                    placeholder="mKey_9x8a7b6c5d4e3f..."
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Auto-syncs incoming buyer inquiries into Lead Center.</p>
+                </div>
+
+                {/* Billing Software / Marg ERP */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-white">
+                      Billing Software API Key (Marg / Busy)
+                    </label>
+                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                      Billing ERP
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    name="billingSoftwareApiKey"
+                    placeholder="Marg ERP 9+ API Key / Token"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Connects live Marg ERP / Busy inventory & distributor balances.</p>
+                </div>
+
+                {/* Meta API */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-white">
+                      Meta API Token (FB, IG & WhatsApp)
+                    </label>
+                    <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
+                      Meta Ads
+                    </span>
+                  </div>
+                  <input
+                    type="password"
+                    name="metaApiKey"
+                    placeholder="EAAG... (Page / System Token)"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Connects Facebook Lead Ads, Instagram & WhatsApp Business API.</p>
+                </div>
+
+                {/* Pharma Hopper API */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-white">
+                      Pharma Hopper API Key
+                    </label>
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                      Portal
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    name="pharmaHopperApiKey"
+                    placeholder="ph_live_xxxxxxxxxxxx"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Syncs leads from PharmaHopper B2B PCD marketplace.</p>
+                </div>
+
+                {/* Pharma Vent API */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-white">
+                      Pharma Vent API Key
+                    </label>
+                    <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
+                      Portal
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    name="pharmaVentApiKey"
+                    placeholder="pv_live_xxxxxxxxxxxx"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500">Syncs leads from PharmaVent PCD franchise directory.</p>
+                </div>
+              </div>
+            </div>
+
             <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
               <Link
                 href="/super-admin"

@@ -53,6 +53,14 @@ export async function onboardCompany(formData: FormData) {
   const enableReorders = formData.get("enableReorders") === "true" || isPremium;
   const enableCredits = formData.get("enableCreditManagement") === "true" || isPremium;
 
+  // Cloud Storage & Third-Party APIs (Optional)
+  const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || null;
+  const indiaMartApiKey = (formData.get("indiaMartApiKey") as string)?.trim() || null;
+  const billingSoftwareApiKey = (formData.get("billingSoftwareApiKey") as string)?.trim() || null;
+  const metaApiKey = (formData.get("metaApiKey") as string)?.trim() || null;
+  const pharmaHopperApiKey = (formData.get("pharmaHopperApiKey") as string)?.trim() || null;
+  const pharmaVentApiKey = (formData.get("pharmaVentApiKey") as string)?.trim() || null;
+
   // Transaction to create Company, CompanySettings, and initial Admin User
   const result = await prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
@@ -75,6 +83,12 @@ export async function onboardCompany(formData: FormData) {
         enableClientsManagement: enableClients,
         enableReorders,
         enableCreditManagement: enableCredits,
+        driveFolderUrl,
+        indiaMartApiKey,
+        billingSoftwareApiKey,
+        metaApiKey,
+        pharmaHopperApiKey,
+        pharmaVentApiKey,
       },
     });
 

@@ -365,6 +365,16 @@ model CompanySettings {
   enableClientsManagement Boolean  @default(false)
   enableTerritories       Boolean  @default(false)
 
+  // Cloud Storage & Call Recording Sync
+  driveFolderUrl          String?
+
+  // Third-Party Lead Ingestion & Integration APIs
+  indiaMartApiKey         String?
+  billingSoftwareApiKey   String?
+  metaApiKey              String?
+  pharmaHopperApiKey      String?
+  pharmaVentApiKey        String?
+
   updatedAt               DateTime @updatedAt
   createdAt               DateTime @default(now())
 }

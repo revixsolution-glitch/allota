@@ -193,6 +193,45 @@ export default async function SuperAdminPage() {
                         {company.contactEmail} {company.contactPhone ? `• ${company.contactPhone}` : ""}
                       </div>
                       <div className="text-[10px] text-slate-500 font-mono mt-0.5">slug: {company.slug}</div>
+                      {(company.settings?.[0]?.driveFolderUrl ||
+                        company.settings?.[0]?.indiaMartApiKey ||
+                        company.settings?.[0]?.billingSoftwareApiKey ||
+                        company.settings?.[0]?.metaApiKey ||
+                        company.settings?.[0]?.pharmaHopperApiKey ||
+                        company.settings?.[0]?.pharmaVentApiKey) && (
+                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                          {company.settings[0]?.driveFolderUrl && (
+                            <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[9px] font-bold text-blue-400 border border-blue-500/25">
+                              Drive
+                            </span>
+                          )}
+                          {company.settings[0]?.indiaMartApiKey && (
+                            <span className="rounded bg-teal-500/15 px-1.5 py-0.5 text-[9px] font-bold text-teal-400 border border-teal-500/25">
+                              IndiaMART
+                            </span>
+                          )}
+                          {company.settings[0]?.billingSoftwareApiKey && (
+                            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/25">
+                              Marg/ERP
+                            </span>
+                          )}
+                          {company.settings[0]?.metaApiKey && (
+                            <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400 border border-indigo-500/25">
+                              Meta
+                            </span>
+                          )}
+                          {company.settings[0]?.pharmaHopperApiKey && (
+                            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/25">
+                              Hopper
+                            </span>
+                          )}
+                          {company.settings[0]?.pharmaVentApiKey && (
+                            <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-400 border border-cyan-500/25">
+                              Vent
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     <td className="px-4 py-3.5">
@@ -241,6 +280,45 @@ export default async function SuperAdminPage() {
                     <h3 className="font-bold text-white text-base">{company.name}</h3>
                     <p className="text-xs text-slate-400">{company.contactEmail}</p>
                     <p className="text-[10px] text-slate-500 font-mono mt-0.5">slug: {company.slug}</p>
+                    {(company.settings?.[0]?.driveFolderUrl ||
+                      company.settings?.[0]?.indiaMartApiKey ||
+                      company.settings?.[0]?.billingSoftwareApiKey ||
+                      company.settings?.[0]?.metaApiKey ||
+                      company.settings?.[0]?.pharmaHopperApiKey ||
+                      company.settings?.[0]?.pharmaVentApiKey) && (
+                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                        {company.settings[0]?.driveFolderUrl && (
+                          <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[9px] font-bold text-blue-400 border border-blue-500/25">
+                            Drive
+                          </span>
+                        )}
+                        {company.settings[0]?.indiaMartApiKey && (
+                          <span className="rounded bg-teal-500/15 px-1.5 py-0.5 text-[9px] font-bold text-teal-400 border border-teal-500/25">
+                            IndiaMART
+                          </span>
+                        )}
+                        {company.settings[0]?.billingSoftwareApiKey && (
+                          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/25">
+                            Marg/ERP
+                          </span>
+                        )}
+                        {company.settings[0]?.metaApiKey && (
+                          <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400 border border-indigo-500/25">
+                            Meta
+                          </span>
+                        )}
+                        {company.settings[0]?.pharmaHopperApiKey && (
+                          <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/25">
+                            Hopper
+                          </span>
+                        )}
+                        {company.settings[0]?.pharmaVentApiKey && (
+                          <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold text-cyan-400 border border-cyan-500/25">
+                            Vent
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0 ${
