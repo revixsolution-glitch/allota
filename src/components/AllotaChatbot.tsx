@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 interface ChatMessage {
   id: string;
@@ -14,6 +15,7 @@ interface ChatMessage {
 }
 
 export function AllotaChatbot() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -190,6 +192,11 @@ export function AllotaChatbot() {
     } finally {
       setIsThinking(false);
     }
+  }
+
+  // Only show the AI Copilot when logged into the CRM (hide completely on /login)
+  if (!pathname || pathname === "/login" || pathname.startsWith("/login")) {
+    return null;
   }
 
   return (
