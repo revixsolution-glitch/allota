@@ -133,7 +133,7 @@ function LoginForm() {
               ✕ Hide
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
             <button
               type="button"
               disabled={loading}
@@ -145,10 +145,18 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
+              onClick={() => performLogin("admin.kesrox@pharmacrm.test", "admin123", true)}
+              className="rounded-xl bg-teal-700 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-teal-800 disabled:opacity-50 cursor-pointer"
+            >
+              Kesrox Admin
+            </button>
+            <button
+              type="button"
+              disabled={loading}
               onClick={() => performLogin("admin@pharmacrm.test", "admin123", true)}
               className="rounded-xl bg-indigo-600 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
             >
-              Client Admin
+              Pharma Life
             </button>
             <button
               type="button"
@@ -156,7 +164,7 @@ function LoginForm() {
               onClick={() => performLogin("savi.kesorx@pharmacrm.test", "employee123", true)}
               className="rounded-xl bg-slate-800 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-slate-900 disabled:opacity-50 cursor-pointer"
             >
-              Field Rep (Savi)
+              Savi (Rep)
             </button>
           </div>
         </div>

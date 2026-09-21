@@ -63,7 +63,25 @@ export async function GET() {
 
     let company = kesroxCompany;
 
-    // 3. Provision Test Employee: Savi Kesorx
+    // 3. Provision Kesrox Admin User
+    const adminEmail = "admin.kesrox@pharmacrm.test";
+    const adminPasswordHash = await bcrypt.hash("admin123", 10);
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {
+        passwordHash: adminPasswordHash,
+        role: Role.ADMIN,
+        companyId: company.id,
+      },
+      create: {
+        email: adminEmail,
+        passwordHash: adminPasswordHash,
+        role: Role.ADMIN,
+        companyId: company.id,
+      },
+    });
+
+    // 4. Provision Test Employee: Savi Kesorx
     const email = "savi.kesorx@pharmacrm.test";
     const passwordHash = await bcrypt.hash("employee123", 10);
     const phoneNumber = "+91 98722 44331";
@@ -104,7 +122,7 @@ export async function GET() {
       });
     }
 
-    // 4. Seed active session for Savi
+    // 5. Seed active session for Savi
     const existingSession = await prisma.employeeSession.findFirst({
       where: { employeeId: employee.id, status: "ACTIVE" },
     });
@@ -121,7 +139,7 @@ export async function GET() {
       });
     }
 
-    // 5. Seed sample client & leads if none assigned
+    // 6. Seed sample client & leads if none assigned
     const leadCount = await prisma.lead.count({ where: { assignedEmployeeId: employee.id } });
     if (leadCount === 0 && company) {
       await prisma.lead.createMany({
@@ -166,10 +184,82 @@ export async function GET() {
       });
     }
 
+    // 7. Re-link existing Kesarox / Bhopal calls to Savi & seed realistic calls if needed
+    await prisma.call.updateMany({
+      where: {
+        OR: [
+          { transcript: { contains: "Kesarox" } },
+          { transcript: { contains: "Bhopal" } },
+          { aiSummary: { contains: "Bhopal" } },
+          { aiSummary: { contains: "Kanu (Bhopal)" } },
+        ],
+      },
+      data: {
+        employeeId: employee.id,
+      },
+    });
+
+    const saviCallsCount = await prisma.call.count({ where: { employeeId: employee.id } });
+    if (saviCallsCount < 3) {
+      const saviLeads = await prisma.lead.findMany({ where: { assignedEmployeeId: employee.id } });
+      const drSandeep = saviLeads.find((l) => (l.name ?? "").includes("Sandeep")) || saviLeads[0];
+      const amanjot = saviLeads.find((l) => (l.name ?? "").includes("Amanjot")) || saviLeads[1];
+      const verma = saviLeads.find((l) => (l.name ?? "").includes("Verma")) || saviLeads[2];
+
+      const now = new Date();
+      await prisma.call.createMany({
+        data: [
+          {
+            employeeId: employee.id,
+            leadId: drSandeep?.id || null,
+            direction: "INBOUND",
+            missed: false,
+            durationSec: 52,
+            occurredAt: new Date(now.getTime() - 1000 * 60 * 35),
+            recordingUrl: "https://drive.google.com/file/d/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3/view",
+            transcript: `Employee (Savi): Hello, Kesrox Pharmaceuticals me aapka swagat hai.\nCustomer (Dr. Sandeep): Haan ji, mujhe Mohali aur Zirakpur territory ke liye PCD monopoly distribution chahiye.\nEmployee (Savi): Bilkul doctor sahab, Kesrox ka Mohali territory vacant hai. Aapko Antibiotics aur Pediatric range me stock list WhatsApp kar rahi hoon.\nCustomer (Dr. Sandeep): Theek hai, pricing aur promotional schemes bhi send kar dijiye.\nEmployee (Savi): Ji sir, visual aids, sample kits aur complete catalog WhatsApp pe forward kar diya hai.`,
+            aiSummary: "Dr. Sandeep Oberoi ne Mohali & Zirakpur zone ke liye Kesrox Pharmaceuticals PCD monopoly distribution rights ki inquiry ki hai. High demand for Antibiotics & Pediatric range. Savi ne catalog aur visual aid material WhatsApp par dispatch kar diya hai.",
+            behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Mohali", "High Commercial Value", "Antibiotics & Pediatric"],
+            whatsappSent: true,
+          },
+          {
+            employeeId: employee.id,
+            leadId: amanjot?.id || null,
+            direction: "OUTBOUND",
+            missed: false,
+            durationSec: 42,
+            occurredAt: new Date(now.getTime() - 1000 * 60 * 120),
+            recordingUrl: "https://drive.google.com/file/d/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3/view",
+            transcript: `Employee (Savi): Hello Amanjot ji, Kesrox Pharmaceuticals se Savi baat kar rahi hoon.\nCustomer (Amanjot): Haan ji Savi ji, Cefixime 200mg DT aur Pantoprazole DSR ka rate bataiye?\nEmployee (Savi): Mam dono running molecules humare ready stock me hain. Initial trial billing par hum complete promotional support provide karte hain.\nCustomer (Amanjot): Great, aap order form aur quotation WhatsApp pe bhej dijiye.\nEmployee (Savi): Abhi share kar rahi hoon mam.`,
+            aiSummary: "Amanjot Kaur (Patiala Medicos) ke sath Cefixime 200mg DT aur Pantoprazole DSR stock trial order par discussion hui. Quotation aur billing terms finalize hone par deal closure ki stage par hai.",
+            behaviorTags: ["⚡ Warm Lead", "Order In Negotiation", "Patiala Zone", "Cefixime & Pantoprazole"],
+            whatsappSent: true,
+          },
+          {
+            employeeId: employee.id,
+            leadId: verma?.id || null,
+            direction: "INBOUND",
+            missed: true,
+            durationSec: 0,
+            occurredAt: new Date(now.getTime() - 1000 * 60 * 15),
+            transcript: "Missed Call - Client attempted connection during peak telecalling hours.",
+            aiSummary: "Verma Healthcare LLP (Chandigarh) ne third-party contract manufacturing query par call kiya tha par line disconnect ho gayi. Immediate callback aur WhatsApp follow-up required.",
+            behaviorTags: ["⚡ Urgent Callback", "Third-Party Contract", "Unanswered Call"],
+            whatsappSent: false,
+          },
+        ],
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Database columns verified, Google Drive folder connected, and Savi Kesorx test employee provisioned successfully!",
+      message: "Kesrox Pharmaceuticals, Kesrox Admin, Savi Kesorx, and Call Logs provisioned successfully!",
       connectedDriveFolder: "1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
+      adminUser: {
+        email: adminEmail,
+        role: "ADMIN",
+        company: company.name,
+      },
       employee: {
         id: employee.id,
         name: employee.name,
