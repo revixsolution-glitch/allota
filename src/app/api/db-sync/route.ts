@@ -45,6 +45,11 @@ export async function GET() {
       });
     }
 
+    // Clean any test batch runs
+    await prisma.lead.deleteMany({
+      where: { sourceTag: { in: ["Test Batch 19", "Test 19 Rows"] } },
+    });
+
     // Restore real company names
     await prisma.company.updateMany({
       where: { slug: "pharma-life" },
