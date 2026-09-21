@@ -41,8 +41,6 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
             { employee: { companyId: activeCompanyId } },
             { lead: { companyId: activeCompanyId } },
             { client: { companyId: activeCompanyId } },
-            { employee: { companyId: null } },
-            { employee: { name: { contains: "Savi" } } },
           ],
         }
       : {}),
@@ -74,15 +72,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
     }),
 
     prisma.employee.findMany({
-      where: activeCompanyId
-        ? {
-            OR: [
-              { companyId: activeCompanyId },
-              { companyId: null },
-              { name: { contains: "Savi" } },
-            ],
-          }
-        : {},
+      where: activeCompanyId ? { companyId: activeCompanyId } : {},
       include: {
         calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
       },

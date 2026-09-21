@@ -33,8 +33,8 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
       ? { createdAt: { gte: dateFilter.start } }
       : {};
 
-  // Query pure database metrics
-  const [employees, sourceGroups, divisionGroups, excelBatches, unassignedExcelBatches, recentUploads] =
+  // Query pure database metrics and company API credentials
+  const [employees, sourceGroups, divisionGroups, excelBatches, unassignedExcelBatches, recentUploads, settings] =
     await Promise.all([
       prisma.employee.findMany({
         where: companyScope,
@@ -82,7 +82,27 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
           assignedEmployee: { select: { name: true } },
         },
       }),
+      activeCompanyId
+        ? prisma.companySettings.findFirst({
+            where: { companyId: activeCompanyId },
+          })
+        : prisma.companySettings.findFirst({
+            where: { id: "default" },
+          }),
     ]);
+
+  // Inspect API integration status
+  const isMetaConnected = Boolean(settings?.metaAppId && (settings?.metaAccessToken || settings?.metaApiKey));
+  const isIndiaMartConnected = Boolean(settings?.indiaMartApiKey);
+  const isWhatsAppConnected = Boolean(settings?.metaPhoneNumberId && (settings?.metaAccessToken || settings?.metaApiKey));
+  const isDriveConnected = Boolean(settings?.driveFolderUrl);
+  const isPortalsConnected = Boolean(settings?.pharmaHopperApiKey || settings?.pharmaVentApiKey);
+
+  const disconnectedApis: { name: string; keyName: string }[] = [];
+  if (!isMetaConnected) disconnectedApis.push({ name: "Meta Lead Ads (Facebook & Instagram)", keyName: "App ID & Access Token" });
+  if (!isIndiaMartConnected) disconnectedApis.push({ name: "IndiaMART BuyLead", keyName: "Push API Key" });
+  if (!isWhatsAppConnected) disconnectedApis.push({ name: "WhatsApp Cloud API", keyName: "WhatsApp Phone ID" });
+  if (!isDriveConnected) disconnectedApis.push({ name: "Google Drive Call Storage", keyName: "Drive Folder URL" });
 
   const sourceMap = new Map(sourceGroups.map((s) => [s.source, s._count._all]));
   const totalLeads = sourceGroups.reduce((acc, curr) => acc + curr._count._all, 0);
@@ -175,75 +195,171 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
 
       {/* 1. Multi-Channel Connectors & Real-Time Sync Status */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-extrabold text-ink">Connected Marketing Channels</h2>
+            <h2 className="text-lg font-extrabold text-ink">Marketing Ingestion Channels</h2>
             <p className="text-xs text-ink-muted mt-0.5">
-              Live APIs feeding inquiries into the unified lead pool with instant deduplication
+              Live APIs feeding inquiries into the unified lead pool with instant deduplication & status monitoring
             </p>
           </div>
           <Link
             href="/admin/leads"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 self-start sm:self-auto"
           >
             <span>View All Leads</span>
             <span>&rarr;</span>
           </Link>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* API Disconnected Alert Banner */}
+        {disconnectedApis.length > 0 && (
+          <div className="rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-white border-2 border-amber-300 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white text-lg font-black shadow-xs">
+                  ⚠️
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-ink text-sm sm:text-base">
+                      {disconnectedApis.length} Marketing Ingestion Channel{disconnectedApis.length > 1 ? "s" : ""} Disconnected
+                    </h3>
+                    <span className="rounded-full bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 text-[10px] font-bold">
+                      Action Required
+                    </span>
+                  </div>
+                  <p className="text-xs text-ink-muted mt-1 leading-relaxed max-w-2xl">
+                    Inbound leads from disconnected platforms will not sync automatically. Currently missing credentials for:{" "}
+                    <strong className="text-amber-950 font-semibold">{disconnectedApis.map((d) => d.name).join(", ")}</strong>.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/admin/settings"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-600/20 hover:from-amber-500 hover:to-rose-500 transition self-start sm:self-auto"
+              >
+                <span>Connect APIs in Settings</span>
+                <span>&rarr;</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {/* Meta Lead Ads */}
-          <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-blue-600 bg-white">
+          <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isMetaConnected ? "border-t-blue-600 bg-white" : "border-t-rose-500 bg-rose-50/15"}`}>
             <div className="flex items-center justify-between">
               <span className="text-xl">🌐</span>
-              <span className="rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 text-[10px] font-bold">
-                API Live
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${isMetaConnected ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}>
+                {isMetaConnected ? "● API Live" : "⚠️ Disconnected"}
               </span>
             </div>
             <h3 className="font-bold text-ink text-sm mt-3">Meta Ads Webhook</h3>
             <p className="text-xs text-ink-faint mt-0.5">Facebook & Instagram Lead Forms</p>
-            <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
-              <span className="text-xs text-ink-muted">Inquiries</span>
-              <span className="text-base font-extrabold text-blue-700">
-                {sourceMap.get(LeadSource.META) || 0}
-              </span>
-            </div>
+            {!isMetaConnected ? (
+              <div className="mt-3 pt-3 border-t border-line">
+                <p className="text-[11px] text-rose-700 font-semibold leading-tight">
+                  App ID or Token missing. Ad leads will not auto-import.
+                </p>
+                <Link href="/admin/settings" className="mt-2 text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                  Connect Meta &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Inquiries</span>
+                <span className="text-base font-extrabold text-blue-700">
+                  {sourceMap.get(LeadSource.META) || 0}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* IndiaMART */}
-          <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-amber-500 bg-white">
+          <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isIndiaMartConnected ? "border-t-amber-500 bg-white" : "border-t-rose-500 bg-rose-50/15"}`}>
             <div className="flex items-center justify-between">
               <span className="text-xl">🛒</span>
-              <span className="rounded-full bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
-                Push API Active
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${isIndiaMartConnected ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}>
+                {isIndiaMartConnected ? "● Push API Active" : "⚠️ Key Missing"}
               </span>
             </div>
             <h3 className="font-bold text-ink text-sm mt-3">IndiaMART BuyLead</h3>
             <p className="text-xs text-ink-faint mt-0.5">Buyer Inquiries & Monopoly Requests</p>
-            <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
-              <span className="text-xs text-ink-muted">Inquiries</span>
-              <span className="text-base font-extrabold text-amber-700">
-                {sourceMap.get(LeadSource.INDIAMART) || 0}
-              </span>
-            </div>
+            {!isIndiaMartConnected ? (
+              <div className="mt-3 pt-3 border-t border-line">
+                <p className="text-[11px] text-rose-700 font-semibold leading-tight">
+                  CRM Push Key missing. Inquiries will not sync.
+                </p>
+                <Link href="/admin/settings" className="mt-2 text-[11px] font-bold text-amber-800 hover:underline inline-flex items-center gap-1">
+                  Connect Key &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Inquiries</span>
+                <span className="text-base font-extrabold text-amber-700">
+                  {sourceMap.get(LeadSource.INDIAMART) || 0}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* WhatsApp Cloud API */}
-          <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-500 bg-white">
+          <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isWhatsAppConnected ? "border-t-emerald-500 bg-white" : "border-t-amber-500 bg-amber-50/15"}`}>
             <div className="flex items-center justify-between">
               <span className="text-xl">💬</span>
-              <span className="rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
-                Auto-Reply Live
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${isWhatsAppConnected ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}>
+                {isWhatsAppConnected ? "● Cloud API Live" : "⚠️ Fallback Mode"}
               </span>
             </div>
             <h3 className="font-bold text-ink text-sm mt-3">WhatsApp Cloud API</h3>
-            <p className="text-xs text-ink-faint mt-0.5">Direct Prospect Inbound & Chatbot</p>
-            <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
-              <span className="text-xs text-ink-muted">Inquiries</span>
-              <span className="text-base font-extrabold text-emerald-700">
-                {sourceMap.get(LeadSource.WHATSAPP) || 0}
+            <p className="text-xs text-ink-faint mt-0.5">Direct Inbound & Auto-Reply Bot</p>
+            {!isWhatsAppConnected ? (
+              <div className="mt-3 pt-3 border-t border-line">
+                <p className="text-[11px] text-amber-800 font-semibold leading-tight">
+                  Phone ID missing. Using manual Web WhatsApp dialer.
+                </p>
+                <Link href="/admin/settings" className="mt-2 text-[11px] font-bold text-amber-800 hover:underline inline-flex items-center gap-1">
+                  Configure API &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Inquiries</span>
+                <span className="text-base font-extrabold text-emerald-700">
+                  {sourceMap.get(LeadSource.WHATSAPP) || 0}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Google Drive AI Telephony */}
+          <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isDriveConnected ? "border-t-indigo-500 bg-white" : "border-t-rose-500 bg-rose-50/15"}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xl">📁</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${isDriveConnected ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}>
+                {isDriveConnected ? "● Folder Linked" : "⚠️ Unlinked"}
               </span>
             </div>
+            <h3 className="font-bold text-ink text-sm mt-3">Google Drive Calls</h3>
+            <p className="text-xs text-ink-faint mt-0.5">Field Audio Transcripts & AI Summaries</p>
+            {!isDriveConnected ? (
+              <div className="mt-3 pt-3 border-t border-line">
+                <p className="text-[11px] text-rose-700 font-semibold leading-tight">
+                  Drive Folder URL missing. Call audio will not sync.
+                </p>
+                <Link href="/admin/settings" className="mt-2 text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                  Link Drive &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Connected</span>
+                <span className="text-xs font-bold text-indigo-700 truncate max-w-[110px]" title={settings?.driveFolderUrl || ""}>
+                  Folder Active
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Bulk Excel / CSV Ingestions */}
@@ -251,7 +367,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
             <div className="flex items-center justify-between">
               <span className="text-xl">📊</span>
               <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 text-[10px] font-bold">
-                {batchList.length} Batches
+                ● Ready ({batchList.length} Batches)
               </span>
             </div>
             <h3 className="font-bold text-ink text-sm mt-3">Bulk Excel / CSV</h3>
