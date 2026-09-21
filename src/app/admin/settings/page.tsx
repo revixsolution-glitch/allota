@@ -438,24 +438,24 @@ export default async function AdminSettingsPage() {
               />
             </div>
 
-            {/* Google Gemini AI API Key */}
+            {/* AI API Key */}
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-ink flex items-center gap-1.5">
-                  <span>✨</span> Google Gemini AI API Key (Call Summarization &amp; Intelligence)
+                  <span>✨</span> API Key for AI use (Call Summarization &amp; Intelligence)
                 </label>
                 <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
                   {settings.geminiApiKey ? "Custom Key Active" : "Using System Key"}
                 </span>
               </div>
               <p className="text-[11px] text-ink-muted">
-                Custom Gemini API key for this organization&apos;s audio call transcription, doctor intent scoring, and AI chat.
+                Custom API key for this organization&apos;s audio call transcription, doctor intent scoring, and AI chat.
               </p>
               <input
                 type="password"
                 name="geminiApiKey"
                 defaultValue={settings.geminiApiKey || ""}
-                placeholder="e.g. AQ.Ab8RN6LjR... or AIzaSy..."
+                placeholder="Enter API key for AI use..."
                 className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
               />
             </div>

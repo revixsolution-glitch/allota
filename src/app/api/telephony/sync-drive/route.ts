@@ -122,14 +122,6 @@ async function handleSync(req: NextRequest) {
   try {
     // 1. Update existing legacy calls with pure Hinglish summaries and lead classification tags
     try {
-      // Ensure all companies and settings in the database are named "Allota AI"
-      await prisma.company.updateMany({
-        data: { name: "Allota AI" },
-      });
-      await prisma.companySettings.updateMany({
-        data: { companyName: "Allota AI" },
-      });
-
       // Kanu
       await prisma.call.updateMany({
         where: {

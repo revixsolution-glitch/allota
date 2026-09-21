@@ -185,7 +185,7 @@ export function AllotaChatbot() {
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: "allota",
-        text: "Network error connecting to Allota Gemini engine. Please try again in a moment.",
+        text: "Network error connecting to AI engine. Please try again in a moment.",
         timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMsg]);
