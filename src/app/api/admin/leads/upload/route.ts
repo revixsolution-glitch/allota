@@ -11,6 +11,53 @@ function cleanString(val: any): string {
   return String(val).trim();
 }
 
+const DIVISION_TERMS = [
+  "pcd pharma franchise", "pcd franchise", "pcd", "pharma franchise",
+  "third party manufacturing", "third party", "3rd party", "contract manufacturing", "contract mfg",
+  "manufacturing", "mfg", "propaganda", "franchise", "generic", "ethical",
+  "ayurvedic", "herbal", "allopathic", "cosmetic", "veterinary", "derma", "cardiac", "diabetic"
+];
+
+function isDivisionTerm(val: any): boolean {
+  if (!val) return false;
+  const lower = String(val).toLowerCase().trim();
+  return DIVISION_TERMS.some(
+    (term) => lower === term || lower.includes(term)
+  );
+}
+
+function parseDivisionValue(val: any, fallback = "PCD_FRANCHISE"): string {
+  if (!val) return fallback;
+  const lower = String(val).toLowerCase();
+  if (lower.includes("third") || lower.includes("mfg") || lower.includes("contract") || lower.includes("3rd") || lower.includes("party")) {
+    return "THIRD_PARTY";
+  }
+  if (lower.includes("pcd") || lower.includes("franchise") || lower.includes("propaganda") || lower.includes("ethical")) {
+    return "PCD_FRANCHISE";
+  }
+  return fallback;
+}
+
+function isLikelyPersonOrBusinessName(val: any): boolean {
+  if (!val) return false;
+  const s = String(val).trim();
+  if (s.length < 2 || s.length > 80) return false;
+  // Cannot be a phone number
+  if (extractPhoneNumber(s)) return false;
+  // Cannot be purely numeric / punctuation
+  if (/^[\d\s.,+/#-]+$/.test(s)) return false;
+  // Cannot be a division term
+  if (isDivisionTerm(s)) return false;
+  // Cannot be email or web URL
+  if (s.includes("@") || s.includes("http://") || s.includes("https://") || s.includes(".com") || s.includes(".in")) return false;
+  // Cannot be date string
+  if (/^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(s)) return false;
+  // Cannot be common boolean or noise words
+  const lower = s.toLowerCase();
+  if (["sr no", "sl no", "s no", "na", "n/a", "none", "null", "no", "yes", "true", "false", "undefined"].includes(lower)) return false;
+  return true;
+}
+
 /**
  * Dynamically detects which row contains the table headers.
  * Bypasses title headers, blank top rows, and metadata cards.
@@ -123,11 +170,63 @@ export async function POST(request: Request) {
       );
     }
 
-    // Map column types by analyzing header row
+    const columnMappingRaw = formData.get("columnMapping") as string | null;
+    let explicitMapping: {
+      nameCol?: string;
+      phoneCol?: string;
+      divisionCol?: string;
+      cityCol?: string;
+      stateCol?: string;
+      inquiryCol?: string;
+    } | null = null;
+    if (columnMappingRaw) {
+      try {
+        explicitMapping = JSON.parse(columnMappingRaw);
+      } catch {
+        explicitMapping = null;
+      }
+    }
+
+    // Map column types by analyzing header row and explicit user mapping
     const colTypes: Record<number, "name" | "phone" | "city" | "state" | "division" | "inquiry"> = {};
+
+    if (explicitMapping) {
+      headerRow.forEach((colName, idx) => {
+        const colIdentifier = colName || `Column ${idx + 1}`;
+        if (explicitMapping?.nameCol && (colName === explicitMapping.nameCol || colIdentifier === explicitMapping.nameCol)) {
+          colTypes[idx] = "name";
+        } else if (explicitMapping?.phoneCol && (colName === explicitMapping.phoneCol || colIdentifier === explicitMapping.phoneCol)) {
+          colTypes[idx] = "phone";
+        } else if (explicitMapping?.divisionCol && (colName === explicitMapping.divisionCol || colIdentifier === explicitMapping.divisionCol)) {
+          colTypes[idx] = "division";
+        } else if (explicitMapping?.cityCol && (colName === explicitMapping.cityCol || colIdentifier === explicitMapping.cityCol)) {
+          colTypes[idx] = "city";
+        } else if (explicitMapping?.stateCol && (colName === explicitMapping.stateCol || colIdentifier === explicitMapping.stateCol)) {
+          colTypes[idx] = "state";
+        } else if (explicitMapping?.inquiryCol && (colName === explicitMapping.inquiryCol || colIdentifier === explicitMapping.inquiryCol)) {
+          colTypes[idx] = "inquiry";
+        }
+      });
+    }
+
+    // Auto-detect any unmapped columns using strict semantic priority
     headerRow.forEach((colName, idx) => {
+      if (colTypes[idx]) return; // Already explicitly mapped
       const k = colName.toLowerCase().replace(/[^a-z0-9]/g, "");
       if (!k) return;
+
+      const isDivisionHeader =
+        k.includes("type") ||
+        k.includes("division") ||
+        k.includes("category") ||
+        k.includes("segment") ||
+        k.includes("franchise") ||
+        k.includes("manufacturing") ||
+        k.includes("mfg") ||
+        k.includes("nature") ||
+        k.includes("business") ||
+        k.includes("propaganda") ||
+        k === "pcd";
 
       if (
         k.includes("phone") ||
@@ -143,25 +242,35 @@ export async function POST(request: Request) {
         k === "phoneno" ||
         k === "contactno" ||
         k === "contactnumber" ||
-        (k.includes("contact") && !k.includes("person") && !k.includes("name"))
+        (k === "contact" && !k.includes("person") && !k.includes("name"))
       ) {
         colTypes[idx] = "phone";
+      } else if (isDivisionHeader) {
+        // Division / Lead Type headers MUST take priority over generic name matches (e.g. "Lead Type Name", "Division Name")
+        colTypes[idx] = "division";
       } else if (
-        k.includes("name") ||
-        k.includes("party") ||
-        k.includes("chemist") ||
-        k.includes("doctor") ||
-        k.includes("dr") ||
-        k.includes("customer") ||
-        k.includes("client") ||
-        k.includes("firm") ||
-        k.includes("agency") ||
-        k.includes("person") ||
-        k.includes("shop") ||
-        k.includes("store") ||
-        k.includes("stockist") ||
-        k.includes("distributor") ||
-        k.includes("dealer")
+        (k.includes("name") ||
+         k.includes("party") ||
+         k.includes("chemist") ||
+         k.includes("doctor") ||
+         k.includes("dr") ||
+         k.includes("customer") ||
+         k.includes("client") ||
+         k.includes("firm") ||
+         k.includes("agency") ||
+         k.includes("person") ||
+         k.includes("prospect") ||
+         k.includes("applicant") ||
+         k.includes("shop") ||
+         k.includes("store") ||
+         k.includes("stockist") ||
+         k.includes("distributor") ||
+         k.includes("dealer") ||
+         k === "lead" ||
+         k === "contact") &&
+        !isDivisionHeader &&
+        !k.includes("inquiry") &&
+        !k.includes("product")
       ) {
         colTypes[idx] = "name";
       } else if (
@@ -187,15 +296,6 @@ export async function POST(request: Request) {
       ) {
         colTypes[idx] = "state";
       } else if (
-        k.includes("division") ||
-        k.includes("category") ||
-        k.includes("segment") ||
-        k.includes("type") ||
-        k.includes("franchise") ||
-        k.includes("manufacturing")
-      ) {
-        colTypes[idx] = "division";
-      } else if (
         k.includes("inquiry") ||
         k.includes("enquiry") ||
         k.includes("remark") ||
@@ -203,7 +303,9 @@ export async function POST(request: Request) {
         k.includes("requirement") ||
         k.includes("product") ||
         k.includes("detail") ||
-        k.includes("comment")
+        k.includes("comment") ||
+        k.includes("message") ||
+        k.includes("description")
       ) {
         colTypes[idx] = "inquiry";
       }
@@ -277,18 +379,18 @@ export async function POST(request: Request) {
         if (type === "phone" && !rawPhone) {
           rawPhone = val;
         } else if (type === "name" && !rawName) {
-          rawName = val;
+          // Never assign division values ("PCD Pharma Franchise", "Third Party", etc.) as the person/business name!
+          if (isDivisionTerm(val)) {
+            rawDivision = parseDivisionValue(val, rawDivision);
+          } else if (isLikelyPersonOrBusinessName(val)) {
+            rawName = val;
+          }
+        } else if (type === "division") {
+          rawDivision = parseDivisionValue(val, rawDivision);
         } else if (type === "city" && !rawCity) {
           rawCity = val;
         } else if (type === "state" && !rawState) {
           rawState = val;
-        } else if (type === "division") {
-          const lower = val.toLowerCase();
-          if (lower.includes("third") || lower.includes("mfg") || lower.includes("contract") || lower.includes("party")) {
-            rawDivision = "THIRD_PARTY";
-          } else if (lower.includes("pcd") || lower.includes("franchise") || lower.includes("propaganda")) {
-            rawDivision = "PCD_FRANCHISE";
-          }
         } else if (type === "inquiry" && !rawInquiry) {
           rawInquiry = val;
         }
@@ -313,15 +415,31 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // 3. Fallback for Name: If no name header was matched, pick first non-numeric cell
-      if (!rawName) {
+      // 3. Third pass (Name Recovery): If rawName is empty or accidentally matched a division term
+      if (!rawName || isDivisionTerm(rawName)) {
+        rawName = "";
         for (let idx = 0; idx < row.length; idx++) {
           const val = cleanString(row[idx]);
           if (!val) continue;
           if (val === rawPhone || extractPhoneNumber(val)) continue;
           if (val === rawCity || val === rawState) continue;
-          if (val.length >= 2 && !/^\d+$/.test(val)) {
+          if (isDivisionTerm(val)) {
+            rawDivision = parseDivisionValue(val, rawDivision);
+            continue;
+          }
+          if (isLikelyPersonOrBusinessName(val)) {
             rawName = val;
+            break;
+          }
+        }
+      }
+
+      // 4. Fourth pass (Division Recovery): Check if any unmapped column specifies Division
+      if (rawDivision === divisionInput) {
+        for (let idx = 0; idx < row.length; idx++) {
+          const val = cleanString(row[idx]);
+          if (isDivisionTerm(val)) {
+            rawDivision = parseDivisionValue(val, rawDivision);
             break;
           }
         }

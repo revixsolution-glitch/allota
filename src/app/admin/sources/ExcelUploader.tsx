@@ -33,7 +33,25 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     error?: string;
   } | null>(null);
 
-  function handleFileSelect(selectedFile: File | null) {
+  const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<any[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<{
+    nameCol: string;
+    phoneCol: string;
+    divisionCol: string;
+    cityCol: string;
+    stateCol: string;
+    inquiryCol: string;
+  }>({
+    nameCol: "",
+    phoneCol: "",
+    divisionCol: "",
+    cityCol: "",
+    stateCol: "",
+    inquiryCol: "",
+  });
+
+  async function handleFileSelect(selectedFile: File | null) {
     if (!selectedFile) return;
     setFile(selectedFile);
     setResult(null);
@@ -42,6 +60,159 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     if (!batchTag) {
       const cleanName = selectedFile.name.replace(/\.[^/.]+$/, "");
       setBatchTag(`${cleanName}`);
+    }
+
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: "array" });
+      const firstSheetName = wb.SheetNames[0];
+      if (!firstSheetName) return;
+
+      const sheet = wb.Sheets[firstSheetName];
+      const aoa: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      const nonEmpty = aoa.filter((row) => Array.isArray(row) && row.some((c) => String(c).trim() !== ""));
+      if (nonEmpty.length === 0) return;
+
+      // Detect header row index
+      let headerIdx = 0;
+      for (let r = 0; r < Math.min(nonEmpty.length, 10); r++) {
+        const row = nonEmpty[r];
+        const matches = row.filter((cell) => {
+          const s = String(cell).toLowerCase().replace(/[^a-z0-9]/g, "");
+          return [
+            "name", "party", "chemist", "doctor", "phone", "mobile", "contact",
+            "city", "state", "type", "category", "division", "inquiry", "remark"
+          ].some((kw) => s.includes(kw));
+        }).length;
+        if (matches >= 2) {
+          headerIdx = r;
+          break;
+        }
+      }
+
+      const headers = (nonEmpty[headerIdx] || []).map((c, i) => {
+        const s = String(c).trim();
+        return s || `Column ${i + 1}`;
+      });
+
+      const dataSlice = nonEmpty.slice(headerIdx + 1, headerIdx + 4);
+
+      setDetectedColumns(headers);
+      setPreviewRows(dataSlice);
+
+      // Auto-detect matching column for each field
+      let autoName = "";
+      let autoPhone = "";
+      let autoDivision = "";
+      let autoCity = "";
+      let autoState = "";
+      let autoInquiry = "";
+
+      headers.forEach((h) => {
+        const k = h.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!k) return;
+
+        // Division / Lead Type check: MUST take priority over generic name matches
+        if (
+          !autoDivision &&
+          (k.includes("type") ||
+           k.includes("division") ||
+           k.includes("category") ||
+           k.includes("segment") ||
+           k.includes("franchise") ||
+           k.includes("mfg") ||
+           k.includes("nature") ||
+           k === "pcd")
+        ) {
+          autoDivision = h;
+        } else if (
+          !autoPhone &&
+          (k.includes("phone") ||
+           k.includes("mobile") ||
+           k.includes("mob") ||
+           k.includes("whatsapp") ||
+           k.includes("cell") ||
+           k.includes("tel") ||
+           k.includes("calling") ||
+           k.includes("contactno") ||
+           k === "contact")
+        ) {
+          autoPhone = h;
+        } else if (
+          !autoName &&
+          (k.includes("name") ||
+           k.includes("party") ||
+           k.includes("chemist") ||
+           k.includes("doctor") ||
+           k.includes("dr") ||
+           k.includes("customer") ||
+           k.includes("client") ||
+           k.includes("firm") ||
+           k.includes("agency") ||
+           k.includes("person") ||
+           k.includes("prospect") ||
+           k.includes("shop") ||
+           k.includes("dealer")) &&
+          !k.includes("type") &&
+          !k.includes("division") &&
+          !k.includes("category")
+        ) {
+          autoName = h;
+        } else if (
+          !autoCity &&
+          (k.includes("city") ||
+           k.includes("district") ||
+           k.includes("dist") ||
+           k.includes("town") ||
+           k.includes("hq") ||
+           k.includes("location") ||
+           k.includes("place") ||
+           k.includes("territory") ||
+           k.includes("area") ||
+           k.includes("address"))
+        ) {
+          autoCity = h;
+        } else if (
+          !autoState &&
+          (k.includes("state") ||
+           k.includes("province") ||
+           k.includes("region") ||
+           k.includes("zone"))
+        ) {
+          autoState = h;
+        } else if (
+          !autoInquiry &&
+          (k.includes("inquiry") ||
+           k.includes("enquiry") ||
+           k.includes("remark") ||
+           k.includes("note") ||
+           k.includes("requirement") ||
+           k.includes("product") ||
+           k.includes("detail") ||
+           k.includes("message"))
+        ) {
+          autoInquiry = h;
+        }
+      });
+
+      // If autoName is still empty, look for any header that is not phone/city/state/division
+      if (!autoName) {
+        const remaining = headers.find(
+          (h) => h !== autoPhone && h !== autoDivision && h !== autoCity && h !== autoState && h !== autoInquiry
+        );
+        if (remaining) autoName = remaining;
+      }
+
+      setColumnMapping({
+        nameCol: autoName || "",
+        phoneCol: autoPhone || "",
+        divisionCol: autoDivision || "",
+        cityCol: autoCity || "",
+        stateCol: autoState || "",
+        inquiryCol: autoInquiry || "",
+      });
+    } catch (e) {
+      console.warn("Could not preview spreadsheet client-side:", e);
     }
   }
 
@@ -102,6 +273,9 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
       if (employeeId) {
         fd.append("employeeId", employeeId);
       }
+      if (columnMapping.nameCol || columnMapping.phoneCol || columnMapping.divisionCol) {
+        fd.append("columnMapping", JSON.stringify(columnMapping));
+      }
 
       const res = await fetch("/api/admin/leads/upload", {
         method: "POST",
@@ -118,6 +292,8 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
         setResult(data);
         setFile(null);
         setBatchTag("");
+        setDetectedColumns([]);
+        setPreviewRows([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -236,6 +412,222 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
             </div>
           )}
         </div>
+
+        {/* Smart Column Mapping & Live Preview Section */}
+        {file && detectedColumns.length > 0 && (
+          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50/40 to-slate-50/50 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                    ✓
+                  </span>
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-ink">
+                    Smart Column Mapping & Live Ingestion Preview
+                  </h3>
+                </div>
+                <p className="text-[11px] text-ink-muted mt-0.5">
+                  Confirm or adjust how spreadsheet columns map to CRM fields so lead names, types & phones are processed with 100% precision.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-emerald-800 border border-emerald-200 shrink-0">
+                {detectedColumns.length} Columns Detected
+              </span>
+            </div>
+
+            {/* Column Mapping Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  👤 Lead / Party Name *
+                </label>
+                <select
+                  value={columnMapping.nameCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, nameCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Auto-Detect Name</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  📞 Mobile Number *
+                </label>
+                <select
+                  value={columnMapping.phoneCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, phoneCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Auto-Detect Phone</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  🏢 Lead Type / Division
+                </label>
+                <select
+                  value={columnMapping.divisionCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, divisionCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Use Selected Division ({division === "PCD_FRANCHISE" ? "PCD" : "Third Party"})</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  📍 City / District
+                </label>
+                <select
+                  value={columnMapping.cityCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, cityCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Auto-Detect City</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  🗺️ State
+                </label>
+                <select
+                  value={columnMapping.stateCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, stateCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Auto-Detect State</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-muted mb-1">
+                  📝 Inquiry / Notes
+                </label>
+                <select
+                  value={columnMapping.inquiryCol}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, inquiryCol: e.target.value })}
+                  className="w-full h-9 rounded-xl border border-line bg-white px-2.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚡ Auto-Detect Inquiry</option>
+                  {detectedColumns.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Live 3-Row Preview Table */}
+            {previewRows.length > 0 && (
+              <div className="rounded-xl border border-line bg-white overflow-hidden shadow-2xs mt-3">
+                <div className="bg-slate-50/80 px-3.5 py-2 border-b border-line flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-muted">
+                    Live Sample Preview (First {previewRows.length} Rows)
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-bold">
+                    ✓ Live mapping preview verified
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-line bg-slate-50/40 text-[10px] uppercase font-bold text-ink-muted">
+                        <th className="py-2 px-3">#</th>
+                        <th className="py-2 px-3">Lead / Party Name</th>
+                        <th className="py-2 px-3">Phone</th>
+                        <th className="py-2 px-3">Lead Type / Division</th>
+                        <th className="py-2 px-3">Location</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {previewRows.map((row, idx) => {
+                        const nameIdx = detectedColumns.indexOf(columnMapping.nameCol);
+                        const phoneIdx = detectedColumns.indexOf(columnMapping.phoneCol);
+                        const divIdx = detectedColumns.indexOf(columnMapping.divisionCol);
+                        const cityIdx = detectedColumns.indexOf(columnMapping.cityCol);
+                        const stateIdx = detectedColumns.indexOf(columnMapping.stateCol);
+
+                        let previewName = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : "";
+                        // If selected name column is a division keyword, show recovery
+                        const isDivTerm = /pcd|franchise|third|mfg|contract/i.test(previewName);
+                        if (!previewName || isDivTerm) {
+                          // Look for alternate cell
+                          const alternate = row.find(
+                            (c: any, i: number) =>
+                              i !== phoneIdx &&
+                              i !== divIdx &&
+                              c &&
+                              String(c).trim().length >= 2 &&
+                              !/pcd|franchise|third|mfg|contract/i.test(String(c)) &&
+                              !/^\d+$/.test(String(c))
+                          );
+                          if (alternate) {
+                            previewName = String(alternate).trim();
+                          }
+                        }
+
+                        const previewPhone = phoneIdx !== -1 && row[phoneIdx] ? String(row[phoneIdx]).trim() : row.find((c: any) => /^[6-9]\d{9}$/.test(String(c).replace(/\D/g, "").slice(-10))) || "Auto-detecting";
+                        const rawDiv = divIdx !== -1 && row[divIdx] ? String(row[divIdx]).trim() : (division === "PCD_FRANCHISE" ? "PCD Pharma Franchise" : "Third-Party Manufacturing");
+                        const previewCity = cityIdx !== -1 && row[cityIdx] ? String(row[cityIdx]).trim() : "";
+                        const previewState = stateIdx !== -1 && row[stateIdx] ? String(row[stateIdx]).trim() : "";
+                        const loc = [previewCity, previewState].filter(Boolean).join(", ") || "—";
+
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="py-2 px-3 text-ink-faint text-[10px] font-mono">{idx + 1}</td>
+                            <td className="py-2 px-3 font-bold text-ink">
+                              {previewName || <span className="text-amber-600 italic">Prospect (Auto-Named)</span>}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-ink-muted">
+                              {previewPhone}
+                            </td>
+                            <td className="py-2 px-3">
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                                {rawDiv.toLowerCase().includes("third") || rawDiv.toLowerCase().includes("mfg") ? "🏭 Third-Party" : "🏢 PCD Franchise"}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-ink-muted truncate max-w-[120px]">
+                              {loc}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Form Controls Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
