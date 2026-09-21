@@ -106,7 +106,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     prisma.purchaseOrderAlert.count({
       where: {
         status: "PENDING",
-        ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+        ...(activeCompanyId ? { product: { companyId: activeCompanyId } } : {}),
       },
     }),
     prisma.lead.findMany({
