@@ -12,10 +12,38 @@ export async function GET() {
 
     const driveUrl = "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3";
 
-    // 1. Update company settings with Google Drive link
-    await prisma.companySettings.updateMany({
-      data: { driveFolderUrl: driveUrl },
+    // 1. Assign orphan records with companyId: null to the demo company (Pharma Life) so new tenants never see dummy data
+    const pharmaLifeCompany = await prisma.company.findFirst({
+      where: { slug: "pharma-life" },
     });
+    if (pharmaLifeCompany) {
+      await prisma.employee.updateMany({
+        where: { companyId: null },
+        data: { companyId: pharmaLifeCompany.id },
+      });
+      await prisma.lead.updateMany({
+        where: { companyId: null },
+        data: { companyId: pharmaLifeCompany.id },
+      });
+      await prisma.client.updateMany({
+        where: { companyId: null },
+        data: { companyId: pharmaLifeCompany.id },
+      });
+      await prisma.territory.updateMany({
+        where: { companyId: null },
+        data: { companyId: pharmaLifeCompany.id },
+      });
+      await prisma.product.updateMany({
+        where: { companyId: null },
+        data: { companyId: pharmaLifeCompany.id },
+      });
+      await prisma.companySettings.updateMany({
+        where: {
+          OR: [{ id: "default" }, { companyId: pharmaLifeCompany.id }],
+        },
+        data: { driveFolderUrl: driveUrl, companyId: pharmaLifeCompany.id },
+      });
+    }
 
     // 2. Ensure Kesrox Pharmaceuticals Company exists
     const kesroxCompany = await prisma.company.upsert({

@@ -50,7 +50,6 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
           { employee: { companyId: activeCompanyId } },
           { lead: { companyId: activeCompanyId } },
           { client: { companyId: activeCompanyId } },
-          { employee: { companyId: null } },
         ],
       }
     : {};
@@ -94,17 +93,22 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     prisma.call.count({
       where: {
         ...callDateFilter,
-        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...callCompanyFilter,
       },
     }),
     prisma.call.count({
       where: {
         ...callDateFilter,
         missed: true,
-        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...callCompanyFilter,
       },
     }),
-    prisma.purchaseOrderAlert.count({ where: { status: "PENDING" } }),
+    prisma.purchaseOrderAlert.count({
+      where: {
+        status: "PENDING",
+        ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+      },
+    }),
     prisma.lead.findMany({
       where: { ...companyScope, ...leadDateFilter },
       include: { assignedEmployee: true },
