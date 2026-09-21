@@ -36,21 +36,25 @@ export default async function AdminLayout({
     { href: "/admin/calls", label: "AI Calls Summary" },
   ];
 
-  // Premium Billing ERP Modules (Shown only when client pays for Marg/Busy API)
-  if (settings?.enableClientsManagement) {
-    navItems.push({ href: "/admin/clients", label: "Clients" });
-  }
-  if (settings?.enableTerritories) {
-    navItems.push({ href: "/admin/territories", label: "Territories" });
-  }
-  if (settings?.enableStockIq) {
-    navItems.push({ href: "/admin/stock-iq", label: "Stock IQ" });
-  }
-  if (settings?.enableReorders) {
-    navItems.push({ href: "/admin/reorders", label: "Reorders" });
-  }
-  if (settings?.enableCreditManagement) {
-    navItems.push({ href: "/admin/credits", label: "Credit Management" });
+  // Premium Billing ERP Modules (Shown only when Marg ERP / Billing API is connected)
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if (hasBillingApi || session?.role === "SUPER_ADMIN") {
+    if (settings?.enableClientsManagement) {
+      navItems.push({ href: "/admin/clients", label: "Clients" });
+    }
+    if (settings?.enableTerritories) {
+      navItems.push({ href: "/admin/territories", label: "Territories" });
+    }
+    if (settings?.enableStockIq) {
+      navItems.push({ href: "/admin/stock-iq", label: "Stock IQ" });
+    }
+    if (settings?.enableReorders) {
+      navItems.push({ href: "/admin/reorders", label: "Reorders" });
+    }
+    if (settings?.enableCreditManagement) {
+      navItems.push({ href: "/admin/credits", label: "Credit Management" });
+    }
   }
 
   // Organization Settings & Integrations

@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { ErpModuleGate } from "@/components/ErpModuleGate";
 
 interface AdminCreditManagementPageProps {
   searchParams?: Promise<{
@@ -26,6 +27,29 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const settings = activeCompanyId
+    ? await prisma.companySettings.findFirst({
+        where: { companyId: activeCompanyId },
+      })
+    : await prisma.companySettings.findFirst({
+        where: { id: "default" },
+      });
+
+  const isSuperAdmin = session?.role === "SUPER_ADMIN";
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableCreditManagement) {
+    return (
+      <ErpModuleGate
+        moduleName="Credit Management & Ledgers"
+        description="Tracks distributor credit periods, outstanding invoice balances, payment reconciliation, and automated AI payment chasers."
+        erpDependency="Marg ERP 9+ or Billing API"
+        icon="💳"
+      />
+    );
+  }
+
   const searchParams = props.searchParams ? await props.searchParams : {};
   const dateFilter = parseDashboardDateFilter(
     searchParams.range,

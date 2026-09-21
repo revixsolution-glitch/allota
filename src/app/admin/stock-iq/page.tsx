@@ -28,12 +28,15 @@ export default async function AdminStockIqPage(props: {
         where: { id: "default" },
       });
 
-  if (!settings?.enableStockIq) {
+  const isSuperAdmin = session?.role === "SUPER_ADMIN";
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableStockIq) {
     return (
       <ErpModuleGate
         moduleName="Stock IQ & Batch Inventory"
         description="Tracks formulation inventory, available box stock, net billing rates, and expiry risk buckets."
-        erpDependency="Marg ERP 9+ / Busy Inventory Master API"
+        erpDependency="Marg ERP 9+ or Billing API"
         icon="📦"
       />
     );
