@@ -9,9 +9,51 @@ function cleanString(val: any): string {
   return String(val).trim();
 }
 
-function normalizePhone(raw: any): { digits: string; formatted: string } | null {
-  if (!raw) return null;
-  const digits = String(raw).replace(/\D/g, "");
+/**
+ * Ultra-resilient phone number extractor for Indian and international business leads.
+ * Handles:
+ * - 10-digit Indian mobile numbers (e.g. 9876543210, 8912345678, 7012345678, 6212345678)
+ * - Prefixes like +91, 91, 0, or 0091
+ * - Multi-number cells (e.g. "9876543210 / 9812345678", "9876543210, 9416012345") -> extracts first valid mobile
+ * - Formatted strings (e.g. "+91 98765-43210", "Dr. Rajesh (9876543210)")
+ * - Raw integers, floats, and scientific notation (e.g. 9876543210, 9876543210.0)
+ * - Fallback for any 10-digit sequence or 7-15 digits
+ */
+function extractPhoneNumber(raw: any): { digits: string; formatted: string } | null {
+  if (raw === null || raw === undefined) return null;
+
+  let str = "";
+  if (typeof raw === "number") {
+    str = Number.isInteger(raw) ? raw.toString() : Math.round(raw).toString();
+  } else {
+    str = String(raw).trim();
+  }
+  if (!str) return null;
+
+  // 1. Priority: Find an Indian 10-digit mobile number starting with 6, 7, 8, or 9
+  const indianMobileRegex = /(?:(?:\+|0{0,2})91[\s.-]?)?0?([6-9]\d{9})\b/;
+  const match = str.match(indianMobileRegex);
+  if (match && match[1]) {
+    const ten = match[1];
+    return {
+      digits: ten,
+      formatted: `+91 ${ten.slice(0, 5)} ${ten.slice(5)}`,
+    };
+  }
+
+  // 2. Fallback: Any 10 consecutive digits
+  const anyTenRegex = /\b(\d{10})\b/;
+  const matchTen = str.match(anyTenRegex);
+  if (matchTen && matchTen[1]) {
+    const ten = matchTen[1];
+    return {
+      digits: ten,
+      formatted: `+91 ${ten.slice(0, 5)} ${ten.slice(5)}`,
+    };
+  }
+
+  // 3. Fallback: Strip non-digits and test length
+  const digits = str.replace(/\D/g, "");
   let tenDigit = digits;
   if (digits.length === 12 && digits.startsWith("91")) {
     tenDigit = digits.slice(2);
@@ -25,13 +67,52 @@ function normalizePhone(raw: any): { digits: string; formatted: string } | null 
       formatted: `+91 ${tenDigit.slice(0, 5)} ${tenDigit.slice(5)}`,
     };
   }
+
   if (digits.length >= 7 && digits.length <= 15) {
     return {
       digits,
       formatted: digits.startsWith("91") ? `+${digits}` : `+91 ${digits}`,
     };
   }
+
   return null;
+}
+
+/**
+ * Dynamically detects which row contains the table headers.
+ * Bypasses title headers, blank top rows, and metadata cards.
+ */
+function findHeaderRowIndex(rows: any[][]): { headerRowIndex: number; hasHeader: boolean } {
+  const headerKeywords = [
+    "name", "party", "chemist", "doctor", "dr", "customer", "client", "firm", "person", "agency", "shop", "store", "stockist", "distributor", "dealer",
+    "phone", "mobile", "mob", "contact", "whatsapp", "wapp", "wa", "cell", "tel", "number", "calling",
+    "city", "district", "dist", "town", "station", "location", "place", "state", "address", "hq", "area", "headquarter",
+    "inquiry", "enquiry", "remark", "note", "product", "requirement", "division", "category", "segment"
+  ];
+
+  let bestIndex = 0;
+  let maxMatches = 0;
+
+  const limit = Math.min(rows.length, 15);
+  for (let r = 0; r < limit; r++) {
+    const row = rows[r];
+    if (!Array.isArray(row)) continue;
+    let matches = 0;
+    for (const cell of row) {
+      if (cell !== null && cell !== undefined) {
+        const norm = String(cell).toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (norm && headerKeywords.some((kw) => norm.includes(kw))) {
+          matches++;
+        }
+      }
+    }
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      bestIndex = r;
+    }
+  }
+
+  return { headerRowIndex: bestIndex, hasHeader: maxMatches >= 1 };
 }
 
 export async function POST(request: Request) {
@@ -75,18 +156,118 @@ export async function POST(request: Request) {
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const firstSheetName = workbook.SheetNames[0];
     if (!firstSheetName) {
-      return NextResponse.json({ error: "Uploaded spreadsheet is empty" }, { status: 400 });
+      return NextResponse.json({ error: "Uploaded spreadsheet contains no sheets" }, { status: 400 });
     }
 
     const sheet = workbook.Sheets[firstSheetName];
-    const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    // Read as 2D array to accurately detect headers, title cards, and positions
+    const aoa: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    const nonEmptyRows = aoa.filter((row) => Array.isArray(row) && row.some((cell) => cleanString(cell) !== ""));
 
-    if (!rawRows || rawRows.length === 0) {
+    if (nonEmptyRows.length === 0) {
       return NextResponse.json(
-        { error: "No data rows found in the sheet. Please ensure headers are present." },
+        { error: "Uploaded spreadsheet contains no data rows." },
         { status: 400 }
       );
     }
+
+    const { headerRowIndex, hasHeader } = findHeaderRowIndex(nonEmptyRows);
+    const headerRow: string[] = hasHeader
+      ? nonEmptyRows[headerRowIndex].map((c) => cleanString(c))
+      : [];
+    const dataRows = hasHeader ? nonEmptyRows.slice(headerRowIndex + 1) : nonEmptyRows;
+
+    if (dataRows.length === 0) {
+      return NextResponse.json(
+        { error: "Spreadsheet contains a header row but no lead data rows below it." },
+        { status: 400 }
+      );
+    }
+
+    // Map column types by analyzing header row
+    const colTypes: Record<number, "name" | "phone" | "city" | "state" | "division" | "inquiry"> = {};
+    headerRow.forEach((colName, idx) => {
+      const k = colName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!k) return;
+
+      if (
+        k.includes("phone") ||
+        k.includes("mobile") ||
+        k.includes("mob") ||
+        k.includes("contact") ||
+        k.includes("whatsapp") ||
+        k.includes("wapp") ||
+        k.includes("wa") ||
+        k.includes("cell") ||
+        k.includes("tel") ||
+        k.includes("calling") ||
+        k === "no" ||
+        k === "number" ||
+        k === "mobno" ||
+        k === "phoneno"
+      ) {
+        colTypes[idx] = "phone";
+      } else if (
+        k.includes("name") ||
+        k.includes("party") ||
+        k.includes("chemist") ||
+        k.includes("doctor") ||
+        k.includes("customer") ||
+        k.includes("client") ||
+        k.includes("firm") ||
+        k.includes("agency") ||
+        k.includes("person") ||
+        k.includes("shop") ||
+        k.includes("store") ||
+        k.includes("stockist") ||
+        k.includes("distributor") ||
+        k.includes("dealer")
+      ) {
+        colTypes[idx] = "name";
+      } else if (
+        k.includes("city") ||
+        k.includes("district") ||
+        k.includes("dist") ||
+        k.includes("town") ||
+        k.includes("station") ||
+        k.includes("location") ||
+        k.includes("place") ||
+        k.includes("hq") ||
+        k.includes("headquarter") ||
+        k.includes("territory") ||
+        k.includes("area") ||
+        k.includes("address")
+      ) {
+        colTypes[idx] = "city";
+      } else if (
+        k.includes("state") ||
+        k.includes("province") ||
+        k.includes("region") ||
+        k.includes("zone")
+      ) {
+        colTypes[idx] = "state";
+      } else if (
+        k.includes("division") ||
+        k.includes("category") ||
+        k.includes("segment") ||
+        k.includes("type") ||
+        k.includes("franchise") ||
+        k.includes("manufacturing")
+      ) {
+        colTypes[idx] = "division";
+      } else if (
+        k.includes("inquiry") ||
+        k.includes("enquiry") ||
+        k.includes("remark") ||
+        k.includes("note") ||
+        k.includes("requirement") ||
+        k.includes("product") ||
+        k.includes("detail") ||
+        k.includes("comment")
+      ) {
+        colTypes[idx] = "inquiry";
+      }
+    });
 
     // Gather existing phone numbers from DB for deduplication
     const existingLeads = await prisma.lead.findMany({
@@ -96,6 +277,7 @@ export async function POST(request: Request) {
         ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
       },
     });
+
     const existingPhones = new Set<string>();
     for (const l of existingLeads) {
       if (l.phoneNumber) {
@@ -124,8 +306,10 @@ export async function POST(request: Request) {
     let duplicateCount = 0;
     let invalidCount = 0;
 
-    for (const row of rawRows) {
-      const entries = Object.entries(row);
+    for (const row of dataRows) {
+      if (!Array.isArray(row) || !row.some((c) => cleanString(c) !== "")) {
+        continue;
+      }
 
       let rawName = "";
       let rawPhone = "";
@@ -134,42 +318,63 @@ export async function POST(request: Request) {
       let rawDivision = divisionInput;
       let rawInquiry = "";
 
-      for (const [colName, val] of entries) {
-        const k = colName.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const stringVal = cleanString(val);
-        if (!stringVal) continue;
+      // 1. First pass: Map values by classified column header
+      row.forEach((cell, idx) => {
+        const val = cleanString(cell);
+        if (!val) return;
 
-        if (!rawName && (k.includes("name") || k.includes("chemist") || k.includes("doctor") || k.includes("party") || k.includes("customer"))) {
-          if (!k.includes("phone") && !k.includes("mobile") && !k.includes("number")) {
-            rawName = stringVal;
-          }
-        }
-        if (!rawPhone && (k.includes("phone") || k.includes("mobile") || k.includes("contact") || k.includes("whatsapp") || k.includes("tel") || k.includes("cell"))) {
-          rawPhone = stringVal;
-        }
-        if (!rawCity && (k.includes("city") || k.includes("district") || k.includes("town") || k.includes("location"))) {
-          rawCity = stringVal;
-        }
-        if (!rawState && (k.includes("state") || k.includes("province") || k.includes("region"))) {
-          rawState = stringVal;
-        }
-        if (k.includes("division") || k.includes("category") || k.includes("segment") || k.includes("type")) {
-          const lower = stringVal.toLowerCase();
+        const type = colTypes[idx];
+        if (type === "phone" && !rawPhone) {
+          rawPhone = val;
+        } else if (type === "name" && !rawName) {
+          rawName = val;
+        } else if (type === "city" && !rawCity) {
+          rawCity = val;
+        } else if (type === "state" && !rawState) {
+          rawState = val;
+        } else if (type === "division") {
+          const lower = val.toLowerCase();
           if (lower.includes("third") || lower.includes("mfg") || lower.includes("contract") || lower.includes("party")) {
             rawDivision = "THIRD_PARTY";
           } else if (lower.includes("pcd") || lower.includes("franchise") || lower.includes("propaganda")) {
             rawDivision = "PCD_FRANCHISE";
           }
+        } else if (type === "inquiry" && !rawInquiry) {
+          rawInquiry = val;
         }
-        if (k.includes("inquiry") || k.includes("enquiry") || k.includes("notes") || k.includes("requirement") || k.includes("product") || k.includes("remark")) {
-          rawInquiry = stringVal;
+      });
+
+      // 2. Second pass (Fallback): If rawPhone not found or invalid, scan ALL cells in the row
+      let parsedPhone = extractPhoneNumber(rawPhone);
+      if (!parsedPhone) {
+        for (let idx = 0; idx < row.length; idx++) {
+          const candidate = extractPhoneNumber(row[idx]);
+          if (candidate) {
+            parsedPhone = candidate;
+            rawPhone = String(row[idx]);
+            break;
+          }
         }
       }
 
-      const parsedPhone = normalizePhone(rawPhone);
+      // If no valid phone number exists anywhere in this row, mark invalid
       if (!parsedPhone) {
         invalidCount++;
         continue;
+      }
+
+      // 3. Fallback for Name: If no name header was matched, pick first non-numeric cell
+      if (!rawName) {
+        for (let idx = 0; idx < row.length; idx++) {
+          const val = cleanString(row[idx]);
+          if (!val) continue;
+          if (val === rawPhone || extractPhoneNumber(val)) continue;
+          if (val === rawCity || val === rawState) continue;
+          if (val.length >= 2 && !/^\d+$/.test(val)) {
+            rawName = val;
+            break;
+          }
+        }
       }
 
       if (existingPhones.has(parsedPhone.digits) || batchSeenPhones.has(parsedPhone.digits)) {
@@ -183,6 +388,13 @@ export async function POST(request: Request) {
       const finalName = rawName || `Prospect ${parsedPhone.digits.slice(-4)}`;
       const noteDetails = rawInquiry || `Imported via Batch: ${batchTag}${rawCity ? ` (${rawCity}, ${rawState})` : ""}`;
 
+      // Reconstruct row object for payload audit
+      const rowObject: Record<string, any> = {};
+      row.forEach((cell, idx) => {
+        const key = headerRow[idx] || `Column_${idx + 1}`;
+        rowObject[key] = cell;
+      });
+
       leadsToInsert.push({
         source: LeadSource.EXCEL_IMPORT,
         sourceTag: batchTag,
@@ -191,7 +403,7 @@ export async function POST(request: Request) {
         rawPayload: {
           importedFile: file.name,
           batchTag,
-          originalRow: row,
+          originalRow: rowObject,
         },
         name: finalName,
         phoneNumber: parsedPhone.formatted,
@@ -204,13 +416,17 @@ export async function POST(request: Request) {
     }
 
     if (leadsToInsert.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: `No valid new leads could be ingested. ${duplicateCount} duplicate phone numbers and ${invalidCount} invalid rows were skipped.`,
-        insertedCount: 0,
-        duplicateCount,
-        invalidCount,
-      }, { status: 400 });
+      const headerDiagnostic = headerRow.length > 0 ? `Detected columns: [${headerRow.filter(Boolean).join(", ")}]` : "No recognizable header row found.";
+      return NextResponse.json(
+        {
+          success: false,
+          error: `No valid new leads could be ingested. ${duplicateCount} duplicate phone numbers and ${invalidCount} invalid rows (missing 10-digit mobile numbers) were skipped. ${headerDiagnostic}`,
+          insertedCount: 0,
+          duplicateCount,
+          invalidCount,
+        },
+        { status: 400 }
+      );
     }
 
     const chunkSize = 500;
@@ -249,7 +465,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       batchTag,
-      totalRowsProcessed: rawRows.length,
+      totalRowsProcessed: dataRows.length,
       insertedCount: leadsToInsert.length,
       duplicateCount,
       invalidCount,
