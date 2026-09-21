@@ -767,13 +767,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
   const session = await requireAdmin();
   const activeCompanyId = getActiveCompanyId(session);
 
-  const planTier = String(formData.get("planTier") || "CORE_LEAD_SUITE");
-  const enableBillingErp = formData.get("enableBillingErp") === "on";
-  const enableStockIq = formData.get("enableStockIq") === "on";
-  const enableReorders = formData.get("enableReorders") === "on";
-  const enableCreditManagement = formData.get("enableCreditManagement") === "on";
-  const enableClientsManagement = formData.get("enableClientsManagement") === "on";
-  const enableTerritories = formData.get("enableTerritories") === "on";
+  const isSuperAdmin = session.role === Role.SUPER_ADMIN;
 
   // Cloud Storage & Integration APIs
   const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || undefined;
@@ -807,19 +801,99 @@ export async function updateCompanyPlanSettings(formData: FormData) {
   };
 
   if (activeCompanyId) {
-    await prisma.company.update({
-      where: { id: activeCompanyId },
-      data: { planTier: planTier as any },
-    });
-
     const existingSettings = await prisma.companySettings.findFirst({
       where: { companyId: activeCompanyId },
     });
 
-    if (existingSettings) {
-      await prisma.companySettings.update({
-        where: { id: existingSettings.id },
-        data: {
+    // Strictly enforce: Only Super Admin can change planTier and module flags.
+    // Tenant admins can only update their integration keys.
+    if (isSuperAdmin && formData.has("planTier")) {
+      const planTier = String(formData.get("planTier") || "CORE_LEAD_SUITE");
+      const enableBillingErp = formData.get("enableBillingErp") === "on";
+      const enableStockIq = formData.get("enableStockIq") === "on";
+      const enableReorders = formData.get("enableReorders") === "on";
+      const enableCreditManagement = formData.get("enableCreditManagement") === "on";
+      const enableClientsManagement = formData.get("enableClientsManagement") === "on";
+      const enableTerritories = formData.get("enableTerritories") === "on";
+
+      await prisma.company.update({
+        where: { id: activeCompanyId },
+        data: { planTier: planTier as any },
+      });
+
+      if (existingSettings) {
+        await prisma.companySettings.update({
+          where: { id: existingSettings.id },
+          data: {
+            planTier,
+            enableBillingErp,
+            enableStockIq,
+            enableReorders,
+            enableCreditManagement,
+            enableClientsManagement,
+            enableTerritories,
+            ...apiPayload,
+          },
+        });
+      } else {
+        await prisma.companySettings.create({
+          data: {
+            companyId: activeCompanyId,
+            planTier,
+            enableBillingErp,
+            enableStockIq,
+            enableReorders,
+            enableCreditManagement,
+            enableClientsManagement,
+            enableTerritories,
+            ...apiPayload,
+          },
+        });
+      }
+    } else {
+      // Standard tenant business admin: Preserves existing plan and modules selected during onboarding
+      if (existingSettings) {
+        await prisma.companySettings.update({
+          where: { id: existingSettings.id },
+          data: {
+            ...apiPayload,
+          },
+        });
+      } else {
+        await prisma.companySettings.create({
+          data: {
+            companyId: activeCompanyId,
+            ...apiPayload,
+          },
+        });
+      }
+    }
+  } else {
+    // Platform default settings (Super Admin only or initial setup)
+    if (isSuperAdmin && formData.has("planTier")) {
+      const planTier = String(formData.get("planTier") || "CORE_LEAD_SUITE");
+      const enableBillingErp = formData.get("enableBillingErp") === "on";
+      const enableStockIq = formData.get("enableStockIq") === "on";
+      const enableReorders = formData.get("enableReorders") === "on";
+      const enableCreditManagement = formData.get("enableCreditManagement") === "on";
+      const enableClientsManagement = formData.get("enableClientsManagement") === "on";
+      const enableTerritories = formData.get("enableTerritories") === "on";
+
+      await prisma.companySettings.upsert({
+        where: { id: "default" },
+        update: {
+          planTier,
+          enableBillingErp,
+          enableStockIq,
+          enableReorders,
+          enableCreditManagement,
+          enableClientsManagement,
+          enableTerritories,
+          ...apiPayload,
+        },
+        create: {
+          id: "default",
+          companyName: "Allota AI",
           planTier,
           enableBillingErp,
           enableStockIq,
@@ -831,46 +905,18 @@ export async function updateCompanyPlanSettings(formData: FormData) {
         },
       });
     } else {
-      await prisma.companySettings.create({
-        data: {
-          companyId: activeCompanyId,
-          planTier,
-          enableBillingErp,
-          enableStockIq,
-          enableReorders,
-          enableCreditManagement,
-          enableClientsManagement,
-          enableTerritories,
+      await prisma.companySettings.upsert({
+        where: { id: "default" },
+        update: {
+          ...apiPayload,
+        },
+        create: {
+          id: "default",
+          companyName: "Allota AI",
           ...apiPayload,
         },
       });
     }
-  } else {
-    await prisma.companySettings.upsert({
-      where: { id: "default" },
-      update: {
-        planTier,
-        enableBillingErp,
-        enableStockIq,
-        enableReorders,
-        enableCreditManagement,
-        enableClientsManagement,
-        enableTerritories,
-        ...apiPayload,
-      },
-      create: {
-        id: "default",
-        companyName: "Allota AI",
-        planTier,
-        enableBillingErp,
-        enableStockIq,
-        enableReorders,
-        enableCreditManagement,
-        enableClientsManagement,
-        enableTerritories,
-        ...apiPayload,
-      },
-    });
   }
 
   revalidatePath("/", "layout");

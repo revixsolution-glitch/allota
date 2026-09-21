@@ -53,8 +53,8 @@ export default async function AdminLayout({
     navItems.push({ href: "/admin/credits", label: "Credit Management" });
   }
 
-  // Settings & Plan Configurator
-  navItems.push({ href: "/admin/settings", label: "Settings & Plans" });
+  // Organization Settings & Integrations
+  navItems.push({ href: "/admin/settings", label: "Settings" });
 
   const displayTitle =
     company?.name && !company.name.includes("Pharma Life") && !company.name.includes("Pharma CRM")
