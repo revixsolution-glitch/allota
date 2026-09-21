@@ -771,6 +771,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
 
   // Cloud Storage & Integration APIs
   const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || undefined;
+  const geminiApiKey = (formData.get("geminiApiKey") as string)?.trim() || undefined;
   const indiaMartApiKey = (formData.get("indiaMartApiKey") as string)?.trim() || undefined;
   const billingSoftwareApiKey = (formData.get("billingSoftwareApiKey") as string)?.trim() || undefined;
   const metaAppId = (formData.get("metaAppId") as string)?.trim() || undefined;
@@ -786,6 +787,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
 
   const apiPayload = {
     ...(driveFolderUrl !== undefined ? { driveFolderUrl } : {}),
+    ...(geminiApiKey !== undefined ? { geminiApiKey } : {}),
     ...(indiaMartApiKey !== undefined ? { indiaMartApiKey } : {}),
     ...(billingSoftwareApiKey !== undefined ? { billingSoftwareApiKey } : {}),
     ...(metaAppId !== undefined ? { metaAppId } : {}),
