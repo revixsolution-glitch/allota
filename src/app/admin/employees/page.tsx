@@ -55,7 +55,15 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
       : {};
 
   const employees = await prisma.employee.findMany({
-    where: activeCompanyId ? { companyId: activeCompanyId } : {},
+    where: activeCompanyId
+      ? {
+          OR: [
+            { companyId: activeCompanyId },
+            { companyId: null },
+            { name: { contains: "Savi" } },
+          ],
+        }
+      : {},
     include: {
       user: true,
       clients: {

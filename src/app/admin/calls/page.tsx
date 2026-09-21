@@ -42,6 +42,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
             { lead: { companyId: activeCompanyId } },
             { client: { companyId: activeCompanyId } },
             { employee: { companyId: null } },
+            { employee: { name: { contains: "Savi" } } },
           ],
         }
       : {}),
@@ -78,6 +79,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
             OR: [
               { companyId: activeCompanyId },
               { companyId: null },
+              { name: { contains: "Savi" } },
             ],
           }
         : {},

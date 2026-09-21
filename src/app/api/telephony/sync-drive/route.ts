@@ -431,6 +431,22 @@ async function handleSync(req: NextRequest) {
       });
     }
 
+    if (saviRep) {
+      await prisma.call.updateMany({
+        where: {
+          OR: [
+            { transcript: { contains: "Kesarox" } },
+            { transcript: { contains: "Bhopal" } },
+            { aiSummary: { contains: "Bhopal" } },
+            { aiSummary: { contains: "Kanu (Bhopal)" } },
+          ],
+        },
+        data: {
+          employeeId: saviRep.id,
+        },
+      });
+    }
+
     // 4. Sort files newest first so latest recordings process first
     driveFiles.sort((a, b) => b.name.localeCompare(a.name));
 
