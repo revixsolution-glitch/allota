@@ -27,7 +27,7 @@ function checkAndIncrementQuota(): { allowed: boolean; remaining: number; used: 
       allowed: false,
       remaining: Math.max(0, GEMINI_FREE_DAILY_CAP - dailyUsageCount),
       used: dailyUsageCount,
-      reason: "Rate limit: Max 15 requests/minute on Gemini Free Tier. Please wait a moment.",
+      reason: "Rate limit: Max 15 requests/minute on AI engine. Please wait a moment.",
     };
   }
 
@@ -37,7 +37,7 @@ function checkAndIncrementQuota(): { allowed: boolean; remaining: number; used: 
       allowed: false,
       remaining: 0,
       used: dailyUsageCount,
-      reason: `Daily usage cap reached (${GEMINI_FREE_DAILY_CAP} requests/day Gemini Free tier). Quota resets at 00:00 UTC.`,
+      reason: `Daily usage cap reached (${GEMINI_FREE_DAILY_CAP} requests/day). Quota resets at 00:00 UTC.`,
     };
   }
 
@@ -60,11 +60,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Empty query provided" }, { status: 400 });
     }
 
-    // 1. Check Gemini Free Tier Usage Cap (1500 requests/day)
+    // 1. Check AI Tier Usage Cap (1500 requests/day)
     const quota = checkAndIncrementQuota();
     if (!quota.allowed) {
       return NextResponse.json({
-        reply: quota.reason || "Daily free Gemini AI quota reached for today.",
+        reply: quota.reason || "Daily free AI quota reached for today.",
         usage: {
           dailyUsed: quota.used,
           dailyCap: GEMINI_FREE_DAILY_CAP,

@@ -37,7 +37,7 @@ export async function analyzeAudioRecordingWithGemini({
 }): Promise<GeminiCallAnalysis> {
   const apiKey = customApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("Google Gemini API Key is not configured (neither for organization nor system).");
+    throw new Error("API key for AI use is not configured (neither for organization nor system).");
   }
 
   const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
@@ -146,14 +146,14 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
     const cleanJson = rawText.replace(/^```json\s*/, "").replace(/```$/, "").trim();
     return JSON.parse(cleanJson) as GeminiCallAnalysis;
   } catch (err) {
-    console.error("Failed to parse Gemini JSON output:", rawText, err);
+    console.error("Failed to parse AI JSON output:", rawText, err);
     return {
       transcript: rawText,
-      aiSummary: "Call recorded and analyzed via Gemini.",
+      aiSummary: "Call recorded and analyzed via AI engine.",
       sentiment: "NEUTRAL",
       productsInquired: [],
       recommendedNextAction: "Follow up with customer.",
-      behaviorTags: ["Analyzed by Gemini"],
+      behaviorTags: ["Analyzed by AI"],
     };
   }
 }

@@ -45,53 +45,139 @@ export async function GET() {
       });
     }
 
-    // 2. Ensure Kesrox Pharmaceuticals Company exists
-    const kesroxCompany = await prisma.company.upsert({
-      where: { slug: "kesrox-pharma" },
-      update: {
-        name: "Kesrox Pharmaceuticals",
-        contactEmail: "info@kesrox.com",
-        contactPhone: "+91 76965 52865",
+    // Restore real company names
+    await prisma.company.updateMany({
+      where: { slug: "pharma-life" },
+      data: { name: "Pharma Life Sciences" },
+    });
+    await prisma.company.updateMany({
+      where: { slug: "zydus-healthcare" },
+      data: { name: "Zydus Healthcare" },
+    });
+    await prisma.company.updateMany({
+      where: {
+        OR: [
+          { slug: "Kesrox-Pharmaceuticals" },
+          { slug: "kesrox-pharma" },
+          { contactEmail: "kesroxpharmaceuticals@gmail.com" },
+        ],
       },
-      create: {
-        name: "Kesrox Pharmaceuticals",
-        slug: "kesrox-pharma",
-        contactEmail: "info@kesrox.com",
-        contactPhone: "+91 76965 52865",
-        planTier: "CORE_LEAD_SUITE",
+      data: { name: "Kesrox Pharmaceuticals" },
+    });
+
+    // 2. Find and configure the manually onboarded Kesrox Company
+    let manualKesrox = await prisma.company.findFirst({
+      where: {
+        OR: [
+          { slug: "Kesrox-Pharmaceuticals" },
+          { contactEmail: "kesroxpharmaceuticals@gmail.com" },
+        ],
+      },
+      include: {
+        settings: true,
+        users: { select: { id: true, email: true, role: true } },
+        employees: true,
       },
     });
 
-    await prisma.companySettings.upsert({
-      where: { id: "settings_kesrox" },
-      update: {
-        companyId: kesroxCompany.id,
-        companyName: "Kesrox Pharmaceuticals",
-        driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
-        geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
-        metaAppId: "1422721583164519",
-        metaAppSecret: "00000000000000000000000000000000",
-        metaAccessToken: "EAAUN9S6ULGcBSvPeeOJjNSd4iKlqF0e8GApt0mfwFGB9Mxa4ZCfzxwLhQ1PimJ749DlgoyO7ZCmazrOd1Pb8a9yJ9zXUNpFmUUoB0W6jLWbXA5p1ptiSXpgnIAZC1DttOci5SpGcjAv0ZAh9YDA3wdLeD5kDu2fqUaGeCWFgZCxQKLBJFphvAV9DQnue0sZBpn0R1ojZBHoubLla0RyZCylqxgthWj1LEczlOxVMkyoSVSk9fIcZBkoVzEiNfLw5SJkxHvK7CtDig8ZAEosV3rLD0hTTs5fmtD5lfSTiwZD",
-        metaPageId: "112876304657266",
-        metaWabaId: "1460433551636446",
-        metaPhoneNumberId: "739027919285346",
-      },
-      create: {
-        id: "settings_kesrox",
-        companyId: kesroxCompany.id,
-        companyName: "Kesrox Pharmaceuticals",
-        driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
-        geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
-        metaAppId: "1422721583164519",
-        metaAppSecret: "00000000000000000000000000000000",
-        metaAccessToken: "EAAUN9S6ULGcBSvPeeOJjNSd4iKlqF0e8GApt0mfwFGB9Mxa4ZCfzxwLhQ1PimJ749DlgoyO7ZCmazrOd1Pb8a9yJ9zXUNpFmUUoB0W6jLWbXA5p1ptiSXpgnIAZC1DttOci5SpGcjAv0ZAh9YDA3wdLeD5kDu2fqUaGeCWFgZCxQKLBJFphvAV9DQnue0sZBpn0R1ojZBHoubLla0RyZCylqxgthWj1LEczlOxVMkyoSVSk9fIcZBkoVzEiNfLw5SJkxHvK7CtDig8ZAEosV3rLD0hTTs5fmtD5lfSTiwZD",
-        metaPageId: "112876304657266",
-        metaWabaId: "1460433551636446",
-        metaPhoneNumberId: "739027919285346",
-      },
-    });
+    const kesroxSettingsData = {
+      companyName: "Kesrox Pharmaceuticals",
+      driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
+      geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
+      metaAppId: "1422721583164519",
+      metaAppSecret: "00000000000000000000000000000000",
+      metaAccessToken: "EAAUN9S6ULGcBSvPeeOJjNSd4iKlqF0e8GApt0mfwFGB9Mxa4ZCfzxwLhQ1PimJ749DlgoyO7ZCmazrOd1Pb8a9yJ9zXUNpFmUUoB0W6jLWbXA5p1ptiSXpgnIAZC1DttOci5SpGcjAv0ZAh9YDA3wdLeD5kDu2fqUaGeCWFgZCxQKLBJFphvAV9DQnue0sZBpn0R1ojZBHoubLla0RyZCylqxgthWj1LEczlOxVMkyoSVSk9fIcZBkoVzEiNfLw5SJkxHvK7CtDig8ZAEosV3rLD0hTTs5fmtD5lfSTiwZD",
+      metaPageId: "112876304657266",
+      metaWabaId: "1460433551636446",
+      metaPhoneNumberId: "739027919285346",
+    };
 
-    let company = kesroxCompany;
+    let company;
+
+    if (manualKesrox) {
+      await prisma.company.update({
+        where: { id: manualKesrox.id },
+        data: { name: "Kesrox Pharmaceuticals" },
+      });
+
+      const existingSettings = await prisma.companySettings.findFirst({
+        where: { companyId: manualKesrox.id },
+      });
+
+      if (existingSettings) {
+        await prisma.companySettings.update({
+          where: { id: existingSettings.id },
+          data: {
+            ...kesroxSettingsData,
+            companyId: manualKesrox.id,
+          },
+        });
+      } else {
+        await prisma.companySettings.create({
+          data: {
+            ...kesroxSettingsData,
+            companyId: manualKesrox.id,
+          },
+        });
+      }
+
+      // If an old demo company "kesrox-pharma" exists separately, migrate and cleanup to keep single Kesrox
+      const demoKesrox = await prisma.company.findUnique({
+        where: { slug: "kesrox-pharma" },
+      });
+      if (demoKesrox && demoKesrox.id !== manualKesrox.id) {
+        await prisma.employee.updateMany({
+          where: { companyId: demoKesrox.id },
+          data: { companyId: manualKesrox.id },
+        });
+        await prisma.lead.updateMany({
+          where: { companyId: demoKesrox.id },
+          data: { companyId: manualKesrox.id },
+        });
+        await prisma.user.updateMany({
+          where: { companyId: demoKesrox.id },
+          data: { companyId: manualKesrox.id },
+        });
+        await prisma.companySettings.deleteMany({
+          where: { companyId: demoKesrox.id },
+        });
+        await prisma.company.delete({
+          where: { id: demoKesrox.id },
+        });
+      }
+
+      company = manualKesrox;
+    } else {
+      // Fallback: Ensure Kesrox Pharmaceuticals exists
+      company = await prisma.company.upsert({
+        where: { slug: "kesrox-pharma" },
+        update: {
+          name: "Kesrox Pharmaceuticals",
+          contactEmail: "info@kesrox.com",
+          contactPhone: "+91 76965 52865",
+        },
+        create: {
+          name: "Kesrox Pharmaceuticals",
+          slug: "kesrox-pharma",
+          contactEmail: "info@kesrox.com",
+          contactPhone: "+91 76965 52865",
+          planTier: "CORE_LEAD_SUITE",
+        },
+      });
+
+      await prisma.companySettings.upsert({
+        where: { id: "settings_kesrox" },
+        update: {
+          companyId: company.id,
+          ...kesroxSettingsData,
+        },
+        create: {
+          id: "settings_kesrox",
+          companyId: company.id,
+          ...kesroxSettingsData,
+        },
+      });
+    }
 
     // 3. Provision Kesrox Admin User
     const adminEmail = "admin.kesrox@pharmacrm.test";
