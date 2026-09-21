@@ -16,12 +16,15 @@ export default async function AdminTerritoriesPage() {
         where: { id: "default" },
       });
 
-  if (!settings?.enableTerritories) {
+  const isSuperAdmin = session?.role === "SUPER_ADMIN";
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableTerritories) {
     return (
       <ErpModuleGate
         moduleName="Territory & Monopoly Distribution"
         description="Defines exclusive state and district/city boundaries to prevent franchise territory overlap across billing accounts."
-        erpDependency="Marg ERP 9+ / Busy Territory Master"
+        erpDependency="Marg ERP 9+ or Billing API"
         icon="🗺️"
       />
     );

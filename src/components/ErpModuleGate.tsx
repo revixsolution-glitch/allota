@@ -2,15 +2,15 @@ import Link from "next/link";
 
 interface ErpModuleGateProps {
   moduleName: string;
-  description: string;
-  erpDependency: string;
+  description?: string;
+  erpDependency?: string;
   icon?: string;
 }
 
 export function ErpModuleGate({
   moduleName,
   description,
-  erpDependency,
+  erpDependency = "Marg ERP 9+ or Billing API",
   icon = "🔒",
 }: ErpModuleGateProps) {
   return (
@@ -21,23 +21,30 @@ export function ErpModuleGate({
         </div>
 
         <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-800 border border-amber-200">
-          Premium Billing ERP Add-On Module
+          🔒 API Not Connected
         </span>
 
         <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">
-          {moduleName} is Inactive
+          API Not Connected
         </h1>
 
-        <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-          {description}
+        <div className="mt-3 inline-block rounded-xl bg-rose-50 border border-rose-200 px-4 py-2">
+          <p className="text-xs font-bold text-rose-700">
+            {erpDependency} is needed to access this feature
+          </p>
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+          {description ||
+            `This module requires an active connection to your pharmaceutical billing software to synchronize distributor ledger accounts, inventory batch balances, and invoices.`}
         </p>
 
         <div className="mt-5 rounded-2xl bg-slate-50 p-4 border border-line text-left">
           <p className="text-xs font-bold text-ink flex items-center gap-2">
-            <span>💡</span> Commercial Reason:
+            <span>💡</span> Requirement:
           </p>
           <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-            This module requires direct synchronization with {erpDependency}. In accordance with your selected plan, this module is toggled off to avoid the <strong>₹40,000 yearly API fee</strong>.
+            To activate <strong>{moduleName}</strong>, please connect your Marg ERP 9+ / Busy API credentials in Company Settings, or upgrade to the Full Commercial ERP Suite.
           </p>
         </div>
 
@@ -47,7 +54,7 @@ export function ErpModuleGate({
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-3 text-xs font-bold text-white shadow-md shadow-teal-500/20 hover:from-teal-700 hover:to-emerald-700 transition"
           >
             <span>⚙️</span>
-            <span>Configure Plan & Module Toggles</span>
+            <span>Configure Billing API in Settings</span>
           </Link>
           <Link
             href="/admin/leads"

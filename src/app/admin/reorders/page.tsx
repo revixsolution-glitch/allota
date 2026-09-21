@@ -35,12 +35,15 @@ export default async function AdminReordersPage(props: {
         where: { id: "default" },
       });
 
-  if (!settings?.enableReorders) {
+  const isSuperAdmin = session?.role === "SUPER_ADMIN";
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableReorders) {
     return (
       <ErpModuleGate
         moduleName="Reorders & Replenishment"
         description="Tracks calculated repeat order cadence, historical basket velocity, and purchase replenishment alerts."
-        erpDependency="Marg ERP 9+ / Busy Sales Ledger API"
+        erpDependency="Marg ERP 9+ or Billing API"
         icon="🔁"
       />
     );

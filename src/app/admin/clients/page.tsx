@@ -42,12 +42,15 @@ export default async function AdminClientsPage({
         where: { id: "default" },
       });
 
-  if (!settings?.enableClientsManagement) {
+  const isSuperAdmin = session?.role === "SUPER_ADMIN";
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+
+  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableClientsManagement) {
     return (
       <ErpModuleGate
         moduleName="Franchise Clients Master"
         description="Tracks verified PCD franchise partner accounts, GSTIN registrations, and billing credit balances."
-        erpDependency="Marg ERP 9+ / Busy Customer Master API"
+        erpDependency="Marg ERP 9+ or Billing API"
         icon="🏢"
       />
     );

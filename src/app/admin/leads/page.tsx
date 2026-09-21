@@ -119,6 +119,7 @@ export default async function AdminLeadsPage({
     divisionStats,
     unassignedDivisionStats,
     unassignedExcelBatches,
+    settings,
   ] = await Promise.all([
     prisma.lead.findMany({
       where: leadWhere,
@@ -176,7 +177,48 @@ export default async function AdminLeadsPage({
       },
       _count: { _all: true },
     }),
+    activeCompanyId
+      ? prisma.companySettings.findFirst({
+          where: { companyId: activeCompanyId },
+        })
+      : prisma.companySettings.findFirst({
+          where: { id: "default" },
+        }),
   ]);
+
+  // Source count mapping
+  const sourceCountMap = new Map(
+    sourceCounts.map((item) => [item.source, item._count._all])
+  );
+  const totalPlatformLeadCount = sourceCounts.reduce(
+    (sum, item) => sum + item._count._all,
+    0
+  );
+
+  // Determine dynamically active sources based on API credentials and existing leads
+  const isSourceActive = (sourceValue: LeadSource) => {
+    const count = sourceCountMap.get(sourceValue) ?? 0;
+    switch (sourceValue) {
+      case LeadSource.META:
+        return Boolean(settings?.metaAccessToken || settings?.metaAppId || settings?.metaApiKey || count > 0);
+      case LeadSource.EXCEL_IMPORT:
+        return Boolean((settings?.enableBulkExcelUpload ?? true) || count > 0);
+      case LeadSource.INDIAMART:
+        return Boolean(settings?.indiaMartApiKey || count > 0);
+      case LeadSource.WHATSAPP:
+        return Boolean((settings?.metaPhoneNumberId && settings?.metaAccessToken) || count > 0);
+      case LeadSource.WEBSITE:
+        return count > 0;
+      case LeadSource.SOCIAL:
+        return count > 0;
+      case LeadSource.MANUAL:
+        return count > 0;
+      default:
+        return count > 0;
+    }
+  };
+
+  const activeLeadSources = leadSources.filter((s) => isSourceActive(s.value));
 
   // Map division counts
   const divisionCountMap = new Map(
@@ -192,15 +234,6 @@ export default async function AdminLeadsPage({
   const pcdUnassigned = unassignedMap.get("PCD_FRANCHISE") ?? 0;
   const tpUnassigned = unassignedMap.get("THIRD_PARTY") ?? 0;
   const totalUnassigned = pcdUnassigned + tpUnassigned;
-
-  // Source count mapping
-  const sourceCountMap = new Map(
-    sourceCounts.map((item) => [item.source, item._count._all])
-  );
-  const totalPlatformLeadCount = sourceCounts.reduce(
-    (sum, item) => sum + item._count._all,
-    0
-  );
 
   // Status mapping
   const statusCountMap = new Map(
@@ -232,9 +265,9 @@ export default async function AdminLeadsPage({
         )
       : 0;
 
-  const selectedPlatform = leadSources.find(
-    (source) => source.value === selectedSource
-  );
+  const selectedPlatform =
+    activeLeadSources.find((source) => source.value === selectedSource) ||
+    leadSources.find((source) => source.value === selectedSource);
 
   // URL Helper preserving filter parameters
   const buildLeadsUrl = (overrides: {
@@ -311,8 +344,16 @@ export default async function AdminLeadsPage({
         </div>
       </section>
 
-      {/* 1. Branded Platform Navigation Cards */}
-      <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+      {/* 1. Branded Platform Navigation Cards - Dynamic Active Sources Only */}
+      <section className={`grid gap-4 sm:grid-cols-2 md:grid-cols-3 ${
+        activeLeadSources.length <= 2
+          ? "xl:grid-cols-3"
+          : activeLeadSources.length <= 3
+          ? "xl:grid-cols-4"
+          : activeLeadSources.length <= 5
+          ? "xl:grid-cols-6"
+          : "xl:grid-cols-8"
+      }`}>
         <PlatformCard
           href={buildLeadsUrl({ source: "all" })}
           label="All Platforms"
@@ -321,7 +362,7 @@ export default async function AdminLeadsPage({
           active={!selectedSource}
           brandColor="all"
         />
-        {leadSources.map((source) => (
+        {activeLeadSources.map((source) => (
           <PlatformCard
             key={source.value}
             href={buildLeadsUrl({ source: source.value })}
@@ -559,14 +600,12 @@ export default async function AdminLeadsPage({
               defaultValue={selectedSource || "ALL"}
               className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             >
-              <option value="ALL">All Channels (Any source)</option>
-              <option value="META">Meta Ads Forms</option>
-              <option value="INDIAMART">IndiaMART Catalog</option>
-              <option value="WHATSAPP">WhatsApp Direct</option>
-              <option value="WEBSITE">Website Forms</option>
-              <option value="SOCIAL">Social Signals</option>
-              <option value="MANUAL">Manual Inquiries</option>
-              <option value="EXCEL_IMPORT">All Excel Imports</option>
+              <option value="ALL">All Active Channels</option>
+              {activeLeadSources.map((source) => (
+                <option key={source.value} value={source.value}>
+                  {source.label}
+                </option>
+              ))}
               {unassignedExcelBatches.length > 0 && (
                 <optgroup label="Specific Excel Batches">
                   {unassignedExcelBatches.map((batch) => (
@@ -607,14 +646,17 @@ export default async function AdminLeadsPage({
               </label>
               <select
                 name="source"
-                defaultValue={selectedSource ?? LeadSource.MANUAL}
+                defaultValue={selectedSource ?? (activeLeadSources[0]?.value || LeadSource.MANUAL)}
                 className={inputClass}
               >
-                {leadSources.map((source) => (
+                {activeLeadSources.map((source) => (
                   <option key={source.value} value={source.value}>
                     {source.label}
                   </option>
                 ))}
+                {!activeLeadSources.some((s) => s.value === LeadSource.MANUAL) && (
+                  <option value={LeadSource.MANUAL}>Manual Entry</option>
+                )}
               </select>
             </div>
 

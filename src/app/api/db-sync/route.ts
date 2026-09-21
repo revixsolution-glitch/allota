@@ -87,6 +87,14 @@ export async function GET() {
 
     const kesroxSettingsData = {
       companyName: "Kesrox Pharmaceuticals",
+      planTier: "CORE_LEAD_SUITE",
+      enableBillingErp: false,
+      enableStockIq: false,
+      enableReorders: false,
+      enableCreditManagement: false,
+      enableClientsManagement: false,
+      enableTerritories: false,
+      billingSoftwareApiKey: null,
       driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
       geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
       metaAppId: "1422721583164519",
@@ -102,7 +110,7 @@ export async function GET() {
     if (manualKesrox) {
       await prisma.company.update({
         where: { id: manualKesrox.id },
-        data: { name: "Kesrox Pharmaceuticals" },
+        data: { name: "Kesrox Pharmaceuticals", planTier: "CORE_LEAD_SUITE" },
       });
 
       const existingSettings = await prisma.companySettings.findFirst({
@@ -260,7 +268,19 @@ export async function GET() {
       });
     }
 
-    // 6. Seed sample client & leads if none assigned
+    // 6. Ensure Kesrox leads only reflect active channels (Meta Ads & Excel Import)
+    if (company) {
+      await prisma.lead.updateMany({
+        where: {
+          companyId: company.id,
+          source: { in: [LeadSource.INDIAMART, LeadSource.WHATSAPP, LeadSource.WEBSITE, LeadSource.SOCIAL] },
+        },
+        data: {
+          source: LeadSource.META,
+        },
+      });
+    }
+
     const leadCount = await prisma.lead.count({ where: { assignedEmployeeId: employee.id } });
     if (leadCount === 0 && company) {
       await prisma.lead.createMany({
@@ -271,7 +291,7 @@ export async function GET() {
             city: "Mohali",
             state: "Punjab",
             division: "PCD_FRANCHISE",
-            source: LeadSource.INDIAMART,
+            source: LeadSource.META,
             status: LeadStatus.INTERESTED,
             companyId: company.id,
             assignedEmployeeId: employee.id,
@@ -283,7 +303,8 @@ export async function GET() {
             city: "Patiala",
             state: "Punjab",
             division: "PCD_FRANCHISE",
-            source: LeadSource.WHATSAPP,
+            source: LeadSource.EXCEL_IMPORT,
+            sourceTag: "Punjab Chemist Directory",
             status: LeadStatus.CONTACTED,
             companyId: company.id,
             assignedEmployeeId: employee.id,

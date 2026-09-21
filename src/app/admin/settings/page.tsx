@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { updateCompanyPlanSettings } from "@/lib/admin-actions";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
+import { UpgradePlanCard } from "@/components/UpgradePlanCard";
 
 export default async function AdminSettingsPage() {
   const session = await getSession();
@@ -167,49 +168,63 @@ export default async function AdminSettingsPage() {
               </span>
             </div>
 
-            {/* Included Modules Checklist */}
+            {/* Included Modules Checklist - Shows strictly active features for current plan */}
             <div className="mt-5 pt-4 border-t border-line/60">
               <p className="text-[11px] font-bold uppercase tracking-wider text-ink-faint mb-3">
-                Active Modules in Your Plan
+                Active Modules in Your Plan ({isCore ? "7 Core Modules" : "13 Enterprise Modules"})
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                <PlanFeatureItem label="Unified Lead Center" active={true} detail="PCD & Third-Party inquiries" />
+                <PlanFeatureItem label="Unified Lead Center" active={true} detail="PCD Franchise & Third-Party inquiries" />
                 <PlanFeatureItem label="Leads IQ Intelligence" active={true} detail="Turnaround & rep analytics" />
                 <PlanFeatureItem label="Sources Hub & Excel" active={true} detail="Meta, IndiaMART, 5K+ upload" />
                 <PlanFeatureItem label="Source-Aware Allotment" active={true} detail="Batch rep lead allocation" />
                 <PlanFeatureItem label="Leads Reassignment" active={true} detail="Reassign stagnant leads" />
                 <PlanFeatureItem label="Employee Tracking" active={true} detail="Login, calls & turnaround" />
-                <PlanFeatureItem
-                  label="Marg ERP 9+ Connector"
-                  active={Boolean(settings.enableBillingErp)}
-                  detail={settings.enableBillingErp ? "15-min background invoice sync" : "Requires ERP API License"}
-                />
-                <PlanFeatureItem
-                  label="Clients Master Directory"
-                  active={Boolean(settings.enableClientsManagement)}
-                  detail={settings.enableClientsManagement ? "Synced customer ledger" : "Requires ERP API License"}
-                />
-                <PlanFeatureItem
-                  label="Territory Monopoly"
-                  active={Boolean(settings.enableTerritories)}
-                  detail={settings.enableTerritories ? "District monopoly allocations" : "Requires ERP API License"}
-                />
-                <PlanFeatureItem
-                  label="Stock IQ & Expiry Watch"
-                  active={Boolean(settings.enableStockIq)}
-                  detail={settings.enableStockIq ? "Formulation batch monitoring" : "Requires ERP API License"}
-                />
-                <PlanFeatureItem
-                  label="Reorder Replenishment"
-                  active={Boolean(settings.enableReorders)}
-                  detail={settings.enableReorders ? "Cadence alerts & repeat sales" : "Requires ERP API License"}
-                />
-                <PlanFeatureItem
-                  label="Credit & Outstanding"
-                  active={Boolean(settings.enableCreditManagement)}
-                  detail={settings.enableCreditManagement ? "Overdue ledger & reminders" : "Requires ERP API License"}
-                />
+                <PlanFeatureItem label="AI Calls Summary & Desk" active={true} detail="Transcripts & doctor brief reader" />
+                {!isCore && settings.enableBillingErp && (
+                  <PlanFeatureItem label="Marg ERP 9+ Connector" active={true} detail="15-min background invoice sync" />
+                )}
+                {!isCore && settings.enableClientsManagement && (
+                  <PlanFeatureItem label="Clients Master Directory" active={true} detail="Synced customer ledger & GSTIN" />
+                )}
+                {!isCore && settings.enableTerritories && (
+                  <PlanFeatureItem label="Territory Monopoly" active={true} detail="District monopoly allocations" />
+                )}
+                {!isCore && settings.enableStockIq && (
+                  <PlanFeatureItem label="Stock IQ & Expiry Watch" active={true} detail="Formulation batch monitoring" />
+                )}
+                {!isCore && settings.enableReorders && (
+                  <PlanFeatureItem label="Reorder Replenishment" active={true} detail="Cadence alerts & repeat sales" />
+                )}
+                {!isCore && settings.enableCreditManagement && (
+                  <PlanFeatureItem label="Credit & Outstanding" active={true} detail="Overdue ledger & reminders" />
+                )}
               </div>
+            </div>
+          </div>
+
+          {/* Available Upgrades & Feature Add-ons */}
+          <div className="pt-2">
+            <div className="mb-4">
+              <h3 className="font-extrabold text-ink text-sm flex items-center gap-2">
+                <span>✨</span> Available Upgrades &amp; Feature Add-ons
+              </h3>
+              <p className="text-xs text-ink-faint mt-0.5">
+                Expand your commercial capabilities with deep ERP sync or automated social media lead capture.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {isCore && (
+                <UpgradePlanCard
+                  type="ERP"
+                  companyName={company?.name || "Your Company"}
+                />
+              )}
+              <UpgradePlanCard
+                type="SOCIAL"
+                companyName={company?.name || "Your Company"}
+              />
             </div>
           </div>
 
@@ -222,7 +237,7 @@ export default async function AdminSettingsPage() {
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                 Your organization&apos;s subscription plan was selected during onboarding and is locked to prevent unauthorized changes.
-                To upgrade your plan, request additional module licenses, or activate the Marg ERP 9+ connector, please contact your Allota account manager or email{" "}
+                To upgrade your plan, request additional module licenses, or activate the Marg ERP 9+ connector, click &quot;Upgrade Plan&quot; above or contact your Allota account manager at{" "}
                 <a href="mailto:support@allota.ai" className="text-teal-600 font-bold hover:underline">
                   support@allota.ai
                 </a>.
