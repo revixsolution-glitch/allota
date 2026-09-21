@@ -1285,6 +1285,64 @@ export async function createCompanyEmployee(formData: FormData) {
   return { success: true, employeeId: result.employee.id };
 }
 
+export async function deleteLead(input: string | FormData) {
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
 
+  const leadId = typeof input === "string" ? input : (input.get("leadId") as string);
+  if (!leadId) {
+    throw new Error("leadId is required");
+  }
 
+  const where: Record<string, any> = { id: leadId };
+  if (activeCompanyId) {
+    where.companyId = activeCompanyId;
+  }
 
+  await prisma.call.updateMany({
+    where: { leadId },
+    data: { leadId: null },
+  });
+
+  await prisma.lead.deleteMany({
+    where,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/leads-reassign");
+  revalidatePath("/admin/sources");
+  return { success: true };
+}
+
+export async function purgeCorruptedLeads() {
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
+
+  const where: Record<string, any> = {
+    OR: [
+      { name: { contains: "PCD", mode: "insensitive" as const } },
+      { name: { contains: "Pharma Franchise", mode: "insensitive" as const } },
+      { name: { contains: "Third Party", mode: "insensitive" as const } },
+      { name: { contains: "Third-Party", mode: "insensitive" as const } },
+      { name: { contains: "Manufacturing", mode: "insensitive" as const } },
+      { name: { contains: "Contract Mfg", mode: "insensitive" as const } },
+      {
+        AND: [
+          { source: LeadSource.EXCEL_IMPORT },
+          { name: { startsWith: "Prospect" } },
+        ],
+      },
+    ],
+    ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+  };
+
+  const result = await prisma.lead.deleteMany({ where });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/leads-reassign");
+  revalidatePath("/admin/sources");
+
+  return { success: true, count: result.count };
+}

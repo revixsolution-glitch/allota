@@ -45,6 +45,52 @@ export async function GET() {
       });
     }
 
+    // 0. Clean leads that have wrong names (division terms used as names or failed imports)
+    const wrongLeadsCondition = {
+      OR: [
+        { name: { contains: "PCD Pharma Franchise", mode: "insensitive" as const } },
+        { name: { contains: "PCD Franchise", mode: "insensitive" as const } },
+        { name: { contains: "Third-Party Manufacturing", mode: "insensitive" as const } },
+        { name: { contains: "Third Party Manufacturing", mode: "insensitive" as const } },
+        { name: { contains: "Pharma Franchise", mode: "insensitive" as const } },
+        { name: { equals: "PCD", mode: "insensitive" as const } },
+        { name: { equals: "PCD Pharma", mode: "insensitive" as const } },
+        { name: { equals: "Third Party", mode: "insensitive" as const } },
+        { name: { equals: "Contract Manufacturing", mode: "insensitive" as const } },
+        { name: { equals: "Contract Mfg", mode: "insensitive" as const } },
+        {
+          AND: [
+            { source: LeadSource.EXCEL_IMPORT },
+            { name: { startsWith: "Prospect" } },
+          ],
+        },
+      ],
+    };
+
+    const wrongLeadsToDelete = await prisma.lead.findMany({
+      where: wrongLeadsCondition,
+      select: { id: true, name: true, phoneNumber: true },
+    });
+
+    const deletedWrongLeads = await prisma.lead.deleteMany({
+      where: wrongLeadsCondition,
+    });
+
+    // Also clean any previous Excel import runs for Kesrox so the user gets a 100% clean slate to re-upload
+    const deletedKesroxExcelLeads = await prisma.lead.deleteMany({
+      where: {
+        company: {
+          OR: [
+            { slug: "Kesrox-Pharmaceuticals" },
+            { slug: "kesrox-pharma" },
+            { contactEmail: "kesroxpharmaceuticals@gmail.com" },
+          ],
+        },
+        source: LeadSource.EXCEL_IMPORT,
+        name: { not: "Amanjot Kaur (Patiala Medicos)" },
+      },
+    });
+
     // Clean any test batch runs
     await prisma.lead.deleteMany({
       where: { sourceTag: { in: ["Test Batch 19", "Test 19 Rows"] } },
@@ -396,6 +442,9 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       message: "Kesrox Pharmaceuticals, Kesrox Admin, Savi Kesorx, and Call Logs provisioned successfully!",
+      deletedWrongLeadsCount: deletedWrongLeads.count,
+      deletedKesroxExcelLeadsCount: deletedKesroxExcelLeads.count,
+      deletedWrongLeadsSample: wrongLeadsToDelete.slice(0, 10),
       connectedDriveFolder: "1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
       adminUser: {
         email: adminEmail,
