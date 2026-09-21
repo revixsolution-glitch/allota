@@ -153,10 +153,10 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => performLogin("employee@pharmacrm.test", "employee123", true)}
+              onClick={() => performLogin("savi.kesorx@pharmacrm.test", "employee123", true)}
               className="rounded-xl bg-slate-800 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-slate-900 disabled:opacity-50 cursor-pointer"
             >
-              Field Rep
+              Field Rep (Savi)
             </button>
           </div>
         </div>

@@ -371,7 +371,17 @@ model CompanySettings {
   // Third-Party Lead Ingestion & Integration APIs
   indiaMartApiKey         String?
   billingSoftwareApiKey   String?
-  metaApiKey              String?
+  
+  // Meta Suite (Facebook, Instagram & WhatsApp Cloud API) Granular Credentials
+  metaAppId               String? // Meta Developer App ID
+  metaAppSecret           String? // Meta App Secret
+  metaAccessToken         String? // Permanent System User Access Token (EAAG...)
+  metaPageId              String? // Facebook Page ID / Instagram Connected Account
+  metaAdAccountId         String? // Meta Ads Manager Account ID (act_...)
+  metaWabaId              String? // WhatsApp Business Account ID (WABA ID)
+  metaPhoneNumberId       String? // WhatsApp Business Phone Number ID
+  metaApiKey              String? // Legacy / combined token fallback
+
   pharmaHopperApiKey      String?
   pharmaVentApiKey        String?
 

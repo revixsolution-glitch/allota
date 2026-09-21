@@ -380,27 +380,165 @@ export default function OnboardCompanyPage() {
               </div>
 
               {/* Master Google Drive Folder URL */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-950/20 p-5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold text-white">
-                    Master Google Drive Folder Link (AI Call Storage)
-                  </label>
-                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 border border-blue-500/20">
-                    Cloud Storage
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📁</span>
+                    <div>
+                      <label className="block text-xs font-bold text-white">
+                        Master Google Drive Folder Link (AI Call Storage & Transcription)
+                      </label>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Central cloud folder where audio recordings land. CRM organizes them as: <code className="text-blue-300 font-mono text-[10px] bg-slate-900/80 px-1 py-0.5 rounded">Employee Name / YYYY-MM-DD / Recording.mp3</code>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[10px] font-bold text-blue-300 border border-blue-500/30">
+                    Connected Drive
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Master folder where call recordings will be automatically categorized as: <code className="text-purple-300 font-mono text-[10px]">Employee Name / YYYY-MM-DD / Recording.mp3</code>
-                </p>
                 <input
                   type="url"
                   name="driveFolderUrl"
-                  placeholder="https://drive.google.com/drive/folders/1AbCdEfGhIjKlMn..."
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  defaultValue="https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3"
+                  placeholder="https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                 />
               </div>
 
-              {/* 5 API Keys Grid */}
+              {/* Meta Suite (Facebook, Instagram & WhatsApp Business API) - Exact Columns */}
+              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                      <span>🌐</span> Meta Suite Integration (Facebook, Instagram & WhatsApp Cloud API)
+                    </h3>
+                    <p className="mt-0.5 text-[11px] text-slate-400">
+                      Meta uses separate credentials for App verification, Lead Ads ingestion, and WhatsApp Cloud API. Fill the exact columns below:
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-[10px] font-bold text-indigo-300 border border-indigo-500/30">
+                    7 Meta Columns
+                  </span>
+                </div>
+
+                {/* Meta App & Token */}
+                <div>
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    1. Meta Developer App & Permanent Token
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Meta App ID
+                      </label>
+                      <input
+                        type="text"
+                        name="metaAppId"
+                        placeholder="e.g. 184729104928172"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">From Meta Developer App Dashboard</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Meta App Secret
+                      </label>
+                      <input
+                        type="password"
+                        name="metaAppSecret"
+                        placeholder="••••••••••••••••"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">App Settings &gt; Basic &gt; App Secret</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        System User Access Token
+                      </label>
+                      <input
+                        type="password"
+                        name="metaAccessToken"
+                        placeholder="EAAG... (Never Expiring Token)"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Permanent Token for Lead Ads &amp; WhatsApp</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Facebook & Instagram Lead Ads */}
+                <div className="pt-2 border-t border-indigo-500/10">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    2. Facebook &amp; Instagram Lead Ads
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Facebook Page ID / Instagram Page ID
+                      </label>
+                      <input
+                        type="text"
+                        name="metaPageId"
+                        placeholder="e.g. 109283746501928"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Page where PCD Lead Gen forms run</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Meta Ad Account ID (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        name="metaAdAccountId"
+                        placeholder="act_1234567890123"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">From Meta Ads Manager account</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* WhatsApp Business Cloud API */}
+                <div className="pt-2 border-t border-indigo-500/10">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    3. WhatsApp Business Cloud API (Official Meta API)
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        WhatsApp Business Account ID (WABA ID)
+                      </label>
+                      <input
+                        type="text"
+                        name="metaWabaId"
+                        placeholder="e.g. 209384756102938"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Found in WhatsApp Manager &gt; Account Settings</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        WhatsApp Phone Number ID
+                      </label>
+                      <input
+                        type="text"
+                        name="metaPhoneNumberId"
+                        placeholder="e.g. 105928374619283"
+                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Found in WhatsApp Manager &gt; API Setup</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Pharma APIs Grid */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {/* IndiaMART API */}
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
@@ -440,25 +578,6 @@ export default function OnboardCompanyPage() {
                   <p className="text-[10px] text-slate-500">Connects live Marg ERP / Busy inventory & distributor balances.</p>
                 </div>
 
-                {/* Meta API */}
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-white">
-                      Meta API Token (FB, IG & WhatsApp)
-                    </label>
-                    <span className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
-                      Meta Ads
-                    </span>
-                  </div>
-                  <input
-                    type="password"
-                    name="metaApiKey"
-                    placeholder="EAAG... (Page / System Token)"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
-                  />
-                  <p className="text-[10px] text-slate-500">Connects Facebook Lead Ads, Instagram & WhatsApp Business API.</p>
-                </div>
-
                 {/* Pharma Hopper API */}
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
                   <div className="flex items-center justify-between">
@@ -479,7 +598,7 @@ export default function OnboardCompanyPage() {
                 </div>
 
                 {/* Pharma Vent API */}
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2 sm:col-span-2">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-semibold text-white">
                       Pharma Vent API Key

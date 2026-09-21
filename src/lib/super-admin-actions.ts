@@ -57,7 +57,17 @@ export async function onboardCompany(formData: FormData) {
   const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || null;
   const indiaMartApiKey = (formData.get("indiaMartApiKey") as string)?.trim() || null;
   const billingSoftwareApiKey = (formData.get("billingSoftwareApiKey") as string)?.trim() || null;
-  const metaApiKey = (formData.get("metaApiKey") as string)?.trim() || null;
+  
+  // Meta Suite (Facebook, Instagram & WhatsApp Cloud API)
+  const metaAppId = (formData.get("metaAppId") as string)?.trim() || null;
+  const metaAppSecret = (formData.get("metaAppSecret") as string)?.trim() || null;
+  const metaAccessToken = (formData.get("metaAccessToken") as string)?.trim() || null;
+  const metaPageId = (formData.get("metaPageId") as string)?.trim() || null;
+  const metaAdAccountId = (formData.get("metaAdAccountId") as string)?.trim() || null;
+  const metaWabaId = (formData.get("metaWabaId") as string)?.trim() || null;
+  const metaPhoneNumberId = (formData.get("metaPhoneNumberId") as string)?.trim() || null;
+  const metaApiKey = (formData.get("metaApiKey") as string)?.trim() || metaAccessToken || null;
+
   const pharmaHopperApiKey = (formData.get("pharmaHopperApiKey") as string)?.trim() || null;
   const pharmaVentApiKey = (formData.get("pharmaVentApiKey") as string)?.trim() || null;
 
@@ -86,6 +96,13 @@ export async function onboardCompany(formData: FormData) {
         driveFolderUrl,
         indiaMartApiKey,
         billingSoftwareApiKey,
+        metaAppId,
+        metaAppSecret,
+        metaAccessToken,
+        metaPageId,
+        metaAdAccountId,
+        metaWabaId,
+        metaPhoneNumberId,
         metaApiKey,
         pharmaHopperApiKey,
         pharmaVentApiKey,

@@ -199,6 +199,10 @@ export default async function SuperAdminPage() {
                       {(company.settings?.[0]?.driveFolderUrl ||
                         company.settings?.[0]?.indiaMartApiKey ||
                         company.settings?.[0]?.billingSoftwareApiKey ||
+                        company.settings?.[0]?.metaAppId ||
+                        company.settings?.[0]?.metaAccessToken ||
+                        company.settings?.[0]?.metaPageId ||
+                        company.settings?.[0]?.metaWabaId ||
                         company.settings?.[0]?.metaApiKey ||
                         company.settings?.[0]?.pharmaHopperApiKey ||
                         company.settings?.[0]?.pharmaVentApiKey) && (
@@ -218,9 +222,18 @@ export default async function SuperAdminPage() {
                               Marg/ERP
                             </span>
                           )}
-                          {company.settings[0]?.metaApiKey && (
+                          {(company.settings[0]?.metaAppId ||
+                            company.settings[0]?.metaAccessToken ||
+                            company.settings[0]?.metaPageId ||
+                            company.settings[0]?.metaApiKey) && (
                             <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400 border border-indigo-500/25">
-                              Meta
+                              Meta Ads
+                            </span>
+                          )}
+                          {(company.settings[0]?.metaWabaId ||
+                            company.settings[0]?.metaPhoneNumberId) && (
+                            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/25">
+                              WhatsApp API
                             </span>
                           )}
                           {company.settings[0]?.pharmaHopperApiKey && (
@@ -286,6 +299,10 @@ export default async function SuperAdminPage() {
                     {(company.settings?.[0]?.driveFolderUrl ||
                       company.settings?.[0]?.indiaMartApiKey ||
                       company.settings?.[0]?.billingSoftwareApiKey ||
+                      company.settings?.[0]?.metaAppId ||
+                      company.settings?.[0]?.metaAccessToken ||
+                      company.settings?.[0]?.metaPageId ||
+                      company.settings?.[0]?.metaWabaId ||
                       company.settings?.[0]?.metaApiKey ||
                       company.settings?.[0]?.pharmaHopperApiKey ||
                       company.settings?.[0]?.pharmaVentApiKey) && (
@@ -305,9 +322,18 @@ export default async function SuperAdminPage() {
                             Marg/ERP
                           </span>
                         )}
-                        {company.settings[0]?.metaApiKey && (
+                        {(company.settings[0]?.metaAppId ||
+                          company.settings[0]?.metaAccessToken ||
+                          company.settings[0]?.metaPageId ||
+                          company.settings[0]?.metaApiKey) && (
                           <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400 border border-indigo-500/25">
-                            Meta
+                            Meta Ads
+                          </span>
+                        )}
+                        {(company.settings[0]?.metaWabaId ||
+                          company.settings[0]?.metaPhoneNumberId) && (
+                          <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/25">
+                            WhatsApp API
                           </span>
                         )}
                         {company.settings[0]?.pharmaHopperApiKey && (

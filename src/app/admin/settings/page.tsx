@@ -304,6 +304,189 @@ export default async function AdminSettingsPage() {
               />
             </div>
           </div>
+
+          {/* Section C: Cloud Storage & Integration APIs */}
+          <div className="rounded-3xl p-6 neo-panel bg-white border border-line border-t-2 border-t-blue-500 space-y-6">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <h3 className="font-bold text-ink text-sm flex items-center gap-2">
+                  <span>☁️</span> Cloud Storage &amp; Third-Party Integrations
+                </h3>
+                <p className="text-[11px] text-ink-faint">
+                  Configure Google Drive for call sync and Meta/IndiaMART API credentials for automatic lead ingestion
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-0.5 text-[10px] font-extrabold">
+                Live Integrations
+              </span>
+            </div>
+
+            {/* Google Drive Folder */}
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-ink flex items-center gap-1.5">
+                  <span>📁</span> Master Google Drive Folder Link (Call Recording Sync)
+                </label>
+                <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold">
+                  Connected
+                </span>
+              </div>
+              <p className="text-[11px] text-ink-muted">
+                Central Drive folder where phone recordings land. CRM parses calls as: <code className="text-primary font-mono text-[10px]">Employee Name / YYYY-MM-DD / Recording.mp3</code>
+              </p>
+              <input
+                type="url"
+                name="driveFolderUrl"
+                defaultValue={settings.driveFolderUrl || "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3"}
+                placeholder="https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3"
+                className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+              />
+            </div>
+
+            {/* Meta Suite (Facebook, Instagram & WhatsApp Business API) */}
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
+                <div>
+                  <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                    <span>🌐</span> Meta Suite (Facebook Lead Ads, Instagram &amp; WhatsApp Cloud API)
+                  </h4>
+                  <p className="text-[11px] text-ink-muted mt-0.5">
+                    Meta requires separate credentials for App, Lead Ads ingestion, and WhatsApp messaging.
+                  </p>
+                </div>
+                <span className="rounded-full bg-indigo-100 text-indigo-800 px-2 py-0.5 text-[10px] font-bold">
+                  7 Exact Meta Columns
+                </span>
+              </div>
+
+              {/* Sub-grid 1: Meta App & Token */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Meta App ID
+                  </label>
+                  <input
+                    type="text"
+                    name="metaAppId"
+                    defaultValue={settings.metaAppId || ""}
+                    placeholder="e.g. 184729104928172"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">From Meta App Dashboard</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Meta App Secret
+                  </label>
+                  <input
+                    type="password"
+                    name="metaAppSecret"
+                    defaultValue={settings.metaAppSecret || ""}
+                    placeholder="••••••••••••••••"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">App Settings &gt; Basic</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    System User Access Token
+                  </label>
+                  <input
+                    type="password"
+                    name="metaAccessToken"
+                    defaultValue={settings.metaAccessToken || settings.metaApiKey || ""}
+                    placeholder="EAAG... (Never Expiring)"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">Meta Business Suite System User</p>
+                </div>
+              </div>
+
+              {/* Sub-grid 2: Facebook Page & WhatsApp */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-indigo-100">
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Facebook Page ID
+                  </label>
+                  <input
+                    type="text"
+                    name="metaPageId"
+                    defaultValue={settings.metaPageId || ""}
+                    placeholder="e.g. 109283746501928"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">Lead Ads source page</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Meta Ad Account ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="metaAdAccountId"
+                    defaultValue={settings.metaAdAccountId || ""}
+                    placeholder="act_1234567890"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">From Ads Manager</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    WhatsApp WABA ID
+                  </label>
+                  <input
+                    type="text"
+                    name="metaWabaId"
+                    defaultValue={settings.metaWabaId || ""}
+                    placeholder="e.g. 209384756102938"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">WhatsApp Business Account ID</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    WhatsApp Phone Number ID
+                  </label>
+                  <input
+                    type="text"
+                    name="metaPhoneNumberId"
+                    defaultValue={settings.metaPhoneNumberId || ""}
+                    placeholder="e.g. 105928374619283"
+                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                  />
+                  <p className="text-[10px] text-ink-faint mt-1">API Setup Phone Number ID</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Other APIs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-line bg-slate-50 p-3 space-y-1.5">
+                <label className="block text-xs font-bold text-ink">
+                  IndiaMART CRM Key
+                </label>
+                <input
+                  type="text"
+                  name="indiaMartApiKey"
+                  defaultValue={settings.indiaMartApiKey || ""}
+                  placeholder="mKey_9x8a7b6c5d4e3f..."
+                  className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                />
+              </div>
+              <div className="rounded-2xl border border-line bg-slate-50 p-3 space-y-1.5">
+                <label className="block text-xs font-bold text-ink">
+                  Marg ERP / Billing Software Key
+                </label>
+                <input
+                  type="text"
+                  name="billingSoftwareApiKey"
+                  defaultValue={settings.billingSoftwareApiKey || ""}
+                  placeholder="Marg ERP 9+ Token"
+                  className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Action Button */}

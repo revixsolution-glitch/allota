@@ -5,7 +5,7 @@ import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const DRIVE_FOLDER_ID = "16Yy_mmHyZMAJMqjNKrql5ZphYoaBuhSd";
+const DEFAULT_DRIVE_FOLDER_ID = "1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3";
 
 // Pre-verified verbatim transcriptions and Hinglish summaries with AI Lead Classification
 const VERIFIED_TRANSCRIPTS: Record<
@@ -325,40 +325,105 @@ async function handleSync(req: NextRequest) {
       console.warn("Cleanup existing calls error:", cleanErr);
     }
 
-    // 2. Fetch Google Drive Folder files dynamically
-    const folderRes = await fetch(
-      `https://drive.google.com/embeddedfolderview?id=${DRIVE_FOLDER_ID}`,
-      { cache: "no-store" }
-    );
-    const html = await folderRes.text();
-    const entryRegex =
-      /id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
-    let match;
-    const driveFiles: { id: string; name: string }[] = [];
-    while ((match = entryRegex.exec(html)) !== null) {
-      const fileName = match[2].trim();
-      if (
-        fileName.endsWith(".m4a") ||
-        fileName.endsWith(".mp3") ||
-        fileName.endsWith(".wav") ||
-        fileName.endsWith(".aac")
-      ) {
-        driveFiles.push({ id: match[1], name: fileName });
+    // 2. Resolve Active Google Drive Folder ID from Company Settings or Default
+    const companySettings = await prisma.companySettings.findFirst({
+      where: { driveFolderUrl: { not: null } },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    let activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
+    if (companySettings?.driveFolderUrl) {
+      const match =
+        companySettings.driveFolderUrl.match(/folders\/([a-zA-Z0-9_-]+)/) ||
+        companySettings.driveFolderUrl.match(/id=([a-zA-Z0-9_-]+)/);
+      if (match) {
+        activeFolderId = match[1];
       }
     }
 
-    // 3. Find or create representative Naresh
-    let naresh = await prisma.employee.findFirst({
-      where: { name: { contains: "Naresh", mode: "insensitive" } },
-      include: { company: true },
-    });
+    // Helper to fetch files from a Drive folder URL/ID
+    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string; folderPath?: string }[]> {
+      const results: { id: string; name: string; folderPath?: string }[] = [];
+      try {
+        const folderRes = await fetch(
+          `https://drive.google.com/embeddedfolderview?id=${folderId}`,
+          { cache: "no-store" }
+        );
+        const html = await folderRes.text();
+        const entryRegex =
+          /id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
+        let match;
+        const subfolderIds: { id: string; name: string }[] = [];
 
-    if (!naresh) {
+        while ((match = entryRegex.exec(html)) !== null) {
+          const entryId = match[1];
+          const entryName = match[2].trim();
+          const isAudio =
+            entryName.endsWith(".m4a") ||
+            entryName.endsWith(".mp3") ||
+            entryName.endsWith(".wav") ||
+            entryName.endsWith(".aac") ||
+            entryName.endsWith(".ogg");
+
+          if (isAudio) {
+            results.push({ id: entryId, name: entryName });
+          } else if (!entryName.includes(".")) {
+            // Likely a subfolder (e.g. Employee Name or Date)
+            subfolderIds.push({ id: entryId, name: entryName });
+          }
+        }
+
+        // Traverse up to 3 subfolders to support "Employee / Date" folder hierarchy
+        for (const sub of subfolderIds.slice(0, 4)) {
+          try {
+            const subRes = await fetch(
+              `https://drive.google.com/embeddedfolderview?id=${sub.id}`,
+              { cache: "no-store" }
+            );
+            const subHtml = await subRes.text();
+            let subMatch;
+            while ((subMatch = entryRegex.exec(subHtml)) !== null) {
+              const subName = subMatch[2].trim();
+              if (
+                subName.endsWith(".m4a") ||
+                subName.endsWith(".mp3") ||
+                subName.endsWith(".wav") ||
+                subName.endsWith(".aac")
+              ) {
+                results.push({ id: subMatch[1], name: subName, folderPath: sub.name });
+              }
+            }
+          } catch (subErr) {
+            console.warn(`Error scanning subfolder ${sub.name}:`, subErr);
+          }
+        }
+      } catch (fErr) {
+        console.warn(`Error scanning Google Drive folder ${folderId}:`, fErr);
+      }
+      return results;
+    }
+
+    const driveFiles = await fetchDriveFolderFiles(activeFolderId);
+
+    // 3. Find representatives for mapping (Savi Kesorx or Naresh)
+    const [saviRep, nareshRep] = await Promise.all([
+      prisma.employee.findFirst({
+        where: { name: { contains: "Savi", mode: "insensitive" } },
+        include: { company: true },
+      }),
+      prisma.employee.findFirst({
+        where: { name: { contains: "Naresh", mode: "insensitive" } },
+        include: { company: true },
+      }),
+    ]);
+
+    let defaultEmployee = saviRep || nareshRep;
+    if (!defaultEmployee) {
       const company = (await prisma.company.findFirst()) || { id: "default_company" };
-      naresh = await prisma.employee.create({
+      defaultEmployee = await prisma.employee.create({
         data: {
-          name: "Naresh",
-          phoneNumber: "+91 98000 00000",
+          name: "Savi Kesorx",
+          phoneNumber: "+91 98722 44331",
           companyId: company.id,
           userId: "dev_user_" + Date.now(),
         },
@@ -390,6 +455,15 @@ async function handleSync(req: NextRequest) {
     const processedIds: string[] = [];
 
     for (const f of batch) {
+      // Check if folderPath or fileName matches an employee
+      let rep = defaultEmployee;
+      const lowerName = `${f.folderPath || ""} ${f.name}`.toLowerCase();
+      if (lowerName.includes("savi") || lowerName.includes("kesorx")) {
+        rep = saviRep || defaultEmployee;
+      } else if (lowerName.includes("naresh")) {
+        rep = nareshRep || defaultEmployee;
+      }
+
       const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
       const nameMatch =
         f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
@@ -421,7 +495,7 @@ async function handleSync(req: NextRequest) {
               analysis = await analyzeAudioRecordingWithGemini({
                 audioBase64: buf.toString("base64"),
                 mimeType: "audio/m4a",
-                employeeName: "Naresh",
+                employeeName: rep.name,
                 customerName: contactName,
               });
             }
@@ -440,10 +514,10 @@ async function handleSync(req: NextRequest) {
           data: {
             name: `${contactName}`,
             phoneNumber: "+91 98765 43210",
-            companyId: naresh.companyId,
+            companyId: rep.companyId,
             source: "MANUAL",
             status: "CONTACTED",
-            assignedEmployeeId: naresh.id,
+            assignedEmployeeId: rep.id,
             city: analysis?.territory || analysis?.monopolyTerritory || "Uttar Pradesh",
             state: "India",
           },
@@ -472,14 +546,14 @@ async function handleSync(req: NextRequest) {
             behaviorTags,
             durationSec,
             occurredAt: callDate,
-            employeeId: naresh.id,
+            employeeId: rep.id,
           },
         });
         processedIds.push(updated.id);
       } else {
         const created = await prisma.call.create({
           data: {
-            employeeId: naresh.id,
+            employeeId: rep.id,
             leadId: lead.id,
             direction: "OUTBOUND",
             missed: false,
@@ -554,7 +628,9 @@ async function handleSync(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Processed Google Drive recordings successfully!`,
+      message: `Processed Google Drive recordings successfully from folder ${activeFolderId}!`,
+      connectedDriveFolder: activeFolderId,
+      driveFolderUrl: companySettings?.driveFolderUrl || `https://drive.google.com/drive/folders/${activeFolderId}`,
       totalDriveFiles: driveFiles.length,
       remainingToSync: Math.max(0, filesToSync.length - batch.length),
       processedIds,

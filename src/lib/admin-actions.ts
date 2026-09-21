@@ -775,6 +775,37 @@ export async function updateCompanyPlanSettings(formData: FormData) {
   const enableClientsManagement = formData.get("enableClientsManagement") === "on";
   const enableTerritories = formData.get("enableTerritories") === "on";
 
+  // Cloud Storage & Integration APIs
+  const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || undefined;
+  const indiaMartApiKey = (formData.get("indiaMartApiKey") as string)?.trim() || undefined;
+  const billingSoftwareApiKey = (formData.get("billingSoftwareApiKey") as string)?.trim() || undefined;
+  const metaAppId = (formData.get("metaAppId") as string)?.trim() || undefined;
+  const metaAppSecret = (formData.get("metaAppSecret") as string)?.trim() || undefined;
+  const metaAccessToken = (formData.get("metaAccessToken") as string)?.trim() || undefined;
+  const metaPageId = (formData.get("metaPageId") as string)?.trim() || undefined;
+  const metaAdAccountId = (formData.get("metaAdAccountId") as string)?.trim() || undefined;
+  const metaWabaId = (formData.get("metaWabaId") as string)?.trim() || undefined;
+  const metaPhoneNumberId = (formData.get("metaPhoneNumberId") as string)?.trim() || undefined;
+  const metaApiKey = (formData.get("metaApiKey") as string)?.trim() || metaAccessToken || undefined;
+  const pharmaHopperApiKey = (formData.get("pharmaHopperApiKey") as string)?.trim() || undefined;
+  const pharmaVentApiKey = (formData.get("pharmaVentApiKey") as string)?.trim() || undefined;
+
+  const apiPayload = {
+    ...(driveFolderUrl !== undefined ? { driveFolderUrl } : {}),
+    ...(indiaMartApiKey !== undefined ? { indiaMartApiKey } : {}),
+    ...(billingSoftwareApiKey !== undefined ? { billingSoftwareApiKey } : {}),
+    ...(metaAppId !== undefined ? { metaAppId } : {}),
+    ...(metaAppSecret !== undefined ? { metaAppSecret } : {}),
+    ...(metaAccessToken !== undefined ? { metaAccessToken } : {}),
+    ...(metaPageId !== undefined ? { metaPageId } : {}),
+    ...(metaAdAccountId !== undefined ? { metaAdAccountId } : {}),
+    ...(metaWabaId !== undefined ? { metaWabaId } : {}),
+    ...(metaPhoneNumberId !== undefined ? { metaPhoneNumberId } : {}),
+    ...(metaApiKey !== undefined ? { metaApiKey } : {}),
+    ...(pharmaHopperApiKey !== undefined ? { pharmaHopperApiKey } : {}),
+    ...(pharmaVentApiKey !== undefined ? { pharmaVentApiKey } : {}),
+  };
+
   if (activeCompanyId) {
     await prisma.company.update({
       where: { id: activeCompanyId },
@@ -796,6 +827,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
           enableCreditManagement,
           enableClientsManagement,
           enableTerritories,
+          ...apiPayload,
         },
       });
     } else {
@@ -809,6 +841,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
           enableCreditManagement,
           enableClientsManagement,
           enableTerritories,
+          ...apiPayload,
         },
       });
     }
@@ -823,6 +856,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
         enableCreditManagement,
         enableClientsManagement,
         enableTerritories,
+        ...apiPayload,
       },
       create: {
         id: "default",
@@ -834,6 +868,7 @@ export async function updateCompanyPlanSettings(formData: FormData) {
         enableCreditManagement,
         enableClientsManagement,
         enableTerritories,
+        ...apiPayload,
       },
     });
   }
