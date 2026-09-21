@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
+import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -91,15 +92,49 @@ export async function POST(req: NextRequest) {
             `${fieldData["first_name"] || ""} ${fieldData["last_name"] || ""}`.trim() ||
             "Meta Ad Prospect";
 
-          const phoneNumber =
+          const rawPhoneNumber =
             fieldData["phone_number"] ||
             fieldData["phone"] ||
             fieldData["contact_number"] ||
             null;
 
+          const parsedPhone = extractPhoneNumber(rawPhoneNumber);
+          const phoneKey = normalizePhoneKey(rawPhoneNumber);
+          const formattedPhone = parsedPhone ? parsedPhone.formatted : rawPhoneNumber;
+
           const city = fieldData["city"] || fieldData["location"] || null;
           const state = fieldData["state"] || null;
           const email = fieldData["email"] || null;
+
+          // Check if prospect already exists in company CRM (Zero-Duplicate Guarantee)
+          let existingLead: { id: string; inquiryDetails: string | null } | null = null;
+          if (phoneKey) {
+            const companyLeads = await prisma.lead.findMany({
+              where: {
+                phoneNumber: { not: null },
+                ...(settings?.companyId ? { companyId: settings.companyId } : {}),
+              },
+              select: { id: true, phoneNumber: true, inquiryDetails: true },
+            });
+
+            existingLead = companyLeads.find(
+              (l) => normalizePhoneKey(l.phoneNumber) === phoneKey
+            ) || null;
+          }
+
+          if (existingLead) {
+            // Do NOT create duplicate lead! Update the existing lead with latest Meta interaction
+            const inquiryUpdate = `${existingLead.inquiryDetails || ""}\n[Repeat Meta Ad Submission ${new Date().toLocaleDateString()}] Form: ${formId || "Direct"}. Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`.trim();
+            await prisma.lead.update({
+              where: { id: existingLead.id },
+              data: {
+                inquiryDetails: inquiryUpdate,
+                rawPayload: leadData,
+              },
+            });
+            console.log(`[Meta Webhook] Repeat prospect ${fullName} (${formattedPhone}) updated on existing Lead ${existingLead.id} - Zero-Duplicate Guarantee upheld.`);
+            continue;
+          }
 
           // 3. Find default representative to allot the lead to
           const defaultRep = await prisma.employee.findFirst({
@@ -107,25 +142,25 @@ export async function POST(req: NextRequest) {
             orderBy: { createdAt: "desc" },
           });
 
-          // 4. Ingest lead into CRM Lead Center
+          // 4. Ingest new verified lead into CRM Lead Center
           await prisma.lead.create({
             data: {
               companyId: settings?.companyId || null,
               name: fullName,
-              phoneNumber,
+              phoneNumber: formattedPhone,
               city,
               state,
               source: LeadSource.META,
               sourceTag: `Meta Lead Ad (Form: ${formId || "Direct"})`,
               division: "PCD_FRANCHISE",
-              status: LeadStatus.NEW,
+              status: defaultRep ? LeadStatus.ASSIGNED : LeadStatus.NEW,
               assignedEmployeeId: defaultRep?.id || null,
               inquiryDetails: `Facebook / Instagram PCD Inquiry. Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`,
               rawPayload: leadData,
             },
           });
 
-          console.log(`[Meta Webhook] Successfully ingested lead: ${fullName} (${phoneNumber})`);
+          console.log(`[Meta Webhook] Successfully ingested new lead: ${fullName} (${formattedPhone})`);
         }
       }
     }

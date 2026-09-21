@@ -22,6 +22,8 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
+    allDuplicates?: boolean;
+    message?: string;
     batchTag?: string;
     insertedCount?: number;
     duplicateCount?: number;
@@ -135,14 +137,17 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     <div className="rounded-3xl p-6 neo-panel bg-white border border-line shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <h2 className="text-base font-extrabold text-ink">
               ⚡ High-Speed Bulk Excel / CSV Ingestor
             </h2>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+              🛡️ Zero-Duplicate Guarantee
+            </span>
           </div>
           <p className="text-xs text-ink-faint mt-0.5">
-            Ingest 5,000+ commercial leads at zero ERP API cost. Automatically dedupes mobile numbers, tags batches, and allocates to reps.
+            Ingest commercial leads at zero Marg API cost. Strictly filters existing CRM numbers & duplicate rows so employees never share duplicate data.
           </p>
         </div>
 
@@ -315,37 +320,71 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
           <div
             className={`rounded-2xl p-4 border transition-all ${
               result.success
-                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                ? result.allDuplicates
+                  ? "bg-blue-50 border-blue-200 text-blue-900"
+                  : "bg-emerald-50 border-emerald-200 text-emerald-900"
                 : "bg-rose-50 border-rose-200 text-rose-900"
             }`}
           >
             {result.success ? (
-              <div>
-                <div className="flex items-center gap-2 font-bold text-sm text-emerald-800">
-                  <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Batch Ingested Successfully: {result.batchTag}</span>
+              result.allDuplicates ? (
+                <div>
+                  <div className="flex items-center gap-2 font-bold text-sm text-blue-900">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs">
+                      🛡️
+                    </span>
+                    <span>Zero-Duplicate Protection Active: All Contacts Already in CRM</span>
+                  </div>
+                  <p className="mt-1 text-xs text-blue-800 leading-relaxed font-medium">
+                    {result.message || `All ${result.duplicateCount} contacts in this spreadsheet already exist in your CRM database and were safely skipped. Zero duplicate leads were created, ensuring no duplicate data is shared with employees.`}
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="rounded-xl bg-white/90 p-2.5 border border-blue-200 shadow-2xs">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">New Leads Created</p>
+                      <p className="text-base font-extrabold text-blue-700">0</p>
+                    </div>
+                    <div className="rounded-xl bg-white/90 p-2.5 border border-blue-200 shadow-2xs">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Duplicates Filtered</p>
+                      <p className="text-base font-extrabold text-amber-600">{result.duplicateCount} (Skipped)</p>
+                    </div>
+                    <div className="rounded-xl bg-white/90 p-2.5 border border-blue-200 shadow-2xs">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Invalid Rows</p>
+                      <p className="text-base font-extrabold text-slate-500">{result.invalidCount || 0}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/90 p-2.5 border border-blue-200 shadow-2xs">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Isolation Guarantee</p>
+                      <p className="text-xs font-bold text-emerald-700 truncate mt-1">✓ 100% Rep Protected</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
-                    <p className="text-ink-faint text-[10px] font-bold uppercase">New Leads Ingested</p>
-                    <p className="text-base font-extrabold text-emerald-700">{result.insertedCount}</p>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 font-bold text-sm text-emerald-800">
+                    <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Batch Ingested Successfully: {result.batchTag}</span>
                   </div>
-                  <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
-                    <p className="text-ink-faint text-[10px] font-bold uppercase">Duplicate Phones Skipped</p>
-                    <p className="text-base font-extrabold text-amber-600">{result.duplicateCount}</p>
-                  </div>
-                  <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
-                    <p className="text-ink-faint text-[10px] font-bold uppercase">Invalid Rows Skipped</p>
-                    <p className="text-base font-extrabold text-rose-600">{result.invalidCount}</p>
-                  </div>
-                  <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
-                    <p className="text-ink-faint text-[10px] font-bold uppercase">Assignment Status</p>
-                    <p className="text-xs font-bold text-ink truncate mt-1">{result.assignedTo}</p>
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">New Leads Ingested</p>
+                      <p className="text-base font-extrabold text-emerald-700">{result.insertedCount}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Duplicate Phones Skipped</p>
+                      <p className="text-base font-extrabold text-amber-600">{result.duplicateCount}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Invalid Rows Skipped</p>
+                      <p className="text-base font-extrabold text-rose-600">{result.invalidCount}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">
+                      <p className="text-ink-faint text-[10px] font-bold uppercase">Assignment Status</p>
+                      <p className="text-xs font-bold text-ink truncate mt-1">{result.assignedTo}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="flex items-start gap-2.5 text-xs">
                 <svg className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

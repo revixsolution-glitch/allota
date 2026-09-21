@@ -13,6 +13,7 @@ import {
 } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 
 const requiredText = z.string().trim().min(1);
 const optionalText = z
@@ -144,13 +145,65 @@ export async function createLead(formData: FormData) {
     notes: formData.get("notes") ?? "",
   });
 
+  const parsedPhone = extractPhoneNumber(input.phoneNumber);
+  const phoneKey = normalizePhoneKey(input.phoneNumber);
+
+  if (phoneKey) {
+    // 1. Check existing leads in this company for duplicate phone
+    const existingLeads = await prisma.lead.findMany({
+      where: {
+        phoneNumber: { not: null },
+        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      },
+      select: {
+        id: true,
+        phoneNumber: true,
+        assignedEmployee: { select: { name: true } },
+      },
+    });
+
+    const duplicateLead = existingLeads.find(
+      (l) => normalizePhoneKey(l.phoneNumber) === phoneKey
+    );
+
+    if (duplicateLead) {
+      const owner = duplicateLead.assignedEmployee?.name
+        ? `Assigned to ${duplicateLead.assignedEmployee.name}`
+        : "Unassigned Pool";
+      throw new Error(
+        `Zero-Duplicate Guarantee: Phone number ${input.phoneNumber} already exists in CRM (${owner}). To prevent duplicate lead data sharing among employees, creation was safely blocked.`
+      );
+    }
+
+    // 2. Check existing clients in this company
+    const existingClients = await prisma.client.findMany({
+      where: {
+        phoneNumber: { not: null },
+        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      },
+      select: { phoneNumber: true, name: true },
+    });
+
+    const duplicateClient = existingClients.find(
+      (c) => normalizePhoneKey(c.phoneNumber) === phoneKey
+    );
+
+    if (duplicateClient) {
+      throw new Error(
+        `Zero-Duplicate Guarantee: Phone number ${input.phoneNumber} is already an active converted client (${duplicateClient.name}).`
+      );
+    }
+  }
+
+  const finalPhone = parsedPhone ? parsedPhone.formatted : input.phoneNumber;
+
   await prisma.lead.create({
     data: {
       source: input.source,
       division: input.division || "PCD_FRANCHISE",
       inquiryDetails: input.notes,
       name: input.name,
-      phoneNumber: input.phoneNumber,
+      phoneNumber: finalPhone,
       assignedEmployeeId: input.assignedEmployeeId,
       clientId: input.clientId,
       status: input.assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
@@ -200,39 +253,107 @@ export async function allotLeadsBatch(formData: FormData) {
     }
   }
 
-  const unassignedLeads = await prisma.lead.findMany({
+  // Fetch candidate unassigned leads with a buffer to handle any filtered duplicates
+  const candidateUnassigned = await prisma.lead.findMany({
     where,
-    take: input.quantity,
+    take: Math.max(input.quantity * 3, 200),
     orderBy: { createdAt: "desc" },
-    select: { id: true, status: true },
+    select: { id: true, phoneNumber: true, status: true },
   });
 
-  if (unassignedLeads.length > 0) {
-    const now = new Date();
-    const leadIds = unassignedLeads.map((l) => l.id);
+  if (candidateUnassigned.length === 0) {
+    return;
+  }
 
-    await prisma.$transaction([
+  // Fetch all phone numbers already assigned to reps or converted to clients in this company
+  const [assignedLeads, existingClients] = await Promise.all([
+    prisma.lead.findMany({
+      where: {
+        assignedEmployeeId: { not: null },
+        phoneNumber: { not: null },
+        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      },
+      select: { phoneNumber: true },
+    }),
+    prisma.client.findMany({
+      where: {
+        phoneNumber: { not: null },
+        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      },
+      select: { phoneNumber: true },
+    }),
+  ]);
+
+  const assignedPhoneSet = new Set<string>();
+  for (const al of assignedLeads) {
+    const k = normalizePhoneKey(al.phoneNumber);
+    if (k) assignedPhoneSet.add(k);
+  }
+  for (const cl of existingClients) {
+    const k = normalizePhoneKey(cl.phoneNumber);
+    if (k) assignedPhoneSet.add(k);
+  }
+
+  const leadsToAllot: string[] = [];
+  const duplicateLeadIdsToPurge: string[] = [];
+  const seenBatchKeys = new Set<string>();
+
+  for (const lead of candidateUnassigned) {
+    if (leadsToAllot.length >= input.quantity) break;
+
+    const key = normalizePhoneKey(lead.phoneNumber);
+    if (key) {
+      if (assignedPhoneSet.has(key) || seenBatchKeys.has(key)) {
+        // This unassigned lead is already assigned to an employee or converted client.
+        // Purge it from unassigned pool so it is never shared with another rep!
+        duplicateLeadIdsToPurge.push(lead.id);
+        continue;
+      }
+      seenBatchKeys.add(key);
+      assignedPhoneSet.add(key);
+    }
+
+    leadsToAllot.push(lead.id);
+  }
+
+  const now = new Date();
+  const txs = [];
+
+  if (leadsToAllot.length > 0) {
+    txs.push(
       prisma.lead.updateMany({
-        where: { id: { in: leadIds } },
+        where: { id: { in: leadsToAllot } },
         data: {
           assignedEmployeeId: input.employeeId,
           status: LeadStatus.ASSIGNED,
           reassignedAt: now,
-          reassignmentReason: `Bulk Allotment of ${unassignedLeads.length} leads by Admin`,
+          reassignmentReason: `Bulk Allotment of ${leadsToAllot.length} verified zero-duplicate leads by Admin`,
         },
       }),
       prisma.leadReassignmentLog.createMany({
-        data: leadIds.map((leadId) => ({
+        data: leadsToAllot.map((leadId) => ({
           leadId,
           fromEmployeeId: null,
           toEmployeeId: input.employeeId,
-          reason: `Direct bulk allotment of ${unassignedLeads.length} leads from unassigned pool by Admin`,
+          reason: `Direct bulk allotment of ${leadsToAllot.length} unique leads from unassigned pool by Admin`,
           previousStatus: "NEW",
           newStatus: "ASSIGNED",
           reassignedAt: now,
         })),
-      }),
-    ]);
+      })
+    );
+  }
+
+  if (duplicateLeadIdsToPurge.length > 0) {
+    txs.push(
+      prisma.lead.deleteMany({
+        where: { id: { in: duplicateLeadIdsToPurge } },
+      })
+    );
+  }
+
+  if (txs.length > 0) {
+    await prisma.$transaction(txs);
   }
 
   revalidatePath("/admin");
