@@ -368,6 +368,9 @@ model CompanySettings {
   // Cloud Storage & Call Recording Sync
   driveFolderUrl          String?
 
+  // AI Voice Intelligence & Call Summarization
+  geminiApiKey            String? // Custom Google Gemini API Key
+
   // Third-Party Lead Ingestion & Integration APIs
   indiaMartApiKey         String?
   billingSoftwareApiKey   String?

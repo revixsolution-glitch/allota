@@ -513,6 +513,7 @@ async function handleSync(req: NextRequest) {
                 mimeType: "audio/m4a",
                 employeeName: rep.name,
                 customerName: contactName,
+                customApiKey: companySettings?.geminiApiKey || undefined,
               });
             }
           }

@@ -286,11 +286,15 @@ export async function POST(req: NextRequest) {
       try {
         const audioBase64 = audioBuffer.toString("base64");
         const customerName = lead?.name || client?.name || `Customer (${customerPhone})`;
+        const companySettings = employee.companyId
+          ? await prisma.companySettings.findFirst({ where: { companyId: employee.companyId } })
+          : null;
         analysis = await analyzeAudioRecordingWithGemini({
           audioBase64,
           mimeType,
           employeeName: employee.name,
           customerName,
+          customApiKey: companySettings?.geminiApiKey || undefined,
         });
       } catch (aiErr) {
         console.error("Gemini call analysis failed:", aiErr);

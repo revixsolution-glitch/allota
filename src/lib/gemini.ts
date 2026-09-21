@@ -27,15 +27,17 @@ export async function analyzeAudioRecordingWithGemini({
   mimeType = "audio/mp3",
   employeeName = "Sales Representative",
   customerName = "Prospective Chemist / Distributor",
+  customApiKey,
 }: {
   audioBase64: string;
   mimeType?: string;
   employeeName?: string;
   customerName?: string;
+  customApiKey?: string;
 }): Promise<GeminiCallAnalysis> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = customApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured in environment variables.");
+    throw new Error("Google Gemini API Key is not configured (neither for organization nor system).");
   }
 
   const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;

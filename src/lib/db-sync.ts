@@ -8,6 +8,7 @@ export async function ensureCompanySettingsColumns() {
   syncPromise = (async () => {
     const columns = [
       "driveFolderUrl",
+      "geminiApiKey",
       "indiaMartApiKey",
       "billingSoftwareApiKey",
       "metaAppId",

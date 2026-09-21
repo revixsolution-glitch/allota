@@ -55,6 +55,7 @@ export async function onboardCompany(formData: FormData) {
 
   // Cloud Storage & Third-Party APIs (Optional)
   const driveFolderUrl = (formData.get("driveFolderUrl") as string)?.trim() || null;
+  const geminiApiKey = (formData.get("geminiApiKey") as string)?.trim() || null;
   const indiaMartApiKey = (formData.get("indiaMartApiKey") as string)?.trim() || null;
   const billingSoftwareApiKey = (formData.get("billingSoftwareApiKey") as string)?.trim() || null;
   
@@ -94,6 +95,7 @@ export async function onboardCompany(formData: FormData) {
         enableReorders,
         enableCreditManagement: enableCredits,
         driveFolderUrl,
+        geminiApiKey,
         indiaMartApiKey,
         billingSoftwareApiKey,
         metaAppId,
