@@ -16,8 +16,23 @@ function LoginForm() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [botTrap, setBotTrap] = useState("");
+  const [tapCount, setTapCount] = useState(0);
+  const [showDemoLocal, setShowDemoLocal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const isDemoActive = showDemo || showDemoLocal;
+
+  function handleLogoClick() {
+    setTapCount((prev) => {
+      const next = prev + 1;
+      if (next >= 3) {
+        setShowDemoLocal((v) => !v);
+        return 0;
+      }
+      return next;
+    });
+  }
 
   async function performLogin(loginEmail: string, loginPass: string, bypassCaptcha = false) {
     setError(null);
@@ -78,7 +93,11 @@ function LoginForm() {
     <div className="w-full max-w-md rounded-3xl p-8 sm:p-9 bg-white border border-slate-200/80 shadow-2xl shadow-slate-900/5">
       {/* Brand Header */}
       <div className="text-center mb-8">
-        <div className="mx-auto mb-3.5 flex items-center justify-center">
+        <div
+          onClick={handleLogoClick}
+          className="mx-auto mb-3.5 flex items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
+          title="Allota AI"
+        >
           <Image
             src="/logo.png"
             alt="Allota AI"
@@ -99,14 +118,20 @@ function LoginForm() {
         </p>
       </div>
 
-      {/* Secret Demo Login (Only visible if ?demo=true in URL) */}
-      {showDemo && (
-        <div className="mb-6 space-y-2 rounded-2xl bg-purple-50/70 p-3.5 border border-purple-200/70">
+      {/* Quick Test Login (Visible via ?demo=true or triple-tapping the logo) */}
+      {isDemoActive && (
+        <div className="mb-6 space-y-2 rounded-2xl bg-purple-50/70 p-3.5 border border-purple-200/70 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
               🛠️ Quick Test Login
             </span>
-            <span className="text-[10px] text-purple-500 font-medium">Demo Mode</span>
+            <button
+              type="button"
+              onClick={() => setShowDemoLocal(false)}
+              className="text-[10px] text-purple-600 hover:text-purple-800 font-bold cursor-pointer"
+            >
+              ✕ Hide
+            </button>
           </div>
           <div className="grid grid-cols-3 gap-1.5 pt-1">
             <button
