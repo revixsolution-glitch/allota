@@ -17,13 +17,51 @@ export async function GET() {
       data: { driveFolderUrl: driveUrl },
     });
 
-    // 2. Ensure Company exists
-    let company = await prisma.company.findFirst({
-      where: { slug: "pharma-life" },
+    // 2. Ensure Kesrox Pharmaceuticals Company exists
+    const kesroxCompany = await prisma.company.upsert({
+      where: { slug: "kesrox-pharma" },
+      update: {
+        name: "Kesrox Pharmaceuticals",
+        contactEmail: "info@kesrox.com",
+        contactPhone: "+91 76965 52865",
+      },
+      create: {
+        name: "Kesrox Pharmaceuticals",
+        slug: "kesrox-pharma",
+        contactEmail: "info@kesrox.com",
+        contactPhone: "+91 76965 52865",
+        planTier: "CORE_LEAD_SUITE",
+      },
     });
-    if (!company) {
-      company = await prisma.company.findFirst();
-    }
+
+    await prisma.companySettings.upsert({
+      where: { id: "settings_kesrox" },
+      update: {
+        companyId: kesroxCompany.id,
+        companyName: "Kesrox Pharmaceuticals",
+        driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
+        metaAppId: "1422721583164519",
+        metaAppSecret: "00000000000000000000000000000000",
+        metaAccessToken: "EAAUN9S6ULGcBSvPeeOJjNSd4iKlqF0e8GApt0mfwFGB9Mxa4ZCfzxwLhQ1PimJ749DlgoyO7ZCmazrOd1Pb8a9yJ9zXUNpFmUUoB0W6jLWbXA5p1ptiSXpgnIAZC1DttOci5SpGcjAv0ZAh9YDA3wdLeD5kDu2fqUaGeCWFgZCxQKLBJFphvAV9DQnue0sZBpn0R1ojZBHoubLla0RyZCylqxgthWj1LEczlOxVMkyoSVSk9fIcZBkoVzEiNfLw5SJkxHvK7CtDig8ZAEosV3rLD0hTTs5fmtD5lfSTiwZD",
+        metaPageId: "112876304657266",
+        metaWabaId: "1460433551636446",
+        metaPhoneNumberId: "739027919285346",
+      },
+      create: {
+        id: "settings_kesrox",
+        companyId: kesroxCompany.id,
+        companyName: "Kesrox Pharmaceuticals",
+        driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing",
+        metaAppId: "1422721583164519",
+        metaAppSecret: "00000000000000000000000000000000",
+        metaAccessToken: "EAAUN9S6ULGcBSvPeeOJjNSd4iKlqF0e8GApt0mfwFGB9Mxa4ZCfzxwLhQ1PimJ749DlgoyO7ZCmazrOd1Pb8a9yJ9zXUNpFmUUoB0W6jLWbXA5p1ptiSXpgnIAZC1DttOci5SpGcjAv0ZAh9YDA3wdLeD5kDu2fqUaGeCWFgZCxQKLBJFphvAV9DQnue0sZBpn0R1ojZBHoubLla0RyZCylqxgthWj1LEczlOxVMkyoSVSk9fIcZBkoVzEiNfLw5SJkxHvK7CtDig8ZAEosV3rLD0hTTs5fmtD5lfSTiwZD",
+        metaPageId: "112876304657266",
+        metaWabaId: "1460433551636446",
+        metaPhoneNumberId: "739027919285346",
+      },
+    });
+
+    let company = kesroxCompany;
 
     // 3. Provision Test Employee: Savi Kesorx
     const email = "savi.kesorx@pharmacrm.test";
