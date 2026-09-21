@@ -4,88 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import * as XLSX from "xlsx";
 
+import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
+
 function cleanString(val: any): string {
   if (val === null || val === undefined) return "";
   return String(val).trim();
 }
 
 /**
- * Ultra-resilient phone number extractor for Indian and international business leads.
- * Handles:
- * - 10-digit Indian mobile numbers (e.g. 9876543210, 8912345678, 7012345678, 6212345678)
- * - Prefixes like +91, 91, 0, or 0091
- * - Multi-number cells (e.g. "9876543210 / 9812345678", "9876543210, 9416012345") -> extracts first valid mobile
- * - Formatted strings (e.g. "+91 98765-43210", "Dr. Rajesh (9876543210)")
- * - Raw integers, floats, and scientific notation (e.g. 9876543210, 9876543210.0)
- * - Fallback for any 10-digit sequence or 7-15 digits
- */
-function extractPhoneNumber(raw: any): { digits: string; formatted: string } | null {
-  if (raw === null || raw === undefined) return null;
-
-  let str = "";
-  if (typeof raw === "number") {
-    str = Number.isInteger(raw) ? raw.toString() : Math.round(raw).toString();
-  } else {
-    str = String(raw).trim();
-  }
-  if (!str) return null;
-
-  // 1. Priority: Find an Indian 10-digit mobile number starting with 6, 7, 8, or 9
-  const indianMobileRegex = /(?:(?:\+|0{0,2})91[\s.-]?)?0?([6-9]\d{9})\b/;
-  const match = str.match(indianMobileRegex);
-  if (match && match[1]) {
-    const ten = match[1];
-    return {
-      digits: ten,
-      formatted: `+91 ${ten.slice(0, 5)} ${ten.slice(5)}`,
-    };
-  }
-
-  // 2. Fallback: Any 10 consecutive digits
-  const anyTenRegex = /\b(\d{10})\b/;
-  const matchTen = str.match(anyTenRegex);
-  if (matchTen && matchTen[1]) {
-    const ten = matchTen[1];
-    return {
-      digits: ten,
-      formatted: `+91 ${ten.slice(0, 5)} ${ten.slice(5)}`,
-    };
-  }
-
-  // 3. Fallback: Strip non-digits and test length
-  const digits = str.replace(/\D/g, "");
-  let tenDigit = digits;
-  if (digits.length === 12 && digits.startsWith("91")) {
-    tenDigit = digits.slice(2);
-  } else if (digits.length === 11 && digits.startsWith("0")) {
-    tenDigit = digits.slice(1);
-  }
-
-  if (tenDigit.length === 10) {
-    return {
-      digits: tenDigit,
-      formatted: `+91 ${tenDigit.slice(0, 5)} ${tenDigit.slice(5)}`,
-    };
-  }
-
-  if (digits.length >= 7 && digits.length <= 15) {
-    return {
-      digits,
-      formatted: digits.startsWith("91") ? `+${digits}` : `+91 ${digits}`,
-    };
-  }
-
-  return null;
-}
-
-/**
  * Dynamically detects which row contains the table headers.
  * Bypasses title headers, blank top rows, and metadata cards.
+ * Avoids misclassifying rows with actual mobile numbers as headers.
  */
 function findHeaderRowIndex(rows: any[][]): { headerRowIndex: number; hasHeader: boolean } {
   const headerKeywords = [
     "name", "party", "chemist", "doctor", "dr", "customer", "client", "firm", "person", "agency", "shop", "store", "stockist", "distributor", "dealer",
-    "phone", "mobile", "mob", "contact", "whatsapp", "wapp", "wa", "cell", "tel", "number", "calling",
+    "phone", "mobile", "mob", "whatsapp", "wapp", "wa", "cell", "tel", "calling", "contact",
     "city", "district", "dist", "town", "station", "location", "place", "state", "address", "hq", "area", "headquarter",
     "inquiry", "enquiry", "remark", "note", "product", "requirement", "division", "category", "segment"
   ];
@@ -97,6 +31,11 @@ function findHeaderRowIndex(rows: any[][]): { headerRowIndex: number; hasHeader:
   for (let r = 0; r < limit; r++) {
     const row = rows[r];
     if (!Array.isArray(row)) continue;
+
+    // If any cell in this row is already a valid phone number, it is almost certainly a data row, not a header row
+    const hasPhoneData = row.some((cell) => extractPhoneNumber(cell) !== null);
+    if (hasPhoneData) continue;
+
     let matches = 0;
     for (const cell of row) {
       if (cell !== null && cell !== undefined) {
@@ -193,18 +132,18 @@ export async function POST(request: Request) {
       if (
         k.includes("phone") ||
         k.includes("mobile") ||
-        k.includes("mob") ||
-        k.includes("contact") ||
         k.includes("whatsapp") ||
         k.includes("wapp") ||
         k.includes("wa") ||
         k.includes("cell") ||
         k.includes("tel") ||
         k.includes("calling") ||
-        k === "no" ||
-        k === "number" ||
+        k === "mob" ||
         k === "mobno" ||
-        k === "phoneno"
+        k === "phoneno" ||
+        k === "contactno" ||
+        k === "contactnumber" ||
+        (k.includes("contact") && !k.includes("person") && !k.includes("name"))
       ) {
         colTypes[idx] = "phone";
       } else if (
@@ -212,6 +151,7 @@ export async function POST(request: Request) {
         k.includes("party") ||
         k.includes("chemist") ||
         k.includes("doctor") ||
+        k.includes("dr") ||
         k.includes("customer") ||
         k.includes("client") ||
         k.includes("firm") ||
@@ -269,22 +209,32 @@ export async function POST(request: Request) {
       }
     });
 
-    // Gather existing phone numbers from DB for deduplication
-    const existingLeads = await prisma.lead.findMany({
-      select: { phoneNumber: true },
-      where: {
-        phoneNumber: { not: null },
-        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
-      },
-    });
+    // Gather existing phone numbers from DB for deduplication (Both Leads and converted Clients)
+    const [existingLeads, existingClients] = await Promise.all([
+      prisma.lead.findMany({
+        select: { phoneNumber: true },
+        where: {
+          phoneNumber: { not: null },
+          ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        },
+      }),
+      prisma.client.findMany({
+        select: { phoneNumber: true },
+        where: {
+          phoneNumber: { not: null },
+          ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        },
+      }),
+    ]);
 
     const existingPhones = new Set<string>();
     for (const l of existingLeads) {
-      if (l.phoneNumber) {
-        const d = l.phoneNumber.replace(/\D/g, "");
-        if (d) existingPhones.add(d);
-        if (d.length === 12 && d.startsWith("91")) existingPhones.add(d.slice(2));
-      }
+      const key = normalizePhoneKey(l.phoneNumber);
+      if (key) existingPhones.add(key);
+    }
+    for (const c of existingClients) {
+      const key = normalizePhoneKey(c.phoneNumber);
+      if (key) existingPhones.add(key);
     }
 
     const leadsToInsert: Array<{
@@ -377,13 +327,14 @@ export async function POST(request: Request) {
         }
       }
 
-      if (existingPhones.has(parsedPhone.digits) || batchSeenPhones.has(parsedPhone.digits)) {
+      const phoneKey = normalizePhoneKey(parsedPhone.digits);
+      if (!phoneKey || existingPhones.has(phoneKey) || batchSeenPhones.has(phoneKey)) {
         duplicateCount++;
         continue;
       }
 
-      batchSeenPhones.add(parsedPhone.digits);
-      existingPhones.add(parsedPhone.digits);
+      batchSeenPhones.add(phoneKey);
+      existingPhones.add(phoneKey);
 
       const finalName = rawName || `Prospect ${parsedPhone.digits.slice(-4)}`;
       const noteDetails = rawInquiry || `Imported via Batch: ${batchTag}${rawCity ? ` (${rawCity}, ${rawState})` : ""}`;
@@ -416,6 +367,21 @@ export async function POST(request: Request) {
     }
 
     if (leadsToInsert.length === 0) {
+      if (duplicateCount > 0) {
+        return NextResponse.json({
+          success: true,
+          allDuplicates: true,
+          batchTag,
+          message: `All ${duplicateCount} contact(s) in this spreadsheet already exist in your CRM database and were safely skipped. Zero duplicate leads were created, ensuring no duplicate data is shared with employees.`,
+          totalRowsProcessed: dataRows.length,
+          insertedCount: 0,
+          duplicateCount,
+          invalidCount,
+          division: divisionInput,
+          assignedTo: targetEmployee ? targetEmployee.name : "Unassigned Allotment Pool",
+        });
+      }
+
       const headerDiagnostic = headerRow.length > 0 ? `Detected columns: [${headerRow.filter(Boolean).join(", ")}]` : "No recognizable header row found.";
       return NextResponse.json(
         {
