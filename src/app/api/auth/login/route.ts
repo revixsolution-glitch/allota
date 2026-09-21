@@ -24,11 +24,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Automated submission detected." }, { status: 403 });
   }
 
-  // Bot Prevention 2: Security puzzle verification
+  // Bot Prevention 2: Security check verification
   const isDemo = request.headers.get("x-demo-bypass") === "true";
   if (!isDemo && (!captchaToken || !captchaToken.startsWith("allota_sec_"))) {
     return Response.json(
-      { error: "Please complete the security puzzle to verify you are human." },
+      { error: "Please click the security checkbox to verify you are human." },
       { status: 400 }
     );
   }

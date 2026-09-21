@@ -3,7 +3,7 @@
 import { useState, Suspense, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
+import { CheckboxCaptcha } from "@/components/CheckboxCaptcha";
 
 function LoginForm() {
   const router = useRouter();
@@ -83,7 +83,7 @@ function LoginForm() {
       return;
     }
     if (!isVerified || !captchaToken) {
-      setError("Please solve the security puzzle to verify you are human.");
+      setError("Please click the security checkbox to verify you are human.");
       return;
     }
     await performLogin(email, password);
@@ -239,9 +239,9 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Bot & AI Prevention Slider Puzzle */}
+        {/* Bot & AI Prevention Click Box Captcha */}
         <div className="pt-1">
-          <PuzzleCaptcha
+          <CheckboxCaptcha
             isVerified={isVerified}
             onVerify={(token) => {
               setCaptchaToken(token);
