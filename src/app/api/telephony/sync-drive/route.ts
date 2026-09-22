@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
+import { getSession, getActiveCompanyId } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -120,6 +121,9 @@ export async function POST(req: NextRequest) {
 
 async function handleSync(req: NextRequest) {
   try {
+    const session = await getSession();
+    const activeCompanyId = getActiveCompanyId(session);
+
     // 1. Update existing legacy calls with pure Hinglish summaries and lead classification tags
     try {
       // Kanu
@@ -578,8 +582,19 @@ async function handleSync(req: NextRequest) {
       }
     }
 
-    // 5. Query latest calls to return immediately to the frontend
+    // 5. Query latest calls to return immediately to the frontend (scoped to active company)
+    const callsWhere = activeCompanyId
+      ? {
+          OR: [
+            { employee: { companyId: activeCompanyId } },
+            { lead: { companyId: activeCompanyId } },
+            { client: { companyId: activeCompanyId } },
+          ],
+        }
+      : {};
+
     const updatedCalls = await prisma.call.findMany({
+      where: callsWhere,
       include: {
         employee: true,
         client: { include: { territory: true } },
