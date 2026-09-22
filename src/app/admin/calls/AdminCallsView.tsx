@@ -111,7 +111,14 @@ export function AdminCallsView({
       if (res.ok) {
         const data = await res.json();
         if (data.calls && Array.isArray(data.calls) && data.calls.length > 0) {
-          setCallsList(data.calls);
+          setCallsList((prev) => {
+            // Merge: update existing by ID, append new ones
+            const prevMap = new Map(prev.map((c) => [c.id, c]));
+            data.calls.forEach((c: CallFeedItem) => prevMap.set(c.id, c));
+            return Array.from(prevMap.values()).sort(
+              (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+            );
+          });
         }
         if (data.remainingToSync > 0) {
           setTimeout(() => runDriveSync(true), 1200);
