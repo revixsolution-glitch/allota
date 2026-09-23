@@ -42,12 +42,12 @@ export function AssignLeadsModal({ children }: { children: React.ReactNode }) {
         onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
         onSubmit={() => setTimeout(() => setOpen(false), 300)}
       >
-        <div className="relative w-full max-w-6xl">
+        <div className="relative w-full min-w-0 max-w-6xl pt-11">
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close"
-            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink-muted shadow-md hover:text-ink cursor-pointer"
+            className="absolute right-0 top-0 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink-muted shadow-md hover:text-ink cursor-pointer"
           >
             ✕
           </button>

@@ -686,7 +686,7 @@ export default async function AdminLeadsPage({
                       Allocate batches of unassigned leads directly to any sales representative. Every assignment is logged for audit.
                     </p>
                   </div>
-                  <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 text-xs font-bold shrink-0">
+                  <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 text-xs font-bold self-start max-w-full sm:shrink-0">
                     {totalUnassigned} Unassigned Inquiries ({pcdUnassigned} PCD / {tpUnassigned} Third-Party)
                   </span>
                 </div>
