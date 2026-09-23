@@ -32,6 +32,7 @@ export default async function AdminLayout({
     { href: "/admin/leads-iq", label: "Leads IQ" },
     { href: "/admin/sources", label: "Sources & Excel" },
     { href: "/admin/leads-reassign", label: "Leads Reassign" },
+    { href: "/admin/dead-leads", label: "Dead Leads" },
     { href: "/admin/employees", label: "Employees" },
     { href: "/admin/calls", label: "AI Calls Summary" },
   ];

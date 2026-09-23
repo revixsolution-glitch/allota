@@ -158,6 +158,7 @@ model Lead {
   reassignedAt       DateTime?
   reassignmentReason String?
   followUpAt         DateTime?
+  deadAt             DateTime?
   reassignmentLogs   LeadReassignmentLog[]
   remarks            LeadRemark[]
   createdAt          DateTime   @default(now())

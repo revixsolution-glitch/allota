@@ -462,11 +462,13 @@ export async function updateLead(formData: FormData) {
     data: {
       status: input.status,
       assignedEmployeeId: input.assignedEmployeeId,
+      deadAt: input.status === LeadStatus.NOT_INTERESTED ? new Date() : null,
     },
   });
 
   revalidatePath("/admin");
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dead-leads");
   revalidatePath("/admin/employees");
 }
 
@@ -1312,13 +1314,17 @@ export async function updateLeadActiveStatus(formData: FormData) {
 
   await prisma.lead.update({
     where: { id: input.leadId },
-    data: { status: newStatus },
+    data: {
+      status: newStatus,
+      deadAt: input.isDead === "true" ? new Date() : null,
+    },
   });
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
   revalidatePath("/admin/leads");
   revalidatePath("/admin/leads-iq");
+  revalidatePath("/admin/dead-leads");
   revalidatePath("/admin/employees");
   if (lead.assignedEmployeeId) {
     revalidatePath(`/admin/employees/${lead.assignedEmployeeId}`);
@@ -1592,6 +1598,7 @@ export async function deleteLead(input: string | FormData) {
   revalidatePath("/admin/leads");
   revalidatePath("/admin/leads-reassign");
   revalidatePath("/admin/sources");
+  revalidatePath("/admin/dead-leads");
   return { success: true };
 }
 
