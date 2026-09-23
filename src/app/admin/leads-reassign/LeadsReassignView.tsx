@@ -38,6 +38,8 @@ function formatTime(iso: string | null): string {
   }
 }
 
+const LEADS_PER_PAGE = 10;
+
 export function LeadsReassignView({
   data,
   initialFromEmpId = "ALL",
@@ -114,6 +116,8 @@ export function LeadsReassignView({
   }, [sourceLeads]);
 
   // Filter leads based on source, status, channel, and search query
+  const [page, setPage] = useState(1);
+
   const filteredLeads = useMemo(() => {
     return sourceLeads.filter((lead) => {
       // Status filter
@@ -154,6 +158,18 @@ export function LeadsReassignView({
       return true;
     });
   }, [sourceLeads, statusFilter, sourceFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / LEADS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * LEADS_PER_PAGE,
+    currentPage * LEADS_PER_PAGE
+  );
+
+  // Back to page 1 whenever the filters change
+  useEffect(() => {
+    setPage(1);
+  }, [sourceEmpId, statusFilter, sourceFilter, searchQuery]);
 
   // When source or filter changes, default to empty or keep valid selections
   useEffect(() => {
@@ -294,10 +310,6 @@ export function LeadsReassignView({
             <h1 className="mt-3 text-3xl font-black tracking-tight text-ink">
               Leads Reassign Control Center
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Select leads allocated to any representative and reassign them to chosen target employees. 
-              Ownership transfers atomically with inquiry context intact and zero duplicated lead entries.
-            </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -372,7 +384,6 @@ export function LeadsReassignView({
             </span>
           </div>
           <p className="mt-2 text-2xl font-black text-amber-700">{summary.stagnantLeadsCount}</p>
-          <p className="mt-1 text-xs text-ink-muted">Assigned leads with zero calling follow-ups logged</p>
         </div>
 
         <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500">
@@ -383,7 +394,6 @@ export function LeadsReassignView({
             </span>
           </div>
           <p className="mt-2 text-2xl font-black text-rose-700">{summary.deadLeadsCount}</p>
-          <p className="mt-1 text-xs text-ink-muted">Marked rejected; can be tested with another representative</p>
         </div>
 
         <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-500">
@@ -461,9 +471,6 @@ export function LeadsReassignView({
                     )}
                   </div>
 
-                  <p className="mt-1 text-xs text-ink-faint">
-                    Select the representative who holds the leads:
-                  </p>
 
                   <div className="mt-3">
                     <select
@@ -602,9 +609,6 @@ export function LeadsReassignView({
                     </span>
                   </div>
 
-                  <p className="mt-1 text-xs text-ink-faint">
-                    Select target employee(s) from dropdown (choose 1, 2, 3 or all):
-                  </p>
 
                   {/* Multi-Select Dropdown Trigger */}
                   <div className="relative mt-3">
@@ -890,9 +894,6 @@ export function LeadsReassignView({
                 <h3 className="font-bold text-ink text-base">
                   Leads Allocated to {currentSourceRep?.name || "All Representatives"}
                 </h3>
-                <p className="text-xs text-ink-faint mt-0.5">
-                  Showing {filteredLeads.length} leads matching current filters. Checkboxes indicate leads selected for reassignment.
-                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -955,7 +956,7 @@ export function LeadsReassignView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/60">
-                  {filteredLeads.map((lead) => {
+                  {paginatedLeads.map((lead) => {
                     const isChecked = selectedLeadIds.includes(lead.id);
                     return (
                       <tr
@@ -1065,6 +1066,35 @@ export function LeadsReassignView({
                 </tbody>
               </table>
             </div>
+
+            {filteredLeads.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-ink-muted">
+                  Showing {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} of {filteredLeads.length} leads
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage(currentPage - 1)}
+                    className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint"
+                  >
+                    ← Previous
+                  </button>
+                  <span className="px-2 text-xs font-bold text-ink">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage(currentPage + 1)}
+                    className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1077,9 +1107,6 @@ export function LeadsReassignView({
           <div className="border-b border-line pb-4 flex items-center justify-between">
             <div>
               <h3 className="font-bold text-ink text-base">Permanent Lead Transfer Audit Trail</h3>
-              <p className="text-xs text-ink-faint mt-0.5">
-                Forensic record of every lead ownership change with source rep, destination rep, and conversion outcome
-              </p>
             </div>
             <span className="rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-800">
               {auditLogs.length} Events Recorded
