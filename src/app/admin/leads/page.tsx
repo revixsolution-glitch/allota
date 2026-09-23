@@ -1009,6 +1009,7 @@ export default async function AdminLeadsPage({
                         <input type="hidden" name="leadId" value={lead.id} />
                         <input type="hidden" name="status" value={lead.status} />
                         <select
+                          key={`${lead.id}-${lead.assignedEmployeeId ?? "none"}`}
                           name="assignedEmployeeId"
                           defaultValue={lead.assignedEmployeeId ?? ""}
                           className={lead.assignedEmployeeId ? tableSelectClass : tableSelectUnassignedClass}
@@ -1019,6 +1020,9 @@ export default async function AdminLeadsPage({
                               {employee.name}
                             </option>
                           ))}
+                          {lead.assignedEmployee && !employees.some((e) => e.id === lead.assignedEmployeeId) && (
+                            <option value={lead.assignedEmployee.id}>{lead.assignedEmployee.name}</option>
+                          )}
                         </select>
                         <button type="submit" className={smallButtonClass}>
                           Save
@@ -1173,6 +1177,7 @@ export default async function AdminLeadsPage({
                         Assigned Rep:
                       </label>
                       <select
+                        key={`${lead.id}-${lead.assignedEmployeeId ?? "none"}`}
                         name="assignedEmployeeId"
                         defaultValue={lead.assignedEmployeeId ?? ""}
                         className={`w-full h-8 rounded-lg border px-2 text-xs font-medium ${
@@ -1187,6 +1192,9 @@ export default async function AdminLeadsPage({
                             {employee.name}
                           </option>
                         ))}
+                        {lead.assignedEmployee && !employees.some((e) => e.id === lead.assignedEmployeeId) && (
+                          <option value={lead.assignedEmployee.id}>{lead.assignedEmployee.name}</option>
+                        )}
                       </select>
                     </div>
                     <button
