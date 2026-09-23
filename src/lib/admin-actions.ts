@@ -1268,10 +1268,22 @@ export async function setLeadFollowUp(formData: FormData) {
     data: { followUpAt },
   });
 
+  const attributedEmployeeId = session.employeeId || lead.assignedEmployeeId;
+  if (attributedEmployeeId) {
+    await prisma.leadFollowUpLog.create({
+      data: {
+        leadId: input.leadId,
+        employeeId: attributedEmployeeId,
+        scheduledFor: followUpAt,
+      },
+    });
+  }
+
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
   revalidatePath("/admin/leads");
   revalidatePath("/admin/employees");
+  revalidatePath("/admin/follow-ups");
   if (lead.assignedEmployeeId) {
     revalidatePath(`/admin/employees/${lead.assignedEmployeeId}`);
   }
