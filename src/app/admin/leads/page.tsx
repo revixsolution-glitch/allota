@@ -89,8 +89,19 @@ export default async function AdminLeadsPage({
       ? (params.source as LeadSource)
       : null;
 
-  const selectedDivision =
-    params?.division === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE";
+  const selectedDivision: "ALL" | "PCD_FRANCHISE" | "THIRD_PARTY" =
+    params?.division === "THIRD_PARTY"
+      ? "THIRD_PARTY"
+      : params?.division === "PCD_FRANCHISE"
+        ? "PCD_FRANCHISE"
+        : "ALL";
+  const divisionWhere = selectedDivision === "ALL" ? {} : { division: selectedDivision };
+  const divisionLabel =
+    selectedDivision === "PCD_FRANCHISE"
+      ? "PCD Pharma Franchise"
+      : selectedDivision === "THIRD_PARTY"
+        ? "Third-Party Manufacturing"
+        : "All Categories";
 
   const search = (params?.search || "").trim().toLowerCase();
   const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
@@ -103,7 +114,7 @@ export default async function AdminLeadsPage({
 
   // Base where clause for filtering leads table and pipeline status
   const leadWhere: Record<string, any> = {
-    division: selectedDivision,
+    ...divisionWhere,
     ...companyScope,
   };
   if (selectedSource) {
@@ -158,7 +169,7 @@ export default async function AdminLeadsPage({
     // Group by source with division filter so platform cards reflect division selection
     prisma.lead.groupBy({
       by: ["source"],
-      where: { division: selectedDivision, ...companyScope },
+      where: { ...divisionWhere, ...companyScope },
       _count: { _all: true },
     }),
     // Group by status with leadWhere
@@ -323,7 +334,7 @@ export default async function AdminLeadsPage({
 
     const sp = new URLSearchParams();
     if (s && s !== "all") sp.set("source", s);
-    if (d) sp.set("division", d);
+    if (d && d !== "ALL") sp.set("division", d);
     if (q && q.trim()) sp.set("search", q.trim());
     if (params?.range) sp.set("range", params.range);
     if (params?.from) sp.set("from", params.from);
@@ -338,18 +349,52 @@ export default async function AdminLeadsPage({
     <div className="flex flex-col gap-7">
       {/* Top Banner */}
       <section className="order-1 relative overflow-hidden rounded-3xl px-7 py-6 neo-panel">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">
-            Allota Lead{" "}
-            <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent [text-shadow:none] [filter:drop-shadow(2px_3px_4px_rgba(15,23,42,0.18))]">
-              IQ
-            </span>
-          </h1>
-          {selectedPlatform && (
-            <span className="rounded-full neo-pressed px-3 py-1 text-xs font-bold text-ink-muted">
-              Channel: {selectedPlatform.label}
-            </span>
-          )}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+              Allota Lead{" "}
+              <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent [filter:drop-shadow(2px_3px_4px_rgba(15,23,42,0.18))]">
+                IQ
+              </span>
+            </h1>
+            {selectedPlatform && (
+              <span className="neo-pressed px-3 py-1 text-xs font-bold text-ink-muted">
+                Channel: {selectedPlatform.label}
+              </span>
+            )}
+          </div>
+
+          {/* Commercial category filter */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[34rem]">
+            {(
+              [
+                { value: "ALL", label: "All", icon: "📋", count: pcdCount + thirdPartyCount, active: "bg-slate-800 text-white border-slate-800 ring-slate-500/30", idle: "text-slate-800 border-slate-200 hover:bg-slate-50", pill: "bg-slate-100 text-slate-800" },
+                { value: "PCD_FRANCHISE", label: "PCD Pharma Franchise", icon: "🏢", count: pcdCount, active: "bg-blue-700 text-white border-blue-700 ring-blue-500/30", idle: "text-blue-900 border-blue-200 hover:bg-blue-50/60", pill: "bg-blue-100 text-blue-800" },
+                { value: "THIRD_PARTY", label: "Third-Party Manufacturing", icon: "🏭", count: thirdPartyCount, active: "bg-purple-700 text-white border-purple-700 ring-purple-500/30", idle: "text-purple-900 border-purple-200 hover:bg-purple-50/60", pill: "bg-purple-100 text-purple-800" },
+              ] as const
+            ).map((opt) => {
+              const isActive = selectedDivision === opt.value;
+              return (
+                <Link
+                  key={opt.value}
+                  href={buildLeadsUrl({ division: opt.value })}
+                  className={`flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold border transition ${
+                    isActive ? `${opt.active} shadow-sm ring-2` : `bg-white ${opt.idle}`
+                  }`}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      isActive ? "bg-white/25 text-white" : opt.pill
+                    }`}
+                  >
+                    {opt.count}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -366,7 +411,7 @@ export default async function AdminLeadsPage({
         <PlatformCard
           href={`${buildLeadsUrl({ source: "all" })}#master-leads`}
           label="All Platforms"
-          detail={selectedDivision === "PCD_FRANCHISE" ? "All PCD Inquiries" : "All Third-Party"}
+          detail={selectedDivision === "PCD_FRANCHISE" ? "All PCD Inquiries" : selectedDivision === "THIRD_PARTY" ? "All Third-Party" : "All Inquiries"}
           count={totalPlatformLeadCount}
           active={!selectedSource}
           brandColor="all"
@@ -384,70 +429,6 @@ export default async function AdminLeadsPage({
         ))}
       </section>
 
-      {/* 2. Commercial Ingestion Category Buttons (Positioned between All Platforms and Pipeline Velocity) */}
-      <section className="order-3 rounded-3xl p-4 neo-panel bg-white border border-line shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="shrink-0 max-w-sm xl:max-w-md">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-teal-500 animate-pulse shrink-0" />
-              <p className="text-xs font-bold uppercase tracking-wider text-ink">
-                Commercial Category Filter:
-              </p>
-            </div>
-            <p className="text-[11px] text-ink-muted mt-0.5">
-              Switch between PCD Pharma Franchise and Third-Party Manufacturing to view pipeline velocity, channels, and leads
-            </p>
-          </div>
-
-          {/* Side-by-side straight horizontal row filling available space on the right */}
-          <div className="grid grid-cols-2 gap-3 flex-1 max-w-2xl">
-            {/* PCD Pharma Franchise */}
-            <Link
-              href={buildLeadsUrl({ division: "PCD_FRANCHISE" })}
-              className={`flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold border transition ${
-                selectedDivision === "PCD_FRANCHISE"
-                  ? "bg-blue-700 text-white border-blue-700 shadow-sm ring-2 ring-blue-500/30"
-                  : "bg-white text-blue-900 border-blue-200 hover:bg-blue-50/60"
-              }`}
-            >
-              <span>🏢</span>
-              <span>PCD Pharma Franchise</span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                  selectedDivision === "PCD_FRANCHISE"
-                    ? "bg-white/25 text-white"
-                    : "bg-blue-100 text-blue-800"
-                }`}
-              >
-                {pcdCount}
-              </span>
-            </Link>
-
-            {/* Third-Party Manufacturing */}
-            <Link
-              href={buildLeadsUrl({ division: "THIRD_PARTY" })}
-              className={`flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold border transition ${
-                selectedDivision === "THIRD_PARTY"
-                  ? "bg-purple-700 text-white border-purple-700 shadow-sm ring-2 ring-purple-500/30"
-                  : "bg-white text-purple-900 border-purple-200 hover:bg-purple-50/60"
-              }`}
-            >
-              <span>🏭</span>
-              <span>Third-Party Manufacturing</span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                  selectedDivision === "THIRD_PARTY"
-                    ? "bg-white/25 text-white"
-                    : "bg-purple-100 text-purple-800"
-                }`}
-              >
-                {thirdPartyCount}
-              </span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Temporarily hidden until Social Signals gets its own main navigation area. */}
       {SHOW_LEAD_CENTER_INSIGHTS && (
       <section className="order-4 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -458,9 +439,7 @@ export default async function AdminLeadsPage({
               <p className="text-xs text-ink-faint mt-0.5">
                 Stage progression for{" "}
                 <strong className="text-ink">
-                  {selectedDivision === "PCD_FRANCHISE"
-                    ? "PCD Pharma Franchise"
-                    : "Third-Party Manufacturing"}
+                  {divisionLabel}
                 </strong>{" "}
                 via {selectedPlatform?.shortLabel ?? "all channels"}.
               </p>
@@ -674,7 +653,7 @@ export default async function AdminLeadsPage({
               <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
                 Category
               </label>
-              <select name="division" defaultValue={selectedDivision} className={inputClass}>
+              <select name="division" defaultValue={selectedDivision === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE"} className={inputClass}>
                 <option value="PCD_FRANCHISE">PCD Franchise</option>
                 <option value="THIRD_PARTY">Third-Party Mfg</option>
               </select>
@@ -870,7 +849,7 @@ export default async function AdminLeadsPage({
                 {filteredLeads.length} Total
               </span>
               <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 text-xs font-bold">
-                {selectedDivision === "PCD_FRANCHISE" ? "PCD Franchise" : "Third-Party"}
+                {selectedDivision === "PCD_FRANCHISE" ? "PCD Franchise" : selectedDivision === "THIRD_PARTY" ? "Third-Party" : "All"}
               </span>
             </div>
             <p className="mt-0.5 text-xs text-ink-faint">
