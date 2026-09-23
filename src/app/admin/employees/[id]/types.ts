@@ -8,6 +8,13 @@ export interface EmployeeSessionRow {
   ipAddress: string | null;
 }
 
+export interface EmployeeLeadRemarkRow {
+  id: string;
+  remark: string;
+  employeeName: string;
+  createdAt: string;
+}
+
 export interface EmployeeLeadRow {
   id: string;
   name: string;
@@ -21,6 +28,7 @@ export interface EmployeeLeadRow {
   reassignmentReason: string | null;
   reassignedFrom: string | null;
   createdAt: string;
+  remarks: EmployeeLeadRemarkRow[];
 }
 
 export interface EmployeeReassignmentRow {

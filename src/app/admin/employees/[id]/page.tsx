@@ -88,6 +88,10 @@ export default async function AdminEmployeeDetailPage({
               orderBy: { reassignedAt: "desc" },
               take: 1,
             },
+            remarks: {
+              include: { employee: { select: { name: true } } },
+              orderBy: { createdAt: "desc" },
+            },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -305,6 +309,12 @@ export default async function AdminEmployeeDetailPage({
       reassignmentReason: l.reassignmentReason || latestLog?.reason || null,
       reassignedFrom: latestLog?.fromEmployee?.name || null,
       createdAt: l.createdAt.toISOString(),
+      remarks: l.remarks.map((r) => ({
+        id: r.id,
+        remark: r.remark,
+        employeeName: r.employee.name,
+        createdAt: r.createdAt.toISOString(),
+      })),
     };
   });
 

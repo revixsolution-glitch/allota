@@ -792,6 +792,7 @@ export function EmployeeDetailView({
                     <th className="pb-3">Source</th>
                     <th className="pb-3">Status Marked by Rep</th>
                     <th className="pb-3">Inquiry Details / Reason Notes</th>
+                    <th className="pb-3">Remarks</th>
                     <th className="pb-3 text-right">Assigned Date</th>
                   </tr>
                 </thead>
@@ -850,12 +851,38 @@ export function EmployeeDetailView({
                       <td className="py-3 max-w-md text-ink-muted text-[11px]">
                         {l.inquiryDetails || "Standard franchise inquiry."}
                       </td>
+                      <td className="py-3">
+                        {l.remarks.length > 0 ? (
+                          <details className="group">
+                            <summary className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.2 cursor-pointer select-none">
+                              📝 Remarks ({l.remarks.length})
+                            </summary>
+                            <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-xl border border-line-soft bg-slate-50 p-2 max-w-xs">
+                              {l.remarks.map((r) => (
+                                <div key={r.id} className="text-[11px] leading-relaxed">
+                                  <p className="text-ink">{r.remark}</p>
+                                  <p className="text-[10px] text-ink-faint font-semibold">
+                                    — {r.employeeName}, {new Date(r.createdAt).toLocaleString("en-IN", {
+                                      day: "numeric",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : (
+                          <span className="text-ink-faint text-[10px]">—</span>
+                        )}
+                      </td>
                       <td className="py-3 text-right text-ink-faint">{formatDate(l.createdAt)}</td>
                     </tr>
                   ))}
                   {filteredLeads.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-ink-faint">
+                      <td colSpan={8} className="py-8 text-center text-ink-faint">
                         No leads matching current filters.
                       </td>
                     </tr>
