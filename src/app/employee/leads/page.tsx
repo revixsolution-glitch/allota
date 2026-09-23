@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
-import { updateEmployeeLeadStatus, logEmployeeCall, addLeadRemark } from "@/lib/admin-actions";
+import { addLeadRemark } from "@/lib/admin-actions";
+import { FollowUpPicker } from "@/components/FollowUpPicker";
+import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -229,9 +231,9 @@ export default async function EmployeeLeadsPage({
                   <th className="px-4 py-3.5">Channel / Batch</th>
                   <th className="px-4 py-3.5">Location</th>
                   <th className="px-4 py-3.5">Inquiry Details</th>
-                  <th className="px-4 py-3.5">Update Stage</th>
+                  <th className="px-4 py-3.5">Follow Up</th>
                   <th className="px-4 py-3.5">Remarks</th>
-                  <th className="px-5 py-3.5 text-right">Telephony Touch</th>
+                  <th className="px-5 py-3.5 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -313,28 +315,13 @@ export default async function EmployeeLeadsPage({
                         </p>
                       </td>
 
-                      {/* Update Stage Form */}
+                      {/* Follow Up */}
                       <td className="px-4 py-4">
-                        <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5">
-                          <input type="hidden" name="leadId" value={lead.id} />
-                          <select
-                            name="status"
-                            defaultValue={lead.status}
-                            className="h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
-                          >
-                            <option value={LeadStatus.ASSIGNED}>Assigned (New)</option>
-                            <option value={LeadStatus.CONTACTED}>Contacted</option>
-                            <option value={LeadStatus.INTERESTED}>Interested</option>
-                            <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                            <option value={LeadStatus.CONVERTED}>Converted ✓</option>
-                          </select>
-                          <button
-                            type="submit"
-                            className="h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white text-ink px-2 text-[11px] font-bold transition cursor-pointer"
-                          >
-                            Save
-                          </button>
-                        </form>
+                        <FollowUpPicker
+                          leadId={lead.id}
+                          followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                          size="sm"
+                        />
                       </td>
 
                       {/* Remarks */}
@@ -390,89 +377,11 @@ export default async function EmployeeLeadsPage({
                         </details>
                       </td>
 
-                      {/* Telephony Touch / Quick Log Call */}
+                      {/* Status: Active / Dead */}
                       <td className="px-5 py-4 text-right">
-                        <details className="inline-block text-left group">
-                          <summary className="inline-flex items-center gap-1 rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 transition cursor-pointer select-none">
-                            <span>📞 Log Call</span>
-                            <span className="text-[10px] text-teal-600">
-                              ({lead._count.calls})
-                            </span>
-                          </summary>
-
-                          <div className="absolute right-8 mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
-                            <h4 className="text-xs font-extrabold text-ink mb-2">
-                              Record Call with {lead.name}
-                            </h4>
-                            <form action={logEmployeeCall} className="space-y-2.5">
-                              <input type="hidden" name="leadId" value={lead.id} />
-
-                              <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                  Call Result *
-                                </label>
-                                <select
-                                  name="callStatus"
-                                  defaultValue="ANSWERED"
-                                  className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink focus:outline-none"
-                                >
-                                  <option value="ANSWERED">🟢 Picked / Answered</option>
-                                  <option value="NOT_ANSWERED">🔴 Not Answered / Missed</option>
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                  Call Notes
-                                </label>
-                                <textarea
-                                  name="notes"
-                                  rows={2}
-                                  placeholder="Discussion details, monopoly terms, or missed reason..."
-                                  className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal-500"
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                    Duration (sec)
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="durationSec"
-                                    defaultValue={180}
-                                    min={0}
-                                    className="w-full h-8 rounded-lg border border-line px-2 text-xs text-ink focus:outline-none"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                    Set Outcome
-                                  </label>
-                                  <select
-                                    name="outcome"
-                                    defaultValue={LeadStatus.INTERESTED}
-                                    className="w-full h-8 rounded-lg border border-line px-1 text-xs text-ink focus:outline-none"
-                                  >
-                                    <option value={LeadStatus.CONTACTED}>Contacted</option>
-                                    <option value={LeadStatus.INTERESTED}>Interested</option>
-                                    <option value={LeadStatus.CONVERTED}>Converted</option>
-                                    <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                                  </select>
-                                </div>
-                              </div>
-
-                              <button
-                                type="submit"
-                                className="w-full h-8 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                              >
-                                Save Call Touchpoint
-                              </button>
-                            </form>
-                          </div>
-                        </details>
+                        <div className="inline-flex">
+                          <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -556,28 +465,23 @@ export default async function EmployeeLeadsPage({
                     </div>
                   )}
 
-                  {/* Inline Stage update form */}
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft">
-                    <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5 flex-1">
-                      <input type="hidden" name="leadId" value={lead.id} />
-                      <select
-                        name="status"
-                        defaultValue={lead.status}
-                        className="h-9 flex-1 rounded-xl border border-line bg-white px-2 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        <option value={LeadStatus.ASSIGNED}>Assigned</option>
-                        <option value={LeadStatus.CONTACTED}>Contacted</option>
-                        <option value={LeadStatus.INTERESTED}>Interested</option>
-                        <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                        <option value={LeadStatus.CONVERTED}>Converted ✓</option>
-                      </select>
-                      <button
-                        type="submit"
-                        className="h-9 rounded-xl bg-slate-100 hover:bg-primary hover:text-white text-ink px-3 text-xs font-bold transition cursor-pointer shrink-0"
-                      >
-                        Save
-                      </button>
-                    </form>
+                  {/* Follow Up + Status */}
+                  <div className="flex items-start justify-between gap-3 pt-2 border-t border-line-soft">
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                        Follow Up
+                      </p>
+                      <FollowUpPicker
+                        leadId={lead.id}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                      />
+                    </div>
+                    <div className="shrink-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                        Status
+                      </p>
+                      <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
+                    </div>
                   </div>
 
                   {/* Inline Remarks accordion */}
@@ -628,86 +532,6 @@ export default async function EmployeeLeadsPage({
                         </button>
                       </form>
                     </div>
-                  </details>
-
-                  {/* Inline Log Call accordian */}
-                  <details className="rounded-xl border border-teal-200 bg-teal-50/50 p-3 group">
-                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-teal-900 select-none list-none">
-                      <div className="flex items-center gap-1.5">
-                        <span>📞 Record Call Touchpoint</span>
-                        <span className="text-[10px] text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded-full">
-                          {lead._count.calls} logged
-                        </span>
-                      </div>
-                      <span className="text-teal-700 font-bold transition-transform group-open:rotate-180">▾</span>
-                    </summary>
-
-                    <form action={logEmployeeCall} className="mt-3 space-y-2.5 pt-2 border-t border-teal-200/60">
-                      <input type="hidden" name="leadId" value={lead.id} />
-
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
-                          Call Result *
-                        </label>
-                        <select
-                          name="callStatus"
-                          defaultValue="ANSWERED"
-                          className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink focus:outline-none"
-                        >
-                          <option value="ANSWERED">🟢 Picked / Answered</option>
-                          <option value="NOT_ANSWERED">🔴 Not Answered / Missed</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
-                          Call Notes
-                        </label>
-                        <textarea
-                          name="notes"
-                          rows={2}
-                          placeholder="Discussion details, monopoly terms, or missed reason..."
-                          className="w-full rounded-xl border border-line bg-white p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal-500"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
-                            Duration (sec)
-                          </label>
-                          <input
-                            type="number"
-                            name="durationSec"
-                            defaultValue={180}
-                            min={0}
-                            className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs text-ink"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-teal-900 mb-1">
-                            New Outcome
-                          </label>
-                          <select
-                            name="outcome"
-                            defaultValue={LeadStatus.INTERESTED}
-                            className="w-full h-8 rounded-lg border border-line bg-white px-1 text-xs text-ink"
-                          >
-                            <option value={LeadStatus.CONTACTED}>Contacted</option>
-                            <option value={LeadStatus.INTERESTED}>Interested</option>
-                            <option value={LeadStatus.CONVERTED}>Converted</option>
-                            <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full h-8 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition cursor-pointer"
-                      >
-                        Save Call Touchpoint
-                      </button>
-                    </form>
                   </details>
                 </div>
               );
