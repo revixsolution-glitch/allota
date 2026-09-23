@@ -1419,6 +1419,11 @@ export async function createCompanyEmployee(formData: FormData) {
 
   const passwordHash = await hashPassword(password);
 
+  const selectedSources = formData
+    .getAll("sources")
+    .map((s) => String(s))
+    .filter((s): s is LeadSource => Object.values(LeadSource).includes(s as LeadSource));
+
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -1438,11 +1443,22 @@ export async function createCompanyEmployee(formData: FormData) {
       },
     });
 
+    if (selectedSources.length > 0) {
+      await tx.leadSourceAssignment.createMany({
+        data: selectedSources.map((source) => ({
+          companyId: activeCompanyId,
+          source,
+          employeeId: employee.id,
+        })),
+      });
+    }
+
     return { user, employee };
   });
 
   revalidatePath("/admin/employees");
   revalidatePath("/admin/leads-reassign");
+  revalidatePath("/admin/sources");
   return { success: true, employeeId: result.employee.id };
 }
 
