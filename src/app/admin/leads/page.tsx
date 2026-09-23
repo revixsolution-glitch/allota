@@ -840,23 +840,6 @@ export default async function AdminLeadsPage({
         className="order-5 scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
       >
         <div className="border-b border-line px-6 py-5 flex flex-col gap-4 bg-slate-50/50">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-ink text-base">
-                {selectedPlatform ? `${selectedPlatform.shortLabel} Inquiries` : "Master Leads Database"}
-              </h2>
-              <span className="rounded-full bg-slate-100 text-ink px-2.5 py-0.5 text-xs font-bold border border-line">
-                {filteredLeads.length} Total
-              </span>
-              <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 text-xs font-bold">
-                {selectedDivision === "PCD_FRANCHISE" ? "PCD Franchise" : selectedDivision === "THIRD_PARTY" ? "Third-Party" : "All"}
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Full-width view of all incoming distributor applications with instant assignment and call tracking.
-            </p>
-          </div>
-
           {/* Search Bar + Quick Actions */}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
@@ -915,7 +898,7 @@ export default async function AdminLeadsPage({
         {/* Desktop Full-Width Table */}
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-line bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <tr>
                 <th className="px-6 py-3.5">Lead & Contact</th>
                 <th className="px-6 py-3.5">Category</th>
