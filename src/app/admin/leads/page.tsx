@@ -73,6 +73,7 @@ export default async function AdminLeadsPage({
   searchParams?: Promise<{
     source?: string;
     division?: string;
+    unassigned?: string;
     search?: string;
     range?: string;
     from?: string;
@@ -104,6 +105,7 @@ export default async function AdminLeadsPage({
         ? "Third-Party Manufacturing"
         : "All Categories";
 
+  const unassignedOnly = params?.unassigned === "1";
   const search = (params?.search || "").trim().toLowerCase();
   const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
 
@@ -120,6 +122,9 @@ export default async function AdminLeadsPage({
   };
   if (selectedSource) {
     leadWhere.source = selectedSource;
+  }
+  if (unassignedOnly) {
+    leadWhere.assignedEmployeeId = null;
   }
   if (dateFilter.start && dateFilter.end) {
     leadWhere.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
@@ -286,6 +291,8 @@ export default async function AdminLeadsPage({
   const pcdUnassigned = unassignedMap.get("PCD_FRANCHISE") ?? 0;
   const tpUnassigned = unassignedMap.get("THIRD_PARTY") ?? 0;
   const totalUnassigned = pcdUnassigned + tpUnassigned;
+  const unassignedInScope =
+    selectedDivision === "PCD_FRANCHISE" ? pcdUnassigned : selectedDivision === "THIRD_PARTY" ? tpUnassigned : totalUnassigned;
 
   // Status mapping
   const statusCountMap = new Map(
@@ -325,11 +332,14 @@ export default async function AdminLeadsPage({
     division?: string | null;
     search?: string | null;
     page?: number | null;
+    unassigned?: boolean;
   }) => {
     const s = overrides.source !== undefined ? overrides.source : (params?.source || null);
     const d = overrides.division !== undefined ? overrides.division : selectedDivision;
     const q = overrides.search !== undefined ? overrides.search : (params?.search || "");
+    const onlyUnassigned = overrides.unassigned !== undefined ? overrides.unassigned : unassignedOnly;
     const filterChanged =
+      overrides.unassigned !== undefined ||
       overrides.source !== undefined ||
       overrides.division !== undefined ||
       overrides.search !== undefined;
@@ -342,6 +352,7 @@ export default async function AdminLeadsPage({
     const sp = new URLSearchParams();
     if (s && s !== "all") sp.set("source", s);
     if (d && d !== "ALL") sp.set("division", d);
+    if (onlyUnassigned) sp.set("unassigned", "1");
     if (q && q.trim()) sp.set("search", q.trim());
     if (params?.range) sp.set("range", params.range);
     if (params?.from) sp.set("from", params.from);
@@ -639,10 +650,11 @@ export default async function AdminLeadsPage({
       >
         <div className="border-b border-line px-6 py-5 flex flex-col gap-4 bg-slate-50/50">
           {/* Search Bar + Quick Actions */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 ">
             <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
+              {unassignedOnly && <input type="hidden" name="unassigned" value="1" />}
               {params?.range && <input type="hidden" name="range" value={params.range} />}
               {params?.from && <input type="hidden" name="from" value={params.from} />}
               {params?.to && <input type="hidden" name="to" value={params.to} />}
@@ -671,218 +683,6 @@ export default async function AdminLeadsPage({
               )}
             </form>
 
-            <div className="flex justify-center">
-              <AssignLeadsModal>
-              <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-teal-500 bg-white">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-teal-500 animate-pulse" />
-                      <h2 className="font-bold text-ink text-base">
-                        ⚡ Quick Leads Allotment Desk
-                      </h2>
-                    </div>
-                    <p className="text-xs text-ink-faint mt-0.5">
-                      Allocate batches of unassigned leads directly to any sales representative. Every assignment is logged for audit.
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 text-xs font-bold self-start max-w-full sm:shrink-0">
-                    {totalUnassigned} Unassigned Inquiries ({pcdUnassigned} PCD / {tpUnassigned} Third-Party)
-                  </span>
-                </div>
-
-                {/* 100% Full-Width Form, Perfectly Aligned Row, Zero Blank Space */}
-                <form action={allotLeadsBatch} className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
-                  <div className="lg:col-span-2">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
-                      Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      min={1}
-                      max={totalUnassigned || 500}
-                      defaultValue={Math.min(50, totalUnassigned || 50)}
-                      required
-                      className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                      placeholder="e.g. 50"
-                    />
-                  </div>
-
-                  <div className="lg:col-span-3">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
-                      Assign To Employee *
-                    </label>
-                    <select
-                      name="employeeId"
-                      required
-                      className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                    >
-                      <option value="">Select Employee...</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name} ({emp._count.leads} active leads / {emp._count.clients} clients)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="lg:col-span-2">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
-                      Category Pool *
-                    </label>
-                    <select
-                      name="division"
-                      defaultValue={selectedDivision}
-                      className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                    >
-                      <option value="PCD_FRANCHISE">PCD Only ({pcdUnassigned})</option>
-                      <option value="THIRD_PARTY">Third-Party ({tpUnassigned})</option>
-                      <option value="ALL">Both Pools ({totalUnassigned})</option>
-                    </select>
-                  </div>
-
-                  <div className="lg:col-span-3">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
-                      Source Channel / Batch *
-                    </label>
-                    <select
-                      name="source"
-                      defaultValue={selectedSource || "ALL"}
-                      className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
-                    >
-                      <option value="ALL">All Active Channels</option>
-                      {activeLeadSources.map((source) => (
-                        <option key={source.value} value={source.value}>
-                          {source.label}
-                        </option>
-                      ))}
-                      {unassignedExcelBatches.length > 0 && (
-                        <optgroup label="Specific Excel Batches">
-                          {unassignedExcelBatches.map((batch) => (
-                            <option key={batch.sourceTag} value={`BATCH:${batch.sourceTag}`}>
-                              Batch: {batch.sourceTag} ({batch._count._all} unassigned)
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="lg:col-span-2">
-                    <button
-                      type="submit"
-                      className="w-full h-11 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 px-4 text-xs font-bold text-white shadow-md shadow-teal-500/20 hover:from-teal-700 hover:to-emerald-700 transition cursor-pointer"
-                    >
-                      <span>⚡</span>
-                      <span className="whitespace-nowrap">Assign Leads</span>
-                    </button>
-                  </div>
-                </form>
-
-                {/* Collapsible Manual Single-Lead Simulator (Zero vertical bloat when closed) */}
-                <details className="mt-5 pt-4 border-t border-line group">
-                  <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-ink-muted hover:text-ink transition select-none list-none">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs transition-transform group-open:rotate-90">▶</span>
-                      <span>➕ Need to register a single lead manually? (API Simulator)</span>
-                    </div>
-                    <span className="text-[11px] font-normal text-ink-faint">Click to expand single entry form</span>
-                  </summary>
-
-                  <form action={createLead} className="mt-4 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 pt-1">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Lead Source
-                      </label>
-                      <select
-                        name="source"
-                        defaultValue={selectedSource ?? (activeLeadSources[0]?.value || LeadSource.MANUAL)}
-                        className={inputClass}
-                      >
-                        {activeLeadSources.map((source) => (
-                          <option key={source.value} value={source.value}>
-                            {source.label}
-                          </option>
-                        ))}
-                        {!activeLeadSources.some((s) => s.value === LeadSource.MANUAL) && (
-                          <option value={LeadSource.MANUAL}>Manual Entry</option>
-                        )}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Category
-                      </label>
-                      <select name="division" defaultValue={selectedDivision === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE"} className={inputClass}>
-                        <option value="PCD_FRANCHISE">PCD Franchise</option>
-                        <option value="THIRD_PARTY">Third-Party Mfg</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Prospect / Entity Name *
-                      </label>
-                      <input
-                        name="name"
-                        required
-                        placeholder="e.g. Apex Pharma Agencies"
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Phone Number
-                      </label>
-                      <input
-                        name="phoneNumber"
-                        placeholder="+91 98765 43210"
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Assign Representative
-                      </label>
-                      <select name="assignedEmployeeId" defaultValue="" className={inputClass}>
-                        <option value="">Keep unassigned</option>
-                        {employees.map((employee) => (
-                          <option key={employee.id} value={employee.id}>
-                            {employee.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="lg:col-span-2">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
-                        Inquiry Details & Target Salts
-                      </label>
-                      <input
-                        name="notes"
-                        placeholder="City monopoly, salts needed, budget"
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      <button
-                        type="submit"
-                        className="w-full h-11 rounded-2xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xs hover:bg-black transition cursor-pointer"
-                      >
-                        Add Lead
-                      </button>
-                    </div>
-                  </form>
-                </details>
-              </section>
-              </AssignLeadsModal>
-            </div>
-
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               {selectedSource && (
                 <Link
@@ -893,6 +693,225 @@ export default async function AdminLeadsPage({
                 </Link>
               )}
 
+              <Link
+                href={buildLeadsUrl({ unassigned: !unassignedOnly })}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-xs font-bold transition shrink-0 ${
+                  unassignedOnly
+                    ? "border-amber-400 bg-amber-100 text-amber-900"
+                    : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                }`}
+              >
+                {unassignedInScope} Unassigned
+              </Link>
+            <AssignLeadsModal>
+            <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-teal-500 bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-teal-500 animate-pulse" />
+                    <h2 className="font-bold text-ink text-base">
+                      ⚡ Quick Leads Allotment Desk
+                    </h2>
+                  </div>
+                  <p className="text-xs text-ink-faint mt-0.5">
+                    Allocate batches of unassigned leads directly to any sales representative. Every assignment is logged for audit.
+                  </p>
+                </div>
+                <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 text-xs font-bold self-start max-w-full sm:shrink-0">
+                  {totalUnassigned} Unassigned Inquiries ({pcdUnassigned} PCD / {tpUnassigned} Third-Party)
+                </span>
+              </div>
+
+              {/* 100% Full-Width Form, Perfectly Aligned Row, Zero Blank Space */}
+              <form action={allotLeadsBatch} className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+                <div className="lg:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
+                    Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    min={1}
+                    max={totalUnassigned || 500}
+                    defaultValue={Math.min(50, totalUnassigned || 50)}
+                    required
+                    className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                    placeholder="e.g. 50"
+                  />
+                </div>
+
+                <div className="lg:col-span-3">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
+                    Assign To Employee *
+                  </label>
+                  <select
+                    name="employeeId"
+                    required
+                    className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                  >
+                    <option value="">Select Employee...</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp._count.leads} active leads / {emp._count.clients} clients)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
+                    Category Pool *
+                  </label>
+                  <select
+                    name="division"
+                    defaultValue={selectedDivision}
+                    className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                  >
+                    <option value="PCD_FRANCHISE">PCD Only ({pcdUnassigned})</option>
+                    <option value="THIRD_PARTY">Third-Party ({tpUnassigned})</option>
+                    <option value="ALL">Both Pools ({totalUnassigned})</option>
+                  </select>
+                </div>
+
+                <div className="lg:col-span-3">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5 whitespace-nowrap">
+                    Source Channel / Batch *
+                  </label>
+                  <select
+                    name="source"
+                    defaultValue={selectedSource || "ALL"}
+                    className="w-full h-11 rounded-2xl border border-line bg-white px-3.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                  >
+                    <option value="ALL">All Active Channels</option>
+                    {activeLeadSources.map((source) => (
+                      <option key={source.value} value={source.value}>
+                        {source.label}
+                      </option>
+                    ))}
+                    {unassignedExcelBatches.length > 0 && (
+                      <optgroup label="Specific Excel Batches">
+                        {unassignedExcelBatches.map((batch) => (
+                          <option key={batch.sourceTag} value={`BATCH:${batch.sourceTag}`}>
+                            Batch: {batch.sourceTag} ({batch._count._all} unassigned)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <button
+                    type="submit"
+                    className="w-full h-11 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 px-4 text-xs font-bold text-white shadow-md shadow-teal-500/20 hover:from-teal-700 hover:to-emerald-700 transition cursor-pointer"
+                  >
+                    <span>⚡</span>
+                    <span className="whitespace-nowrap">Assign Leads</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Collapsible Manual Single-Lead Simulator (Zero vertical bloat when closed) */}
+              <details className="mt-5 pt-4 border-t border-line group">
+                <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-ink-muted hover:text-ink transition select-none list-none">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs transition-transform group-open:rotate-90">▶</span>
+                    <span>➕ Need to register a single lead manually? (API Simulator)</span>
+                  </div>
+                  <span className="text-[11px] font-normal text-ink-faint">Click to expand single entry form</span>
+                </summary>
+
+                <form action={createLead} className="mt-4 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Lead Source
+                    </label>
+                    <select
+                      name="source"
+                      defaultValue={selectedSource ?? (activeLeadSources[0]?.value || LeadSource.MANUAL)}
+                      className={inputClass}
+                    >
+                      {activeLeadSources.map((source) => (
+                        <option key={source.value} value={source.value}>
+                          {source.label}
+                        </option>
+                      ))}
+                      {!activeLeadSources.some((s) => s.value === LeadSource.MANUAL) && (
+                        <option value={LeadSource.MANUAL}>Manual Entry</option>
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Category
+                    </label>
+                    <select name="division" defaultValue={selectedDivision === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE"} className={inputClass}>
+                      <option value="PCD_FRANCHISE">PCD Franchise</option>
+                      <option value="THIRD_PARTY">Third-Party Mfg</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Prospect / Entity Name *
+                    </label>
+                    <input
+                      name="name"
+                      required
+                      placeholder="e.g. Apex Pharma Agencies"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Phone Number
+                    </label>
+                    <input
+                      name="phoneNumber"
+                      placeholder="+91 98765 43210"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Assign Representative
+                    </label>
+                    <select name="assignedEmployeeId" defaultValue="" className={inputClass}>
+                      <option value="">Keep unassigned</option>
+                      {employees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="lg:col-span-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-muted mb-1.5">
+                      Inquiry Details & Target Salts
+                    </label>
+                    <input
+                      name="notes"
+                      placeholder="City monopoly, salts needed, budget"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full h-11 rounded-2xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xs hover:bg-black transition cursor-pointer"
+                    >
+                      Add Lead
+                    </button>
+                  </div>
+                </form>
+              </details>
+            </section>
+            </AssignLeadsModal>
               <a
                 href={`/api/admin/leads/export?division=${selectedDivision}${selectedSource ? `&source=${selectedSource}` : ""}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
                 download
