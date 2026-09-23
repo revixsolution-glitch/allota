@@ -249,6 +249,12 @@ export default async function AdminLeadsPage({
 
   const activeLeadSources = leadSources.filter((s) => isSourceActive(s.value));
 
+  // Platform cards hidden for now (leads from these sources still appear in All Platforms and the table)
+  const HIDDEN_PLATFORM_CARDS: LeadSource[] = [LeadSource.WHATSAPP, LeadSource.SOCIAL];
+  const platformCardSources = activeLeadSources.filter(
+    (s) => !HIDDEN_PLATFORM_CARDS.includes(s.value)
+  );
+
   const employeeOptions = employees.map((e) => ({
     id: e.id,
     name: e.name,
@@ -400,11 +406,11 @@ export default async function AdminLeadsPage({
 
       {/* 1. Branded Platform Navigation Cards - Dynamic Active Sources Only */}
       <section className={`order-2 grid gap-4 sm:grid-cols-2 md:grid-cols-3 ${
-        activeLeadSources.length <= 2
+        platformCardSources.length <= 2
           ? "xl:grid-cols-3"
-          : activeLeadSources.length <= 3
+          : platformCardSources.length <= 3
           ? "xl:grid-cols-4"
-          : activeLeadSources.length <= 5
+          : platformCardSources.length <= 5
           ? "xl:grid-cols-6"
           : "xl:grid-cols-8"
       }`}>
@@ -416,7 +422,7 @@ export default async function AdminLeadsPage({
           active={!selectedSource}
           brandColor="all"
         />
-        {activeLeadSources.map((source) => (
+        {platformCardSources.map((source) => (
           <PlatformCard
             key={source.value}
             href={`${buildLeadsUrl({ source: source.value })}#master-leads`}
