@@ -297,15 +297,6 @@ export default async function AdminLeadsPage({
     currentPage * LEADS_PER_PAGE
   );
 
-  const assignedCount = filteredLeads.filter((l) => l.assignedEmployeeId).length;
-  const unassignedInView = filteredLeads.length - assignedCount;
-  const conversionRate =
-    filteredLeads.length > 0
-      ? Math.round(
-          ((statusCountMap.get(LeadStatus.CONVERTED) ?? 0) / filteredLeads.length) * 100
-        )
-      : 0;
-
   const selectedPlatform =
     activeLeadSources.find((source) => source.value === selectedSource) ||
     leadSources.find((source) => source.value === selectedSource);
@@ -346,55 +337,19 @@ export default async function AdminLeadsPage({
   return (
     <div className="flex flex-col gap-7">
       {/* Top Banner */}
-      <section className="order-1 relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/60">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-primary border border-primary/20">
-                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                Multi-Channel API Ingestion
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-ink-muted">
-                Category:{" "}
-                <strong className="text-ink">
-                  {selectedDivision === "PCD_FRANCHISE"
-                    ? "PCD Pharma Franchise"
-                    : "Third-Party Manufacturing"}
-                </strong>
-              </span>
-              {selectedPlatform && (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-                  Channel: {selectedPlatform.label}
-                </span>
-              )}
-            </div>
-
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              {selectedPlatform ? selectedPlatform.label : "Unified Lead Center"}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Track inquiries in real time across Meta Ads, IndiaMART, website forms, WhatsApp,
-              and social channels — from first contact through to conversion.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3.5 text-center shrink-0">
-            <Metric
-              label={selectedSource ? "In Platform" : "Category Leads"}
-              value={filteredLeads.length.toString()}
-              color="text-ink"
-            />
-            <Metric
-              label="Unassigned"
-              value={unassignedInView.toString()}
-              color={unassignedInView > 0 ? "text-amber-600" : "text-ink"}
-            />
-            <Metric
-              label="Conversion"
-              value={`${conversionRate}%`}
-              color="text-emerald-600"
-            />
-          </div>
+      <section className="order-1 relative overflow-hidden rounded-3xl bg-slate-950 px-7 py-6 shadow-lg">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            Lead{" "}
+            <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent">
+              IQ
+            </span>
+          </h1>
+          {selectedPlatform && (
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+              Channel: {selectedPlatform.label}
+            </span>
+          )}
         </div>
       </section>
 
@@ -905,7 +860,7 @@ export default async function AdminLeadsPage({
         id="master-leads"
         className="order-5 scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
       >
-        <div className="border-b border-line px-6 py-5 flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between gap-4 bg-slate-50/50">
+        <div className="border-b border-line px-6 py-5 flex flex-col gap-4 bg-slate-50/50">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-ink text-base">
@@ -924,8 +879,8 @@ export default async function AdminLeadsPage({
           </div>
 
           {/* Search Bar + Quick Actions */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 2xl:justify-end">
-            <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap 2xl:flex-initial">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
               {params?.range && <input type="hidden" name="range" value={params.range} />}
@@ -1542,23 +1497,6 @@ function PlatformCard({
         {detail}
       </p>
     </Link>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  color = "text-ink",
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <div className="rounded-2xl px-4 py-3 neo-pressed border border-line">
-      <p className={`text-xl font-extrabold ${color}`}>{value}</p>
-      <p className="text-xs font-semibold text-ink-faint mt-0.5">{label}</p>
-    </div>
   );
 }
 
