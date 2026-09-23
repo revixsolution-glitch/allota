@@ -135,9 +135,6 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
             <h1 className="mt-2 text-3xl font-black tracking-tight text-ink">
               Representative Team Management
             </h1>
-            <p className="mt-1 text-sm text-ink-muted max-w-2xl">
-              Manage your company's field sales force, provision new employee logins, and inspect daily activity logs, leads handled, and calls.
-            </p>
           </div>
 
           <div className="flex items-center gap-4 shrink-0">

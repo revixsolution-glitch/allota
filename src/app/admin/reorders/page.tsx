@@ -340,11 +340,6 @@ export default async function AdminReordersPage(props: {
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
               Monthly Reorders & Client Cadence Intelligence
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Live tracking of repeat purchasing behavior sourced directly from billing invoices. 
-              Monitor active franchise clients, assigned territory representatives, monthly formulation volumes, 
-              last rates given per product, and predicted monthly reorder dates.
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
@@ -411,9 +406,6 @@ export default async function AdminReordersPage(props: {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-line pb-4">
           <div>
             <h2 className="font-bold text-ink text-base">Filter Reorder Intelligence</h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Segment accounts by cadence urgency, regional territory, or assigned field representative.
-            </p>
           </div>
 
           {/* Status Filter Tabs */}
@@ -863,9 +855,6 @@ export default async function AdminReordersPage(props: {
             <h2 className="font-bold text-ink text-base">
               Record New Billed Reorder from Billing System
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Record an offline purchase order or sync invoice from Marg ERP / Busy Accounting.
-            </p>
           </div>
           <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3 py-1 text-xs font-bold">
             Live Reorder Dispatch

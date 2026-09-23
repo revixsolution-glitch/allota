@@ -68,10 +68,6 @@ export default async function DeadLeadsPage() {
               </span>
             </div>
             <h1 className="mt-1 text-2xl font-extrabold text-ink">Dead Leads ({deadLeads.length})</h1>
-            <p className="mt-1 text-xs text-ink-muted max-w-2xl">
-              Inquiries marked Dead by a representative. Review the reasoning, reactivate if a lead was
-              closed by mistake, or remove records that are no longer needed.
-            </p>
           </div>
         </div>
       </section>

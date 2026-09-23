@@ -148,9 +148,6 @@ export default async function AdminSettingsPage() {
               <h2 className="font-bold text-ink text-base flex items-center gap-2">
                 <span>📦</span> Subscribed Plan &amp; Module Entitlements
               </h2>
-              <p className="text-xs text-ink-faint mt-0.5">
-                Selected during onboarding. Plan tiers and module allocations are managed by platform administration.
-              </p>
             </div>
             <span className="self-start sm:self-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
               ● Active Subscription
@@ -229,9 +226,6 @@ export default async function AdminSettingsPage() {
               <h3 className="font-extrabold text-ink text-sm flex items-center gap-2">
                 <span>✨</span> Available Upgrades &amp; Feature Add-ons
               </h3>
-              <p className="text-xs text-ink-faint mt-0.5">
-                Expand your commercial capabilities with deep ERP sync or automated social media lead capture.
-              </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -444,9 +438,6 @@ export default async function AdminSettingsPage() {
                 <h3 className="font-bold text-ink text-sm flex items-center gap-2">
                   <span>☁️</span> Cloud Storage &amp; Third-Party Integrations
                 </h3>
-                <p className="text-[11px] text-ink-faint">
-                  Configure Google Drive for call sync and Meta/IndiaMART API credentials for automatic lead ingestion
-                </p>
               </div>
               <span className="rounded-full bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-0.5 text-[10px] font-extrabold">
                 Live Integrations

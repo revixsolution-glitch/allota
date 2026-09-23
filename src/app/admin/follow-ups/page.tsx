@@ -57,10 +57,6 @@ export default async function FollowUpsPage() {
               </span>
             </div>
             <h1 className="mt-1 text-2xl font-extrabold text-ink">Follow Ups</h1>
-            <p className="mt-1 text-xs text-ink-muted max-w-2xl">
-              Every follow-up date scheduled by a representative, in order, so you can see exactly when
-              each lead was first followed up and how the schedule changed since.
-            </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3 shrink-0">

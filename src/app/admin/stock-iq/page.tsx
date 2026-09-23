@@ -302,10 +302,6 @@ export default async function AdminStockIqPage(props: {
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
               Stock IQ & ERP Inventory Intelligence
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Live bi-directional synchronization with billing software (Marg ERP, Busy). Real-time tracking of available boxes, 
-              batch numbers, reorder thresholds, and critical expiry risk intelligence across all therapeutic lines.
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
@@ -456,9 +452,6 @@ export default async function AdminStockIqPage(props: {
             <h2 className="font-bold text-ink text-base">
               Add New Medicine SKU to Inventory
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Register pharmaceutical molecule, batch number, available boxes, and packaging for ERP sync.
-            </p>
           </div>
           <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3 py-1 text-xs font-bold">
             Live ERP Mapping
@@ -655,9 +648,6 @@ export default async function AdminStockIqPage(props: {
             <h2 className="font-bold text-ink text-base">
               Available Product Catalog & Box Quantities
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Detailed inventory count for each of the {allProducts.length} registered pharmaceutical formulations with ERP batch references.
-            </p>
           </div>
 
           {/* Filter Pills & Search */}

@@ -181,10 +181,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
             <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
               Welcome, {employee?.name}!
             </h1>
-            <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-relaxed text-ink-muted">
-              Here is your synchronized telecalling pipeline. All leads allotted to you by Admin appear below 
-              in real-time with direct call logging, division badges, and instant WhatsApp dialers.
-            </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center shrink-0">
@@ -257,9 +253,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                 <h3 className="font-extrabold text-ink text-sm sm:text-base">
                   Unanswered Call Follow-Up Desk ({missedCallsQueue.length} Inquiries)
                 </h3>
-                <p className="text-[11px] text-ink-muted">
-                  These prospects missed your call. Send instant WhatsApp alerts to notify them and secure follow-ups.
-                </p>
               </div>
             </div>
             <Link
@@ -343,9 +336,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
             <h2 className="text-base sm:text-lg font-extrabold text-ink">
               My Assigned Inquiries Workdesk
             </h2>
-            <p className="text-xs text-ink-muted mt-0.5">
-              Review prospect inquiries, update pipeline stages, and initiate instant follow-up
-            </p>
           </div>
           <Link
             href="/employee/leads"
@@ -569,9 +559,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
             <h2 className="font-bold text-ink text-base">
               My Assigned Reorder Follow-up Tasks ({pendingTasks.length})
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Client reorders delegated by Admin to contact and confirm monthly medicine dispatch.
-            </p>
           </div>
           <span className="rounded-full bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 text-xs font-bold self-start sm:self-auto">
             Field Action Queue
