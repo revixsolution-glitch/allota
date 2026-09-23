@@ -58,6 +58,15 @@ export default async function AdminSettingsPage() {
     activePlanTier === "CORE_LEAD_SUITE" ||
     (!settings.enableBillingErp && !settings.enableStockIq && !settings.enableClientsManagement);
 
+  // Demo admin = the Allota AI internal demo company (Pharma Life slug).
+  // Only demo admins and Super Admins can switch plans freely.
+  // Real onboarded clients always see the read-only plan + upgrade cards.
+  const isDemoAdmin =
+    isSuperAdmin ||
+    !company?.slug ||
+    company.slug === "pharma-life" ||
+    company.slug === "pharma-life-sciences";
+
   return (
     <div className="space-y-7 max-w-6xl mx-auto">
       {/* Top Banner */}
@@ -67,7 +76,11 @@ export default async function AdminSettingsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800 border border-teal-200">
                 <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-                {isSuperAdmin ? "Super Admin Plan Configurator" : "Organization Workspace & Settings"}
+                {isSuperAdmin
+                  ? "Super Admin Plan Configurator"
+                  : isDemoAdmin
+                  ? "Demo Plan Configurator & Settings"
+                  : "Organization Workspace & Settings"}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-ink-muted">
                 Active Tier:{" "}
@@ -80,6 +93,11 @@ export default async function AdminSettingsPage() {
                   Platform Super Admin Mode
                 </span>
               )}
+              {!isSuperAdmin && isDemoAdmin && (
+                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-blue-800 border border-blue-200">
+                  Demo Presentation Mode
+                </span>
+              )}
             </div>
 
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
@@ -88,6 +106,8 @@ export default async function AdminSettingsPage() {
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
               {isSuperAdmin
                 ? `Configure active modules and integration credentials for ${company?.name || "this organization"}. Super Admins can override the subscription tier and toggle Marg ERP modules.`
+                : isDemoAdmin
+                ? `Switch subscription tiers and toggle modules for Allota AI demo presentation, or manage telephony and marketing source integrations.`
                 : `Manage your telephony call recording folder, Meta Lead Ads, WhatsApp Business API credentials, and marketing source integrations.`}
             </p>
           </div>
@@ -120,7 +140,7 @@ export default async function AdminSettingsPage() {
       </section>
 
       {/* Subscription Plan & Entitlements Section */}
-      {!isSuperAdmin ? (
+      {!isDemoAdmin ? (
         /* Read-Only Plan View for Onboarded Businesses */
         <section className="rounded-3xl p-6 neo-panel bg-white border border-line space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
@@ -249,20 +269,22 @@ export default async function AdminSettingsPage() {
 
       {/* Main Configuration Form */}
       <form action={updateCompanyPlanSettings} className="space-y-6">
-        {/* Super Admin Plan Switcher (Only visible to Super Admin) */}
-        {isSuperAdmin && (
+        {/* Plan Switcher — visible to demo admin (Allota AI) and Super Admin only */}
+        {isDemoAdmin && (
           <section className="rounded-3xl p-6 neo-panel bg-white border border-line space-y-6">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h2 className="font-bold text-ink text-base flex items-center gap-2">
-                  <span>🛡️</span> Platform Super Admin Controls: Plan &amp; Module Toggles
+                  <span>📦</span> {isSuperAdmin ? "Platform Super Admin Controls: Plan & Module Toggles" : "Demo Plan Switcher"}
                 </h2>
                 <p className="text-xs text-ink-faint mt-0.5">
-                  You are logged in as Super Admin. You can override this company&apos;s plan tier or toggle individual modules below.
+                  {isSuperAdmin
+                    ? "You are logged in as Super Admin. You can override this company's plan tier or toggle individual modules below."
+                    : "Switch between plans to explore all features. This switcher is only available on the Allota AI demo account."}
                 </p>
               </div>
               <span className="rounded-full bg-purple-100 text-purple-800 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider">
-                Super Admin Override
+                {isSuperAdmin ? "Super Admin Override" : "Demo Mode"}
               </span>
             </div>
 
@@ -627,7 +649,7 @@ export default async function AdminSettingsPage() {
             className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-teal-500/25 hover:from-teal-700 hover:to-emerald-700 transition cursor-pointer"
           >
             <span>💾</span>
-            <span>{isSuperAdmin ? "Save Plan & Integration Settings" : "Save Integration Settings"}</span>
+            <span>{isDemoAdmin ? "Save Plan & Integration Settings" : "Save Integration Settings"}</span>
           </button>
         </div>
       </form>

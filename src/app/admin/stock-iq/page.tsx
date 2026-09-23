@@ -29,9 +29,19 @@ export default async function AdminStockIqPage(props: {
       });
 
   const isSuperAdmin = session?.role === "SUPER_ADMIN";
-  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const company = activeCompanyId
+    ? await prisma.company.findUnique({ where: { id: activeCompanyId } })
+    : null;
+  const isDemoAdmin =
+    isSuperAdmin ||
+    !company?.slug ||
+    company.slug === "pharma-life" ||
+    company.slug === "pharma-life-sciences";
 
-  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableStockIq) {
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const canAccessErp = hasBillingApi || (isDemoAdmin && Boolean(settings?.enableBillingErp));
+
+  if (!canAccessErp || !settings?.enableStockIq) {
     return (
       <ErpModuleGate
         moduleName="Stock IQ & Batch Inventory"

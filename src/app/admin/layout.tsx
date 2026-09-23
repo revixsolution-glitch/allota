@@ -36,10 +36,17 @@ export default async function AdminLayout({
     { href: "/admin/calls", label: "AI Calls Summary" },
   ];
 
-  // Premium Billing ERP Modules (Shown only when Marg ERP / Billing API is connected)
-  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const isDemoAdmin =
+    session?.role === "SUPER_ADMIN" ||
+    !company?.slug ||
+    company.slug === "pharma-life" ||
+    company.slug === "pharma-life-sciences";
 
-  if (hasBillingApi || session?.role === "SUPER_ADMIN") {
+  // Premium Billing ERP Modules (Shown when Marg ERP / Billing API is connected, or for demo presentations)
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const showErpModules = hasBillingApi || (isDemoAdmin && Boolean(settings?.enableBillingErp));
+
+  if (showErpModules) {
     if (settings?.enableClientsManagement) {
       navItems.push({ href: "/admin/clients", label: "Clients" });
     }

@@ -927,17 +927,53 @@ export async function updateCompanyPlanSettings(formData: FormData) {
     const existingSettings = await prisma.companySettings.findFirst({
       where: { companyId: activeCompanyId },
     });
+    const company = await prisma.company.findUnique({
+      where: { id: activeCompanyId },
+    });
+    const isDemoCompany =
+      !company?.slug ||
+      company.slug === "pharma-life" ||
+      company.slug === "pharma-life-sciences";
+    const canSwitchPlan = isSuperAdmin || isDemoCompany;
 
-    // Strictly enforce: Only Super Admin can change planTier and module flags.
-    // Tenant admins can only update their integration keys.
-    if (isSuperAdmin && formData.has("planTier")) {
+    // Only Super Admin and the internal Allota AI Demo account can change planTier and module flags.
+    // Real onboarded tenant businesses can only update their integration keys.
+    if (canSwitchPlan && formData.has("planTier")) {
       const planTier = String(formData.get("planTier") || "CORE_LEAD_SUITE");
-      const enableBillingErp = formData.get("enableBillingErp") === "on";
-      const enableStockIq = formData.get("enableStockIq") === "on";
-      const enableReorders = formData.get("enableReorders") === "on";
-      const enableCreditManagement = formData.get("enableCreditManagement") === "on";
-      const enableClientsManagement = formData.get("enableClientsManagement") === "on";
-      const enableTerritories = formData.get("enableTerritories") === "on";
+      const isSwitchingToCore = planTier === "CORE_LEAD_SUITE";
+
+      const hasAnyErpCheckbox =
+        formData.has("enableBillingErp") ||
+        formData.has("enableStockIq") ||
+        formData.has("enableReorders") ||
+        formData.has("enableCreditManagement") ||
+        formData.has("enableClientsManagement") ||
+        formData.has("enableTerritories");
+
+      let enableBillingErp = false;
+      let enableStockIq = false;
+      let enableReorders = false;
+      let enableCreditManagement = false;
+      let enableClientsManagement = false;
+      let enableTerritories = false;
+
+      if (!isSwitchingToCore) {
+        if (hasAnyErpCheckbox) {
+          enableBillingErp = formData.get("enableBillingErp") === "on";
+          enableStockIq = formData.get("enableStockIq") === "on";
+          enableReorders = formData.get("enableReorders") === "on";
+          enableCreditManagement = formData.get("enableCreditManagement") === "on";
+          enableClientsManagement = formData.get("enableClientsManagement") === "on";
+          enableTerritories = formData.get("enableTerritories") === "on";
+        } else {
+          enableBillingErp = true;
+          enableStockIq = true;
+          enableReorders = true;
+          enableCreditManagement = true;
+          enableClientsManagement = true;
+          enableTerritories = true;
+        }
+      }
 
       await prisma.company.update({
         where: { id: activeCompanyId },

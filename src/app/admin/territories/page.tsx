@@ -17,9 +17,19 @@ export default async function AdminTerritoriesPage() {
       });
 
   const isSuperAdmin = session?.role === "SUPER_ADMIN";
-  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const company = activeCompanyId
+    ? await prisma.company.findUnique({ where: { id: activeCompanyId } })
+    : null;
+  const isDemoAdmin =
+    isSuperAdmin ||
+    !company?.slug ||
+    company.slug === "pharma-life" ||
+    company.slug === "pharma-life-sciences";
 
-  if ((!hasBillingApi && !isSuperAdmin) || !settings?.enableTerritories) {
+  const hasBillingApi = Boolean(settings?.billingSoftwareApiKey && settings?.enableBillingErp);
+  const canAccessErp = hasBillingApi || (isDemoAdmin && Boolean(settings?.enableBillingErp));
+
+  if (!canAccessErp || !settings?.enableTerritories) {
     return (
       <ErpModuleGate
         moduleName="Territory & Monopoly Distribution"
