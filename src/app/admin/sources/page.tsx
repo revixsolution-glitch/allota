@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { LeadSource } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ExcelUploader } from "./ExcelUploader";
+import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
+import { SOURCE_META } from "@/lib/lead-sources";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -34,7 +36,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
       : {};
 
   // Query pure database metrics and company API credentials
-  const [employees, sourceGroups, divisionGroups, excelBatches, unassignedExcelBatches, recentUploads, settings] =
+  const [employees, sourceGroups, divisionGroups, excelBatches, unassignedExcelBatches, recentUploads, settings, sourceAssignments] =
     await Promise.all([
       prisma.employee.findMany({
         where: companyScope,
@@ -89,6 +91,11 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
         : prisma.companySettings.findFirst({
             where: { id: "default" },
           }),
+      prisma.leadSourceAssignment.findMany({
+        where: companyScope,
+        include: { employee: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
   // Inspect API integration status
@@ -144,6 +151,16 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
     name: e.name,
     leadCount: e._count.leads,
   }));
+
+  const assignmentsBySource = new Map<
+    LeadSource,
+    { id: string; employeeId: string; employeeName: string }[]
+  >();
+  for (const a of sourceAssignments) {
+    const list = assignmentsBySource.get(a.source) || [];
+    list.push({ id: a.id, employeeId: a.employeeId, employeeName: a.employee.name });
+    assignmentsBySource.set(a.source, list);
+  }
 
   return (
     <div className="space-y-8">
@@ -379,6 +396,89 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
               </span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 1.5 Auto-Assignment Rules: dedicate employees to a source for round-robin routing */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-extrabold text-ink">🎯 Auto-Assignment Rules</h2>
+          <p className="text-xs text-ink-muted mt-0.5">
+            Dedicate employees to a source. New inbound leads from that source rotate evenly between
+            the employees you assign here — the source stays unassigned if no one is dedicated to it.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {SOURCE_META.map((s) => {
+            const assigned = assignmentsBySource.get(s.value) || [];
+            const assignedIds = new Set(assigned.map((a) => a.employeeId));
+            const availableEmployees = employeeOptions.filter((e) => !assignedIds.has(e.id));
+
+            return (
+              <div key={s.value} className="rounded-2xl p-5 neo-panel bg-white border-t-2 border-t-primary/60">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-ink text-sm flex items-center gap-1.5">
+                    <span>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </h3>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-ink-muted">
+                    {assigned.length} in rotation
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-3 min-h-[28px]">
+                  {assigned.length === 0 ? (
+                    <span className="text-[11px] text-ink-faint">
+                      No one dedicated — leads stay unassigned.
+                    </span>
+                  ) : (
+                    assigned.map((a, idx) => (
+                      <form key={a.id} action={removeSourceEmployeeMapping}>
+                        <input type="hidden" name="mappingId" value={a.id} />
+                        <button
+                          type="submit"
+                          title="Remove from rotation"
+                          className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/30 px-2 py-1 text-[11px] font-bold text-primary hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 transition cursor-pointer"
+                        >
+                          <span className="text-[9px] opacity-70">#{idx + 1}</span>
+                          <span>{a.employeeName}</span>
+                          <span>✕</span>
+                        </button>
+                      </form>
+                    ))
+                  )}
+                </div>
+
+                {availableEmployees.length > 0 && (
+                  <form action={addSourceEmployeeMapping} className="flex items-center gap-1.5">
+                    <input type="hidden" name="source" value={s.value} />
+                    <select
+                      name="employeeId"
+                      required
+                      defaultValue=""
+                      className="h-8 flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="" disabled>
+                        Add employee...
+                      </option>
+                      {availableEmployees.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="h-8 rounded-lg bg-primary px-3 text-[11px] font-bold text-white hover:bg-primary-strong transition cursor-pointer shrink-0"
+                    >
+                      Add
+                    </button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

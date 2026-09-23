@@ -33,7 +33,9 @@ model Company {
   products                Product[]
   orders                  Order[]
   territories             Territory[]
-  
+  leadSourceAssignments   LeadSourceAssignment[]
+  leadSourceRotations     LeadSourceRotation[]
+
   createdAt               DateTime         @default(now())
   updatedAt               DateTime         @updatedAt
 }
@@ -85,6 +87,7 @@ model Employee {
   clients     Client[]
   leads       Lead[]
   leadRemarks LeadRemark[]
+  sourceAssignments LeadSourceAssignment[]
   calls       Call[]
   tasks       FollowupTask[]
   sessions    EmployeeSession[]
@@ -168,6 +171,29 @@ model LeadRemark {
   employee   Employee @relation(fields: [employeeId], references: [id])
   remark     String
   createdAt  DateTime @default(now())
+}
+
+model LeadSourceAssignment {
+  id         String     @id @default(cuid())
+  companyId  String?
+  company    Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  source     LeadSource
+  employeeId String
+  employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+
+  @@unique([companyId, source, employeeId])
+}
+
+model LeadSourceRotation {
+  id                     String     @id @default(cuid())
+  companyId              String?
+  company                Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  source                 LeadSource
+  lastAssignedEmployeeId String?
+  updatedAt              DateTime   @updatedAt
+
+  @@unique([companyId, source])
 }
 
 model Call {

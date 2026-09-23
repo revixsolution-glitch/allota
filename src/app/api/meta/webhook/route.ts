@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
+import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
 
 export const dynamic = "force-dynamic";
 
@@ -136,14 +137,14 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // 3. Find default representative to allot the lead to
-          const defaultRep = await prisma.employee.findFirst({
-            where: settings?.companyId ? { companyId: settings.companyId } : {},
-            orderBy: { createdAt: "desc" },
-          });
+          // 3. Round-robin the lead to whichever employees the admin dedicated to Meta
+          const autoAssignedEmployeeId = await pickNextEmployeeForSource(
+            settings?.companyId || null,
+            LeadSource.META
+          );
 
           // 4. Ingest new verified lead into CRM Lead Center
-          await prisma.lead.create({
+          const newLead = await prisma.lead.create({
             data: {
               companyId: settings?.companyId || null,
               name: fullName,
@@ -153,12 +154,25 @@ export async function POST(req: NextRequest) {
               source: LeadSource.META,
               sourceTag: `Meta Lead Ad (Form: ${formId || "Direct"})`,
               division: "PCD_FRANCHISE",
-              status: defaultRep ? LeadStatus.ASSIGNED : LeadStatus.NEW,
-              assignedEmployeeId: defaultRep?.id || null,
+              status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
+              assignedEmployeeId: autoAssignedEmployeeId,
               inquiryDetails: `Facebook / Instagram PCD Inquiry. Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`,
               rawPayload: leadData,
             },
           });
+
+          if (autoAssignedEmployeeId) {
+            await prisma.leadReassignmentLog.create({
+              data: {
+                leadId: newLead.id,
+                fromEmployeeId: null,
+                toEmployeeId: autoAssignedEmployeeId,
+                reason: "Auto-assigned via round-robin (Meta Ads source)",
+                previousStatus: "NEW",
+                newStatus: "ASSIGNED",
+              },
+            });
+          }
 
           console.log(`[Meta Webhook] Successfully ingested new lead: ${fullName} (${formattedPhone})`);
         }
