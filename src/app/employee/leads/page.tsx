@@ -224,13 +224,12 @@ export default async function EmployeeLeadsPage({
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+              <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                 <tr>
                   <th className="px-5 py-3.5">Prospect & Contact</th>
                   <th className="px-4 py-3.5">Division Category</th>
                   <th className="px-4 py-3.5">Channel / Batch</th>
                   <th className="px-4 py-3.5">Location</th>
-                  <th className="px-4 py-3.5">Inquiry Details</th>
                   <th className="px-4 py-3.5">Follow Up</th>
                   <th className="px-4 py-3.5">Remarks</th>
                   <th className="px-5 py-3.5 text-right">Status</th>
@@ -306,13 +305,6 @@ export default async function EmployeeLeadsPage({
                       {/* Location */}
                       <td className="px-4 py-4 text-ink-muted">
                         {lead.city ? `${lead.city}, ${lead.state || ""}` : "—"}
-                      </td>
-
-                      {/* Inquiry Details */}
-                      <td className="px-4 py-4 max-w-xs">
-                        <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
-                          {lead.inquiryDetails || "No details provided"}
-                        </p>
                       </td>
 
                       {/* Follow Up */}
