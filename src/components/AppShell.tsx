@@ -595,6 +595,24 @@ function NavIcon({ href, active }: { href: string; active: boolean }) {
     );
   }
 
+  if (href.includes("dead-leads")) {
+    return (
+      <svg
+        className={`h-5 w-5 ${active ? "text-white lg:text-white" : "text-rose-500"}`}
+        fill="none"
+        stroke={strokeColor}
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M18.364 5.636a9 9 0 11-12.728 0M12 9v4m0 4h.01"
+        />
+      </svg>
+    );
+  }
+
   if (href.includes("leads")) {
     return (
       <svg
