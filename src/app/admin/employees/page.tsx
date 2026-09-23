@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { AddEmployeeModal } from "@/components/AddEmployeeModal";
+import { SOURCE_META } from "@/lib/lead-sources";
+import { LeadSource } from "@/generated/prisma/enums";
 
 function formatINR(amount: number): string {
   if (amount >= 100000) {
@@ -19,6 +21,7 @@ interface AdminEmployeesPageProps {
     range?: string;
     from?: string;
     to?: string;
+    source?: string;
   }>;
 }
 
@@ -54,26 +57,54 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
       ? { orderDate: { gte: dateFilter.start } }
       : {};
 
-  const employees = await prisma.employee.findMany({
-    where: activeCompanyId ? { companyId: activeCompanyId } : {},
-    include: {
-      user: true,
-      clients: {
-        include: {
-          orders: Object.keys(orderDateFilter).length > 0 ? { where: orderDateFilter } : true,
-          territory: true,
+  const selectedSource =
+    searchParams.source && Object.values(LeadSource).includes(searchParams.source as LeadSource)
+      ? (searchParams.source as LeadSource)
+      : null;
+
+  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const [employees, sourceAssignments] = await Promise.all([
+    prisma.employee.findMany({
+      where: companyScope,
+      include: {
+        user: true,
+        clients: {
+          include: {
+            orders: Object.keys(orderDateFilter).length > 0 ? { where: orderDateFilter } : true,
+            territory: true,
+          },
+        },
+        leads: Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : true,
+        calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
+        tasks: true,
+        sessions: {
+          orderBy: { loginTime: "desc" },
+          take: 1,
         },
       },
-      leads: Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : true,
-      calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
-      tasks: true,
-      sessions: {
-        orderBy: { loginTime: "desc" },
-        take: 1,
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    prisma.leadSourceAssignment.findMany({
+      where: companyScope,
+      select: { source: true, employeeId: true },
+    }),
+  ]);
+
+  const sourceCounts = new Map<LeadSource, number>();
+  for (const a of sourceAssignments) {
+    sourceCounts.set(a.source, (sourceCounts.get(a.source) || 0) + 1);
+  }
+
+  const dedicatedEmployeeIds = selectedSource
+    ? new Set(
+        sourceAssignments.filter((a) => a.source === selectedSource).map((a) => a.employeeId)
+      )
+    : null;
+
+  const visibleEmployees = dedicatedEmployeeIds
+    ? employees.filter((e) => dedicatedEmployeeIds.has(e.id))
+    : employees;
 
   return (
     <div className="space-y-7">
@@ -99,16 +130,58 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
             <AddEmployeeModal />
 
             <div className="rounded-2xl px-5 py-3 neo-pressed border border-line text-center">
-              <p className="text-3xl font-black text-purple-600">{employees.length}</p>
-              <p className="text-xs font-semibold text-ink-faint">Active Representatives</p>
+              <p className="text-3xl font-black text-purple-600">{visibleEmployees.length}</p>
+              <p className="text-xs font-semibold text-ink-faint">
+                {selectedSource ? "Dedicated to Source" : "Active Representatives"}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* Source Filter Chips */}
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+          <Link
+            href="/admin/employees"
+            className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition ${
+              !selectedSource
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-canvas text-ink-muted hover:text-ink border border-line"
+            }`}
+          >
+            All Employees ({employees.length})
+          </Link>
+          {SOURCE_META.map((s) => (
+            <Link
+              key={s.value}
+              href={`/admin/employees?source=${s.value}`}
+              className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
+                selectedSource === s.value
+                  ? "bg-primary text-white shadow-xs"
+                  : "bg-canvas text-ink-muted hover:text-ink border border-line"
+              }`}
+            >
+              <span>{s.icon}</span>
+              <span>
+                {s.label} ({sourceCounts.get(s.value) || 0})
+              </span>
+            </Link>
+          ))}
+        </div>
       </section>
+
+      {selectedSource && (
+        <p className="text-xs text-ink-muted -mt-4">
+          Showing only employees dedicated to <strong className="text-ink">{SOURCE_META.find((s) => s.value === selectedSource)?.label}</strong> in
+          the auto-assignment rotation.{" "}
+          <Link href="/admin/sources" className="font-bold text-primary hover:underline">
+            Manage rotation →
+          </Link>
+        </p>
+      )}
 
       {/* Employees Grid - Clickable Cards */}
       <div className="grid gap-6 md:grid-cols-2">
-        {employees.map((employee) => {
+        {visibleEmployees.map((employee) => {
           const totalSales = employee.clients.reduce(
             (s, c) =>
               s +
@@ -240,9 +313,11 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
           );
         })}
 
-        {!employees.length && (
+        {!visibleEmployees.length && (
           <div className="col-span-2 rounded-3xl neo-panel p-10 text-center text-sm text-ink-faint">
-            No employee profiles registered yet.
+            {selectedSource
+              ? "No employees are dedicated to this source yet. Assign some in Sources & Excel → Auto-Assignment Rules."
+              : "No employee profiles registered yet."}
           </div>
         )}
       </div>

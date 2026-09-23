@@ -14,6 +14,7 @@ import {
 import { getSession, getActiveCompanyId, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
+import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
 
 const requiredText = z.string().trim().min(1);
 const optionalText = z
@@ -197,24 +198,50 @@ export async function createLead(formData: FormData) {
 
   const finalPhone = parsedPhone ? parsedPhone.formatted : input.phoneNumber;
 
-  await prisma.lead.create({
+  let assignedEmployeeId = input.assignedEmployeeId;
+  let autoAssigned = false;
+  if (!assignedEmployeeId) {
+    const autoId = await pickNextEmployeeForSource(activeCompanyId, input.source);
+    if (autoId) {
+      assignedEmployeeId = autoId;
+      autoAssigned = true;
+    }
+  }
+
+  const newLead = await prisma.lead.create({
     data: {
       source: input.source,
       division: input.division || "PCD_FRANCHISE",
       inquiryDetails: input.notes,
       name: input.name,
       phoneNumber: finalPhone,
-      assignedEmployeeId: input.assignedEmployeeId,
+      assignedEmployeeId,
       clientId: input.clientId,
-      status: input.assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
+      status: assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
       rawPayload: input.notes ? { notes: input.notes } : undefined,
       companyId: activeCompanyId,
     },
   });
 
+  if (autoAssigned && assignedEmployeeId) {
+    await prisma.leadReassignmentLog.create({
+      data: {
+        leadId: newLead.id,
+        fromEmployeeId: null,
+        toEmployeeId: assignedEmployeeId,
+        reason: `Auto-assigned via round-robin (${input.source} source)`,
+        previousStatus: "NEW",
+        newStatus: "ASSIGNED",
+      },
+    });
+  }
+
   revalidatePath("/admin");
   revalidatePath("/admin/leads");
   revalidatePath("/admin/employees");
+  if (assignedEmployeeId) {
+    revalidatePath(`/admin/employees/${assignedEmployeeId}`);
+  }
 }
 
 const allotLeadsSchema = z.object({
@@ -361,6 +388,58 @@ export async function allotLeadsBatch(formData: FormData) {
   revalidatePath("/admin/employees");
   revalidatePath(`/admin/employees/${input.employeeId}`);
   revalidatePath("/employee");
+}
+
+const sourceAssignmentSchema = z.object({
+  source: z.nativeEnum(LeadSource),
+  employeeId: requiredText,
+});
+
+export async function addSourceEmployeeMapping(formData: FormData) {
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
+
+  const input = sourceAssignmentSchema.parse({
+    source: formData.get("source"),
+    employeeId: formData.get("employeeId"),
+  });
+
+  const existing = await prisma.leadSourceAssignment.findFirst({
+    where: { companyId: activeCompanyId, source: input.source, employeeId: input.employeeId },
+  });
+
+  if (!existing) {
+    await prisma.leadSourceAssignment.create({
+      data: {
+        companyId: activeCompanyId,
+        source: input.source,
+        employeeId: input.employeeId,
+      },
+    });
+  }
+
+  revalidatePath("/admin/sources");
+  revalidatePath("/admin/employees");
+}
+
+export async function removeSourceEmployeeMapping(formData: FormData) {
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
+
+  const mappingId = String(formData.get("mappingId") || "").trim();
+  if (!mappingId) {
+    throw new Error("Mapping id is required");
+  }
+
+  await prisma.leadSourceAssignment.deleteMany({
+    where: {
+      id: mappingId,
+      ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+    },
+  });
+
+  revalidatePath("/admin/sources");
+  revalidatePath("/admin/employees");
 }
 
 const leadUpdateSchema = z.object({
