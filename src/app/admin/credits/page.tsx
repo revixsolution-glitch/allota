@@ -180,10 +180,6 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
               Credit Management & AI Collections
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Oversee product dispatches taken on credit terms, track the exact days requested by each franchise partner, 
-              control who receives automated AI alert messages when payment dates are nearby, and dispatch autonomous AI voice collection calls.
-            </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 shrink-0">
@@ -333,9 +329,6 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
             <h2 className="font-bold text-ink text-base">
               Grant Product Credit to Franchise Partner
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Issue an authorized consignment or order under agreed payment credit tenure.
-            </p>
           </div>
           <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 text-xs font-bold">
             Live Database Sync
@@ -472,9 +465,6 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
             <h2 className="font-bold text-ink text-base">
               Active Credit Accounts & AI Dispatch Desk
             </h2>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              Admin control center to trigger live reminders, toggle automated AI alerts, initiate AI voice calls, and log payments.
-            </p>
           </div>
           <span className="text-xs font-bold text-ink-muted bg-white border border-line rounded-full px-3 py-1 shadow-xs">
             {credits.length} Credit Accounts

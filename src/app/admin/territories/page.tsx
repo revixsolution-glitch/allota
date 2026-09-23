@@ -65,9 +65,6 @@ export default async function AdminTerritoriesPage() {
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
               Territory Distribution
             </h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              Define exclusive state and district/city boundaries to prevent franchise territory overlap.
-            </p>
           </div>
 
           <div className="rounded-2xl px-5 py-3 neo-pressed border border-line text-center shrink-0">
@@ -80,9 +77,6 @@ export default async function AdminTerritoriesPage() {
       {/* Add Territory Form */}
       <section className="rounded-3xl p-6 neo-panel">
         <h2 className="font-bold text-ink text-base">Allot New Territory</h2>
-        <p className="mt-0.5 text-xs text-ink-faint">
-          Add an authorized state and city market for PCD franchise allocation.
-        </p>
 
         <form
           action={createTerritory}
@@ -126,7 +120,6 @@ export default async function AdminTerritoriesPage() {
         <div className="border-b border-line px-6 py-4 flex items-center justify-between bg-slate-50/40">
           <div>
             <h2 className="font-bold text-ink text-base">Active Territory Allotments</h2>
-            <p className="mt-0.5 text-xs text-ink-faint">State and district divisions with licensed partner counts.</p>
           </div>
           <span className="text-xs font-bold text-ink-faint bg-white border border-line rounded-full px-3 py-1 shadow-sm">
             {territories.length} territories

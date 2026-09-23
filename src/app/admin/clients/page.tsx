@@ -119,9 +119,6 @@ export default async function AdminClientsPage({
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
               Franchise Client Directory
             </h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              Register licensed PCD pharma partners, assign sales representatives, and monitor territory compliance.
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -148,9 +145,6 @@ export default async function AdminClientsPage({
       {/* Add Client Form */}
       <section className="rounded-3xl p-6 neo-panel">
         <h2 className="font-bold text-ink text-base">Register Franchise Partner</h2>
-        <p className="mt-0.5 text-xs text-ink-faint">
-          Create a new client entity mapped to territory rights and representative.
-        </p>
 
         <form
           action={createClient}
@@ -265,7 +259,6 @@ export default async function AdminClientsPage({
         <div className="border-b border-line px-6 py-4 flex items-center justify-between bg-slate-50/40">
           <div>
             <h2 className="font-bold text-ink text-base">Active Franchise Partners</h2>
-            <p className="mt-0.5 text-xs text-ink-faint">List of verified company distributors and their territories.</p>
           </div>
           <span className="text-xs font-bold text-ink-faint bg-white border border-line rounded-full px-3 py-1 shadow-sm">
             {clients.length} records

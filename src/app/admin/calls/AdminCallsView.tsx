@@ -374,9 +374,6 @@ Report generated via Allota AI Telephony Engine • allota.in
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-ink">
               AI Calls Summary & Telephony Insights
             </h1>
-            <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-relaxed text-ink-muted">
-              Real-time audit trail of all outbound & inbound calls across field representatives. Inspect AI executive summaries, prospect interest tags, answer rates, and recover unanswered inquiries with 1-tap WhatsApp alerts.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -555,9 +552,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                 <h2 className="text-2xl font-black tracking-tight mt-2 text-white">
                   Allota AI Telephony: Verbatim Transcripts & Hinglish Summaries
                 </h2>
-                <p className="text-xs text-purple-200/90 max-w-3xl mt-1 leading-relaxed">
-                  Review exact call dialog, customer inquiries, and AI-generated Hinglish commercial summaries for any sales representative. Filter by date or AI lead status (Hot, Warm, Dead).
-                </p>
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
@@ -1214,9 +1208,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                 <h3 className="font-black text-ink text-base">
                   Missed Call Recovery Queue ({pendingMissedAlerts.length} Unanswered Inquiries Awaiting Action)
                 </h3>
-                <p className="text-xs text-ink-muted mt-0.5">
-                  These prospects did not answer calls placed by your representatives. Dispatch AI-crafted follow-ups in 1 tap so inquiries don&apos;t slip away.
-                </p>
               </div>
             </div>
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800 self-start sm:self-auto border border-amber-300">
@@ -1284,7 +1275,6 @@ Report generated via Allota AI Telephony Engine • allota.in
           <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h3 className="font-extrabold text-ink text-base">Representative Telecalling Leaderboard</h3>
-              <p className="text-xs text-ink-muted mt-0.5">Call volumes, pickup rates, and AI summaries per sales representative</p>
             </div>
             <span className="text-xs font-semibold text-ink-muted">
               {reps.length} Field Reps Active
@@ -1357,9 +1347,6 @@ Report generated via Allota AI Telephony Engine • allota.in
               <span className="text-xs text-ink-faint">Executive Audit Feed</span>
             </div>
             <h3 className="font-extrabold text-ink text-lg mt-1">Live Call Feed & AI Discussion Summaries</h3>
-            <p className="text-xs text-ink-muted mt-0.5">
-              Filtered feed of discussions, prospect intent, behavioral tags, and 1-tap WhatsApp alerts.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
