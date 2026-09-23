@@ -905,7 +905,7 @@ export default async function AdminLeadsPage({
         id="master-leads"
         className="order-5 scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
       >
-        <div className="border-b border-line px-6 py-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-slate-50/50">
+        <div className="border-b border-line px-6 py-5 flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between gap-4 bg-slate-50/50">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-ink text-base">
@@ -924,8 +924,8 @@ export default async function AdminLeadsPage({
           </div>
 
           {/* Search Bar + Quick Actions */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 xl:justify-end">
-            <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap xl:flex-initial">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 2xl:justify-end">
+            <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap 2xl:flex-initial">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
               {params?.range && <input type="hidden" name="range" value={params.range} />}
