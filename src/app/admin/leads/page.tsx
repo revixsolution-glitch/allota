@@ -382,7 +382,7 @@ export default async function AdminLeadsPage({
           : "xl:grid-cols-8"
       }`}>
         <PlatformCard
-          href={buildLeadsUrl({ source: "all" })}
+          href={`${buildLeadsUrl({ source: "all" })}#master-leads`}
           label="All Platforms"
           detail={selectedDivision === "PCD_FRANCHISE" ? "All PCD Inquiries" : "All Third-Party"}
           count={totalPlatformLeadCount}
@@ -392,7 +392,7 @@ export default async function AdminLeadsPage({
         {activeLeadSources.map((source) => (
           <PlatformCard
             key={source.value}
-            href={buildLeadsUrl({ source: source.value })}
+            href={`${buildLeadsUrl({ source: source.value })}#master-leads`}
             label={source.shortLabel}
             detail={source.detail}
             count={sourceCountMap.get(source.value) ?? 0}
@@ -872,7 +872,10 @@ export default async function AdminLeadsPage({
       </section>
 
       {/* 5. FULL-WIDTH Master Leads Table (No blank space on the left) */}
-      <section className="overflow-hidden rounded-3xl neo-panel bg-white">
+      <section
+        id="master-leads"
+        className="scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
+      >
         <div className="border-b border-line px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-slate-50/50">
           <div>
             <div className="flex items-center gap-2">
@@ -1579,6 +1582,3 @@ function extractLeadData(rawPayload: unknown) {
     .map(([key, value]) => `${key}: ${value}`)
     .join(" / ");
 }
-
-
-
