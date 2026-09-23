@@ -27,7 +27,6 @@ export default async function AdminLayout({
 
   // Core Lead Management Suite (Always Active for All Clients - ₹0 Marg Cost)
   const navItems: { href: string; label: string }[] = [
-    { href: "/admin", label: "Dashboard" },
     { href: "/admin/leads", label: "Lead Center" },
     // "Leads IQ" and "Sources & Excel" are hidden from navigation for now
     // (routes stay live — Sources & Excel's Auto-Assignment Rules and
