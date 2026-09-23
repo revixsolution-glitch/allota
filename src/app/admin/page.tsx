@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasDashboard } from "@/types/company";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
@@ -14,6 +16,18 @@ interface AdminDashboardPageProps {
 export default async function AdminDashboardPage(props: AdminDashboardPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  // Dashboard is only part of the top-tier plan; everyone else lands on Lead Center.
+  const company = activeCompanyId
+    ? await prisma.company.findUnique({
+        where: { id: activeCompanyId },
+        select: { planTier: true },
+      })
+    : null;
+  if (!hasDashboard(company?.planTier)) {
+    redirect("/admin/leads");
+  }
+
   const searchParams = props.searchParams ? await props.searchParams : {};
 
   const dateFilter = parseDashboardDateFilter(
