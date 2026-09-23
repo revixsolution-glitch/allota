@@ -530,8 +530,8 @@ export default async function AdminLeadsPage({
 
       {/* 4.5 Lead Sources & Auto-Assignment (compact, one card per channel) */}
       <section className="order-7 rounded-3xl p-6 neo-panel bg-white">
-        <div className="mb-4">
-          <h2 className="font-bold text-ink text-base">Lead Sources & Auto-Assignment</h2>
+        <div className="-mx-6 -mt-6 mb-5 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-6 py-4">
+          <h2 className="text-xl font-extrabold tracking-tight text-ink">Lead Sources & Auto-Assignment</h2>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
