@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { markWhatsAppAlertSent } from "@/lib/admin-actions";
+import { markWhatsAppAlertSent, toggleCallFollowUpFlag } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage, classifyCallLead } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
 
 export interface CallFeedItem {
   id: string;
+  leadId: string | null;
   targetName: string;
   targetPhone: string | null;
   direction: string;
@@ -62,6 +63,13 @@ function formatDate(iso: string | null): string {
   }
 }
 
+const FOLLOW_UP_TAG = "Follow-Up";
+const CALLS_PAGE_SIZE = 10;
+
+function isFollowUpFlagged(call: CallFeedItem): boolean {
+  return call.behaviorTags.some((t) => t.toLowerCase() === FOLLOW_UP_TAG.toLowerCase());
+}
+
 function formatTime(iso: string | null): string {
   if (!iso) return "—";
   try {
@@ -100,6 +108,9 @@ export function AdminCallsView({
   const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>("");
   const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
+  const [callsPage, setCallsPage] = useState(1);
+  const [togglingFollowUpId, setTogglingFollowUpId] = useState<string | null>(null);
+  const [followUpHistoryOpen, setFollowUpHistoryOpen] = useState(false);
 
   const runDriveSync = async (forceNext = false) => {
     try {
@@ -263,6 +274,25 @@ Report generated via Allota AI Telephony Engine • allota.in
     );
   }, [selectedEmbeddedDocId, filteredCalls, callsList]);
 
+  // Reset to page 1 whenever the filtered result set changes shape
+  useEffect(() => {
+    setCallsPage(1);
+  }, [selectedRepId, statusFilter, datePreset, customStartDate, customEndDate, leadCategoryFilter, searchQuery]);
+
+  const totalCallsPages = Math.max(1, Math.ceil(filteredCalls.length / CALLS_PAGE_SIZE));
+  const paginatedCalls = useMemo(() => {
+    const start = (callsPage - 1) * CALLS_PAGE_SIZE;
+    return filteredCalls.slice(start, start + CALLS_PAGE_SIZE);
+  }, [filteredCalls, callsPage]);
+
+  // Every other Follow-Up-flagged call for the same lead as the active call, most recent first
+  const followUpHistoryForActiveLead = useMemo(() => {
+    if (!activeEmbeddedCall?.leadId) return [];
+    return callsList
+      .filter((c) => c.leadId === activeEmbeddedCall.leadId && isFollowUpFlagged(c))
+      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+  }, [callsList, activeEmbeddedCall]);
+
   async function handleSendAiWhatsAppAlert(call: CallFeedItem) {
     const rawPhone = call.targetPhone || "";
     const cleanPhone = rawPhone.replace(/\D/g, "");
@@ -299,6 +329,29 @@ Report generated via Allota AI Telephony Engine • allota.in
       console.error("Failed to mark WhatsApp alert sent", err);
     } finally {
       setSendingAlertCallId(null);
+    }
+  }
+
+  async function handleToggleFollowUp(call: CallFeedItem) {
+    const nextFlagged = !isFollowUpFlagged(call);
+    setTogglingFollowUpId(call.id);
+    try {
+      const fd = new FormData();
+      fd.append("callId", call.id);
+      fd.append("flagged", String(nextFlagged));
+      await toggleCallFollowUpFlag(fd);
+
+      setCallsList((prev) =>
+        prev.map((c) => {
+          if (c.id !== call.id) return c;
+          const withoutTag = c.behaviorTags.filter((t) => t.toLowerCase() !== FOLLOW_UP_TAG.toLowerCase());
+          return { ...c, behaviorTags: nextFlagged ? [...withoutTag, FOLLOW_UP_TAG] : withoutTag };
+        })
+      );
+    } catch (err) {
+      console.error("Failed to toggle Follow-Up flag", err);
+    } finally {
+      setTogglingFollowUpId(null);
     }
   }
 
@@ -697,9 +750,10 @@ Report generated via Allota AI Telephony Engine • allota.in
                     No calls match current filters.
                   </div>
                 ) : (
-                  filteredCalls.map((c) => {
+                  paginatedCalls.map((c) => {
                     const isSelected = activeEmbeddedCall?.id === c.id;
                     const isMissed = c.missed;
+                    const flagged = isFollowUpFlagged(c);
 
                     return (
                       <div
@@ -739,6 +793,11 @@ Report generated via Allota AI Telephony Engine • allota.in
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {flagged && (
+                              <span className="rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 bg-sky-100 text-sky-800 border border-sky-200">
+                                🔔 Follow Up
+                              </span>
+                            )}
                             <span className={`rounded-full px-2 py-0.5 text-[9px] font-black shrink-0 ${classifyCallLead(c).badgeClass}`}>
                               {classifyCallLead(c).label}
                             </span>
@@ -777,6 +836,42 @@ Report generated via Allota AI Telephony Engine • allota.in
                   })
                 )}
               </div>
+
+              {/* Pagination */}
+              {filteredCalls.length > CALLS_PAGE_SIZE && (
+                <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    disabled={callsPage === 1}
+                    onClick={() => setCallsPage((p) => Math.max(1, p - 1))}
+                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    ‹
+                  </button>
+                  {Array.from({ length: totalCallsPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCallsPage(pageNum)}
+                      className={`h-7 min-w-7 px-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        callsPage === pageNum
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "border border-line bg-white text-ink-muted hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={callsPage === totalCallsPages}
+                    onClick={() => setCallsPage((p) => Math.min(totalCallsPages, p + 1))}
+                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Clean Executive Document View (7 cols) */}
@@ -1038,11 +1133,36 @@ Report generated via Allota AI Telephony Engine • allota.in
 
                   {/* Section 4: Action Bar */}
                   <div className="mt-7 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-[11px] text-slate-500">
-                      Audit Document Verified • Dual Sync Active
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[11px] text-slate-500">
+                        Audit Document Verified • Dual Sync Active
+                      </span>
+                      {activeEmbeddedCall.leadId && (
+                        <button
+                          type="button"
+                          onClick={() => setFollowUpHistoryOpen(true)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 px-2.5 py-1 text-[11px] font-bold text-sky-800 transition cursor-pointer"
+                        >
+                          <span>📜</span> Follow-Up History ({followUpHistoryForActiveLead.length})
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={togglingFollowUpId === activeEmbeddedCall.id}
+                        onClick={() => handleToggleFollowUp(activeEmbeddedCall)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black transition cursor-pointer disabled:opacity-50 ${
+                          isFollowUpFlagged(activeEmbeddedCall)
+                            ? "bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-600/20"
+                            : "border border-slate-300 bg-white hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <span>🔔</span>
+                        <span>{isFollowUpFlagged(activeEmbeddedCall) ? "Flagged as Follow-Up" : "Flag as Follow-Up"}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleSendAiWhatsAppAlert(activeEmbeddedCall)}
@@ -1463,6 +1583,55 @@ Report generated via Allota AI Telephony Engine • allota.in
           if (found) handleSendAiWhatsAppAlert(found);
         }}
       />
+
+      {/* Follow-Up AI Summary History Popup */}
+      {followUpHistoryOpen && activeEmbeddedCall && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setFollowUpHistoryOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col rounded-3xl bg-white shadow-2xl border border-line"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-ink">Follow-Up History</h3>
+                <p className="text-xs text-ink-muted mt-0.5">{activeEmbeddedCall.targetName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFollowUpHistoryOpen(false)}
+                className="text-ink-faint hover:text-ink text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-3">
+              {followUpHistoryForActiveLead.length === 0 ? (
+                <p className="text-xs text-ink-faint text-center py-8">
+                  No calls have been flagged as Follow-Up for this contact yet.
+                </p>
+              ) : (
+                followUpHistoryForActiveLead.map((c) => (
+                  <div key={c.id} className="rounded-2xl border border-sky-200 bg-sky-50/50 p-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-sky-900">{c.repName}</span>
+                      <span className="text-[10px] text-ink-faint">
+                        {formatDate(c.occurredAt)} • {formatTime(c.occurredAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-ink leading-relaxed">
+                      {c.aiSummary || c.summary || "No AI summary recorded for this call."}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

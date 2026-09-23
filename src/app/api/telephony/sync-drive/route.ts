@@ -629,6 +629,7 @@ async function handleSync(req: NextRequest) {
 
       return {
         id: c.id,
+        leadId: c.leadId,
         targetName,
         targetPhone: extractedPhone,
         direction: c.direction,
