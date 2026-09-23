@@ -1222,6 +1222,109 @@ export async function updateEmployeeLeadStatus(formData: FormData) {
   }
 }
 
+const leadFollowUpSchema = z.object({
+  leadId: requiredText,
+  days: z.string().optional(),
+  customDate: z.string().optional(),
+});
+
+export async function setLeadFollowUp(formData: FormData) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const input = leadFollowUpSchema.parse({
+    leadId: formData.get("leadId"),
+    days: formData.get("days") || undefined,
+    customDate: formData.get("customDate") || undefined,
+  });
+
+  const lead = await prisma.lead.findUnique({
+    where: { id: input.leadId },
+  });
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  if (session.role !== Role.ADMIN && session.role !== Role.SUPER_ADMIN && lead.assignedEmployeeId !== session.employeeId) {
+    throw new Error("Unauthorized to set follow-up for this lead");
+  }
+
+  let followUpAt: Date;
+  if (input.customDate) {
+    followUpAt = new Date(`${input.customDate}T09:00:00`);
+  } else {
+    const days = Number(input.days) || 1;
+    followUpAt = new Date();
+    followUpAt.setDate(followUpAt.getDate() + days);
+  }
+
+  await prisma.lead.update({
+    where: { id: input.leadId },
+    data: { followUpAt },
+  });
+
+  revalidatePath("/employee");
+  revalidatePath("/employee/leads");
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/employees");
+  if (lead.assignedEmployeeId) {
+    revalidatePath(`/admin/employees/${lead.assignedEmployeeId}`);
+  }
+}
+
+const leadActiveStatusSchema = z.object({
+  leadId: requiredText,
+  isDead: z.enum(["true", "false"]),
+});
+
+export async function updateLeadActiveStatus(formData: FormData) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const input = leadActiveStatusSchema.parse({
+    leadId: formData.get("leadId"),
+    isDead: formData.get("isDead"),
+  });
+
+  const lead = await prisma.lead.findUnique({
+    where: { id: input.leadId },
+  });
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  if (session.role !== Role.ADMIN && session.role !== Role.SUPER_ADMIN && lead.assignedEmployeeId !== session.employeeId) {
+    throw new Error("Unauthorized to update this lead");
+  }
+
+  const newStatus =
+    input.isDead === "true"
+      ? LeadStatus.NOT_INTERESTED
+      : lead.status === LeadStatus.NOT_INTERESTED
+      ? LeadStatus.CONTACTED
+      : lead.status;
+
+  await prisma.lead.update({
+    where: { id: input.leadId },
+    data: { status: newStatus },
+  });
+
+  revalidatePath("/employee");
+  revalidatePath("/employee/leads");
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/leads-iq");
+  revalidatePath("/admin/employees");
+  if (lead.assignedEmployeeId) {
+    revalidatePath(`/admin/employees/${lead.assignedEmployeeId}`);
+  }
+}
+
 const leadRemarkSchema = z.object({
   leadId: requiredText,
   remark: requiredText,

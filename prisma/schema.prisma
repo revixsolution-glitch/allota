@@ -157,6 +157,7 @@ model Lead {
   reassignedCount    Int        @default(0)
   reassignedAt       DateTime?
   reassignmentReason String?
+  followUpAt         DateTime?
   reassignmentLogs   LeadReassignmentLog[]
   remarks            LeadRemark[]
   createdAt          DateTime   @default(now())
