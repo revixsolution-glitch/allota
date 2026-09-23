@@ -395,8 +395,6 @@ const MAPPING_FIELDS: { field: LeadField; label: string; required?: boolean }[] 
   { field: "inquiry", label: "Inquiry / notes" },
 ];
 
-const PREVIEW_ROWS = 10;
-
 function ColumnMappingPreview({
   analysis,
   mapping,
@@ -472,12 +470,12 @@ function ColumnMappingPreview({
       <div className="overflow-hidden rounded-xl border border-line bg-white shadow-2xs">
         <div className="flex items-center justify-between border-b border-line bg-slate-50/80 px-3.5 py-2">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-muted">
-            Preview — first {Math.min(PREVIEW_ROWS, rows.length)} of {rows.length} rows
+            Preview — all {rows.length} rows (scroll to see every row)
           </span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="max-h-96 overflow-auto">
           <table className="w-full border-collapse text-left text-xs">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-slate-50">
               <tr className="border-b border-line bg-slate-50/40 text-[10px] font-bold uppercase text-ink-muted">
                 <th className="px-3 py-2">#</th>
                 <th className="px-3 py-2">Name</th>
@@ -487,7 +485,7 @@ function ColumnMappingPreview({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {parsed.slice(0, PREVIEW_ROWS).map((lead, idx) =>
+              {parsed.map((lead, idx) =>
                 lead ? (
                   <tr key={idx} className="hover:bg-slate-50/50">
                     <td className="px-3 py-2 font-mono text-[10px] text-ink-faint">{idx + 1}</td>
