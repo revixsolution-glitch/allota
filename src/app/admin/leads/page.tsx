@@ -383,12 +383,12 @@ export default async function AdminLeadsPage({
           </div>
 
           {/* Commercial category filter */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[34rem]">
+          <div className="flex flex-wrap items-center gap-2">
             {(
               [
-                { value: "ALL", label: "All", icon: "📋", count: pcdCount + thirdPartyCount, active: "bg-slate-800 text-white border-slate-800 ring-slate-500/30", idle: "text-slate-800 border-slate-200 hover:bg-slate-50", pill: "bg-slate-100 text-slate-800" },
-                { value: "PCD_FRANCHISE", label: "PCD Pharma Franchise", icon: "🏢", count: pcdCount, active: "bg-blue-700 text-white border-blue-700 ring-blue-500/30", idle: "text-blue-900 border-blue-200 hover:bg-blue-50/60", pill: "bg-blue-100 text-blue-800" },
-                { value: "THIRD_PARTY", label: "Third-Party Manufacturing", icon: "🏭", count: thirdPartyCount, active: "bg-purple-700 text-white border-purple-700 ring-purple-500/30", idle: "text-purple-900 border-purple-200 hover:bg-purple-50/60", pill: "bg-purple-100 text-purple-800" },
+                { value: "ALL", label: "All", icon: "📋", count: pcdCount + thirdPartyCount, active: "bg-slate-200 text-slate-800 border-slate-300", idle: "text-slate-800 border-slate-200 hover:bg-slate-50", pill: "bg-slate-100 text-slate-800" },
+                { value: "PCD_FRANCHISE", label: "PCD Pharma Franchise", icon: "🏢", count: pcdCount, active: "bg-blue-100 text-blue-800 border-blue-300", idle: "text-blue-900 border-blue-200 hover:bg-blue-50/60", pill: "bg-blue-100 text-blue-800" },
+                { value: "THIRD_PARTY", label: "Third-Party Manufacturing", icon: "🏭", count: thirdPartyCount, active: "bg-purple-100 text-purple-800 border-purple-300", idle: "text-purple-900 border-purple-200 hover:bg-purple-50/60", pill: "bg-purple-100 text-purple-800" },
               ] as const
             ).map((opt) => {
               const isActive = selectedDivision === opt.value;
@@ -396,15 +396,15 @@ export default async function AdminLeadsPage({
                 <Link
                   key={opt.value}
                   href={buildLeadsUrl({ division: opt.value })}
-                  className={`flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-4 py-2.5 text-xs font-bold border transition ${
-                    isActive ? `${opt.active} shadow-sm ring-2` : `bg-white ${opt.idle}`
+                  className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition ${
+                    isActive ? opt.active : `bg-white ${opt.idle}`
                   }`}
                 >
                   <span>{opt.icon}</span>
                   <span>{opt.label}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                      isActive ? "bg-white/25 text-white" : opt.pill
+                    className={`rounded-full px-1.5 text-[10px] font-bold ${
+                      isActive ? "bg-white/70 text-inherit" : opt.pill
                     }`}
                   >
                     {opt.count}
