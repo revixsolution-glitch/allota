@@ -63,6 +63,7 @@ const leadStatuses = [
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 const validSources = new Set<string>(leadSources.map((source) => source.value));
+const SHOW_LEAD_CENTER_INSIGHTS = false;
 
 export default async function AdminLeadsPage({
   searchParams,
@@ -466,7 +467,8 @@ export default async function AdminLeadsPage({
         </div>
       </section>
 
-      {/* 3. Pipeline Velocity & Social Lead Watchlist */}
+      {/* Temporarily hidden until Social Signals gets its own main navigation area. */}
+      {SHOW_LEAD_CENTER_INSIGHTS && (
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-3xl p-6 neo-panel">
           <div className="mb-5 flex items-center justify-between">
@@ -546,6 +548,7 @@ export default async function AdminLeadsPage({
           </div>
         </section>
       </section>
+      )}
 
       {/* 4. Full-Width Leads Allotment Desk (Zero Blank Space, Perfectly Aligned) */}
       <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-teal-500 bg-white">
