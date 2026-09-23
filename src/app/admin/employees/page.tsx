@@ -5,6 +5,7 @@ import { AddEmployeeModal } from "@/components/AddEmployeeModal";
 import { SOURCE_META } from "@/lib/lead-sources";
 import { LeadSource } from "@/generated/prisma/enums";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
+import { SourceIcon } from "@/components/SourceIcon";
 
 function formatINR(amount: number): string {
   if (amount >= 100000) {
@@ -64,6 +65,11 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
       : null;
 
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+
+  const settings = activeCompanyId
+    ? await prisma.companySettings.findFirst({ where: { companyId: activeCompanyId } })
+    : await prisma.companySettings.findFirst();
+  const isCorePlan = !settings?.enableBillingErp && !settings?.enableClientsManagement;
 
   const [employees, sourceAssignments] = await Promise.all([
     prisma.employee.findMany({
@@ -168,7 +174,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                   : "bg-canvas text-ink-muted hover:text-ink border border-line"
               }`}
             >
-              <span>{s.icon}</span>
+              <SourceIcon source={s.value} className="h-3.5 w-3.5 shrink-0" />
               <span>
                 {s.label} ({sourceCounts.get(s.value) || 0})
               </span>
@@ -181,7 +187,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
         <p className="text-xs text-ink-muted -mt-4">
           Showing only employees dedicated to <strong className="text-ink">{SOURCE_META.find((s) => s.value === selectedSource)?.label}</strong> in
           the auto-assignment rotation.{" "}
-          <Link href="/admin/sources" className="font-bold text-primary hover:underline">
+          <Link href="/admin/leads" className="font-bold text-primary hover:underline">
             Manage rotation →
           </Link>
         </p>
@@ -273,7 +279,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                             key={a.id}
                             className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-bold text-primary"
                           >
-                            <span>{meta?.icon}</span>
+                            {meta && <SourceIcon source={meta.value} className="h-3 w-3 shrink-0" />}
                             <span>{meta?.label}</span>
                           </span>
                         );
@@ -304,7 +310,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                             </>
                           )}
                           <span className="text-[11px] font-semibold text-ink flex items-center gap-1">
-                            <span>{s.icon}</span>
+                            <SourceIcon source={s.value} className="h-3.5 w-3.5 shrink-0" />
                             <span>{s.label}</span>
                           </span>
                           <button
@@ -325,13 +331,15 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
               </div>
 
               {/* Quick Metrics Strip */}
-              <div className="mt-5 grid grid-cols-4 gap-2.5">
-                <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
-                  <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Marg Sales</p>
-                  <p className="mt-1 text-sm font-black text-emerald-700">
-                    {formatINR(totalSales)}
-                  </p>
-                </div>
+              <div className={`mt-5 grid gap-2.5 ${isCorePlan ? "grid-cols-3" : "grid-cols-4"}`}>
+                {!isCorePlan && (
+                  <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
+                    <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Marg Sales</p>
+                    <p className="mt-1 text-sm font-black text-emerald-700">
+                      {formatINR(totalSales)}
+                    </p>
+                  </div>
+                )}
 
                 <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
                   <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Clients</p>
