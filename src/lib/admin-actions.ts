@@ -1420,6 +1420,38 @@ export async function markWhatsAppAlertSent(formData: FormData) {
   return { success: true };
 }
 
+const FOLLOW_UP_CALL_TAG = "Follow-Up";
+
+export async function toggleCallFollowUpFlag(formData: FormData) {
+  const session = await getSession();
+  if (!session || (session.role !== Role.ADMIN && session.role !== Role.SUPER_ADMIN)) {
+    redirect("/login");
+  }
+
+  const callId = String(formData.get("callId") || "").trim();
+  const flagged = String(formData.get("flagged") || "") === "true";
+  if (!callId) return { error: "Call ID is required" };
+
+  const call = await prisma.call.findUnique({
+    where: { id: callId },
+    select: { behaviorTags: true },
+  });
+  if (!call) return { error: "Call not found" };
+
+  const withoutTag = call.behaviorTags.filter(
+    (t) => t.toLowerCase() !== FOLLOW_UP_CALL_TAG.toLowerCase()
+  );
+  const nextTags = flagged ? [...withoutTag, FOLLOW_UP_CALL_TAG] : withoutTag;
+
+  await prisma.call.update({
+    where: { id: callId },
+    data: { behaviorTags: nextTags },
+  });
+
+  revalidatePath("/admin/calls");
+  return { success: true };
+}
+
 export async function logEmployeeCall(formData: FormData) {
   const session = await getSession();
   if (!session || !session.employeeId) {

@@ -107,6 +107,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
 
     return {
       id: c.id,
+      leadId: c.leadId,
       targetName,
       targetPhone: extractedPhone,
       direction: c.direction,
