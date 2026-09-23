@@ -339,8 +339,8 @@ export default async function AdminLeadsPage({
       {/* Top Banner */}
       <section className="order-1 relative overflow-hidden rounded-3xl px-7 py-6 neo-panel">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white [text-shadow:0_1px_0_rgba(15,23,42,0.12),2px_3px_6px_rgba(15,23,42,0.35)]">
-            Lead{" "}
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+            Allota Lead{" "}
             <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent [text-shadow:none] [filter:drop-shadow(2px_3px_4px_rgba(15,23,42,0.18))]">
               IQ
             </span>
