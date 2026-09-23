@@ -346,9 +346,8 @@ export default async function AdminLeadsPage({
               {selectedPlatform ? selectedPlatform.label : "Unified Lead Center"}
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
-              Live funnel tracking commercial inquiries across Meta Ads, IndiaMART catalog,
-              website landing forms, WhatsApp chats, and social channels. All metrics operate on pure
-              database logic synced via API.
+              Track inquiries in real time across Meta Ads, IndiaMART, website forms, WhatsApp,
+              and social channels — from first contact through to conversion.
             </p>
           </div>
 
@@ -525,9 +524,8 @@ export default async function AdminLeadsPage({
             </span>
           </div>
           <p className="text-xs leading-relaxed text-ink-muted">
-            AI is strictly utilized for automated DM and post comment replies after office hours 
-            (sending PCD franchise brochures and collecting prospect phone numbers). All lead assignments 
-            and metrics operate with pure database logic.
+            Automated replies to DMs and post comments outside office hours — sharing PCD franchise
+            brochures and collecting prospect phone numbers.
           </p>
           <div className="mt-4 grid gap-2.5">
             <WatchItem
@@ -560,7 +558,7 @@ export default async function AdminLeadsPage({
               </h2>
             </div>
             <p className="text-xs text-ink-faint mt-0.5">
-              Allocate batches of unassigned leads directly to any sales representative. Pure logic & audit logged.
+              Allocate batches of unassigned leads directly to any sales representative. Every assignment is logged for audit.
             </p>
           </div>
           <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 text-xs font-bold shrink-0">

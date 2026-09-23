@@ -316,14 +316,14 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <h2 className="text-base font-extrabold text-ink">
-              ⚡ High-Speed Bulk Excel / CSV Ingestor
+              Bulk Excel / CSV Import
             </h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-              🛡️ Zero-Duplicate Guarantee
+              🛡️ Duplicate Protection
             </span>
           </div>
           <p className="text-xs text-ink-faint mt-0.5">
-            Ingest commercial leads at zero Marg API cost. Strictly filters existing CRM numbers & duplicate rows so employees never share duplicate data.
+            Import leads in bulk from a spreadsheet. Rows matching an existing phone number are filtered out automatically, so no two employees ever get the same contact.
           </p>
         </div>
 
@@ -681,7 +681,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
         {/* Submit Button */}
         <div className="flex items-center justify-between pt-2">
           <p className="text-xs text-ink-faint">
-            Every lead is stored with original payload & timestamp. ₹0 Marg API overhead.
+            Every imported lead is stored with its original data and timestamp.
           </p>
 
           <button
