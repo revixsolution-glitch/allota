@@ -164,11 +164,11 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
 
   return (
     <div className="rounded-3xl p-6 neo-panel bg-white border border-line shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
+      <div className="-mx-6 -mt-6 flex flex-col items-start justify-between gap-4 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-6 py-4 sm:flex-row sm:items-center">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-base font-extrabold text-ink">
+            <h2 className="text-xl font-extrabold tracking-tight text-ink">
               Bulk Excel / CSV Import
             </h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
