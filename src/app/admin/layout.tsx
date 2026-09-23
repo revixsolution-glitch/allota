@@ -34,6 +34,7 @@ export default async function AdminLayout({
     // Bulk Excel Uploader now live inside Lead Center instead).
     { href: "/admin/leads-reassign", label: "Leads Reassign" },
     { href: "/admin/dead-leads", label: "Dead Leads" },
+    { href: "/admin/follow-ups", label: "Follow Ups" },
     { href: "/admin/employees", label: "Employees" },
     { href: "/admin/calls", label: "AI Calls Summary" },
   ];

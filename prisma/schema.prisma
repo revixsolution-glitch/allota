@@ -87,6 +87,7 @@ model Employee {
   clients     Client[]
   leads       Lead[]
   leadRemarks LeadRemark[]
+  followUpLogs LeadFollowUpLog[]
   sourceAssignments LeadSourceAssignment[]
   calls       Call[]
   tasks       FollowupTask[]
@@ -161,6 +162,7 @@ model Lead {
   deadAt             DateTime?
   reassignmentLogs   LeadReassignmentLog[]
   remarks            LeadRemark[]
+  followUpLogs       LeadFollowUpLog[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 }
@@ -173,6 +175,16 @@ model LeadRemark {
   employee   Employee @relation(fields: [employeeId], references: [id])
   remark     String
   createdAt  DateTime @default(now())
+}
+
+model LeadFollowUpLog {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  scheduledFor DateTime
+  createdAt    DateTime @default(now())
 }
 
 model LeadSourceAssignment {
