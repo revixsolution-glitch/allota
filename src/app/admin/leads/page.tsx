@@ -337,16 +337,16 @@ export default async function AdminLeadsPage({
   return (
     <div className="flex flex-col gap-7">
       {/* Top Banner */}
-      <section className="order-1 relative overflow-hidden rounded-3xl bg-slate-950 px-7 py-6 shadow-lg">
+      <section className="order-1 relative overflow-hidden rounded-3xl px-7 py-6 neo-panel">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white [text-shadow:0_1px_0_rgba(15,23,42,0.12),2px_3px_6px_rgba(15,23,42,0.35)]">
             Lead{" "}
-            <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent">
+            <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent [text-shadow:none] [filter:drop-shadow(2px_3px_4px_rgba(15,23,42,0.18))]">
               IQ
             </span>
           </h1>
           {selectedPlatform && (
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+            <span className="rounded-full neo-pressed px-3 py-1 text-xs font-bold text-ink-muted">
               Channel: {selectedPlatform.label}
             </span>
           )}
