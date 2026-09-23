@@ -909,7 +909,6 @@ export default async function AdminLeadsPage({
                 <th className="px-6 py-3.5">Lead & Contact</th>
                 <th className="px-6 py-3.5">Category</th>
                 <th className="px-6 py-3.5">Platform</th>
-                <th className="px-6 py-3.5">Inquiry Details & Salts</th>
                 <th className="px-6 py-3.5">Assigned Representative</th>
                 <th className="px-6 py-3.5">Calls</th>
                 <th className="px-6 py-3.5">Pipeline Stage</th>
@@ -977,40 +976,6 @@ export default async function AdminLeadsPage({
                       </span>
                     </td>
 
-                    {/* Inquiry Details & Salts */}
-                    <td className="px-6 py-4 max-w-xs">
-                      <p className="text-xs text-ink-muted leading-relaxed line-clamp-3">
-                        {leadDataText}
-                      </p>
-                      {lead.reassignedCount > 0 && (
-                        <span className="inline-block mt-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.2">
-                          🔄 Reassigned ({lead.reassignedCount}x)
-                        </span>
-                      )}
-                      {lead.remarks.length > 0 && (
-                        <details className="mt-1.5 group">
-                          <summary className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.2 cursor-pointer select-none">
-                            📝 Remarks ({lead.remarks.length})
-                          </summary>
-                          <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-xl border border-line-soft bg-slate-50 p-2">
-                            {lead.remarks.map((r) => (
-                              <div key={r.id} className="text-[11px] leading-relaxed">
-                                <p className="text-ink">{r.remark}</p>
-                                <p className="text-[10px] text-ink-faint font-semibold">
-                                  — {r.employee.name}, {new Date(r.createdAt).toLocaleString("en-IN", {
-                                    day: "numeric",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      )}
-                    </td>
-
                     {/* Assigned Representative */}
                     <td className="px-6 py-4">
                       <form action={updateLead} className="flex items-center gap-1.5">
@@ -1073,7 +1038,7 @@ export default async function AdminLeadsPage({
 
               {!filteredLeads.length && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-ink-faint">
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-ink-faint">
                     No inquiries matched your criteria. Try changing the commercial filter or clearing search.
                   </td>
                 </tr>
