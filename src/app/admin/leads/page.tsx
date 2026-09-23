@@ -64,6 +64,7 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 const validSources = new Set<string>(leadSources.map((source) => source.value));
 const SHOW_LEAD_CENTER_INSIGHTS = false;
+const LEADS_PER_PAGE = 10;
 
 export default async function AdminLeadsPage({
   searchParams,
@@ -75,6 +76,7 @@ export default async function AdminLeadsPage({
     range?: string;
     from?: string;
     to?: string;
+    page?: string;
   }>;
 }) {
   const session = await getSession();
@@ -91,6 +93,7 @@ export default async function AdminLeadsPage({
     params?.division === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE";
 
   const search = (params?.search || "").trim().toLowerCase();
+  const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
 
   const dateFilter = parseDashboardDateFilter(
     params?.range,
@@ -136,7 +139,9 @@ export default async function AdminLeadsPage({
           orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: { createdAt: "desc" },
+      // Keep the newest inquiries at the top for every source and category.
+      // The id tie-breaker makes the order stable when leads share a timestamp.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     }),
     prisma.employee.findMany({
       where: companyScope,
@@ -285,6 +290,13 @@ export default async function AdminLeadsPage({
       })
     : leads;
 
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / LEADS_PER_PAGE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * LEADS_PER_PAGE,
+    currentPage * LEADS_PER_PAGE
+  );
+
   const assignedCount = filteredLeads.filter((l) => l.assignedEmployeeId).length;
   const unassignedInView = filteredLeads.length - assignedCount;
   const conversionRate =
@@ -303,24 +315,38 @@ export default async function AdminLeadsPage({
     source?: string | null;
     division?: string | null;
     search?: string | null;
+    page?: number | null;
   }) => {
     const s = overrides.source !== undefined ? overrides.source : (params?.source || null);
     const d = overrides.division !== undefined ? overrides.division : selectedDivision;
     const q = overrides.search !== undefined ? overrides.search : (params?.search || "");
+    const filterChanged =
+      overrides.source !== undefined ||
+      overrides.division !== undefined ||
+      overrides.search !== undefined;
+    const page = overrides.page !== undefined
+      ? overrides.page
+      : filterChanged
+        ? 1
+        : currentPage;
 
     const sp = new URLSearchParams();
     if (s && s !== "all") sp.set("source", s);
     if (d) sp.set("division", d);
     if (q && q.trim()) sp.set("search", q.trim());
+    if (params?.range) sp.set("range", params.range);
+    if (params?.from) sp.set("from", params.from);
+    if (params?.to) sp.set("to", params.to);
+    if (page && page > 1) sp.set("page", page.toString());
 
     const qs = sp.toString();
     return qs ? `/admin/leads?${qs}` : "/admin/leads";
   };
 
   return (
-    <div className="space-y-7">
+    <div className="flex flex-col gap-7">
       {/* Top Banner */}
-      <section className="relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/60">
+      <section className="order-1 relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-primary/60">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -373,7 +399,7 @@ export default async function AdminLeadsPage({
       </section>
 
       {/* 1. Branded Platform Navigation Cards - Dynamic Active Sources Only */}
-      <section className={`grid gap-4 sm:grid-cols-2 md:grid-cols-3 ${
+      <section className={`order-2 grid gap-4 sm:grid-cols-2 md:grid-cols-3 ${
         activeLeadSources.length <= 2
           ? "xl:grid-cols-3"
           : activeLeadSources.length <= 3
@@ -404,7 +430,7 @@ export default async function AdminLeadsPage({
       </section>
 
       {/* 2. Commercial Ingestion Category Buttons (Positioned between All Platforms and Pipeline Velocity) */}
-      <section className="rounded-3xl p-4 neo-panel bg-white border border-line shadow-xs">
+      <section className="order-3 rounded-3xl p-4 neo-panel bg-white border border-line shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="shrink-0 max-w-sm xl:max-w-md">
             <div className="flex items-center gap-2">
@@ -469,7 +495,7 @@ export default async function AdminLeadsPage({
 
       {/* Temporarily hidden until Social Signals gets its own main navigation area. */}
       {SHOW_LEAD_CENTER_INSIGHTS && (
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="order-4 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-3xl p-6 neo-panel">
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -551,7 +577,7 @@ export default async function AdminLeadsPage({
       )}
 
       {/* 4. Full-Width Leads Allotment Desk (Zero Blank Space, Perfectly Aligned) */}
-      <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-teal-500 bg-white">
+      <section className="order-6 rounded-3xl p-6 neo-panel border-t-2 border-t-teal-500 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
           <div>
             <div className="flex items-center gap-2">
@@ -760,7 +786,7 @@ export default async function AdminLeadsPage({
       </section>
 
       {/* 4.5 Lead Sources & Auto-Assignment (compact, one card per channel) */}
-      <section className="rounded-3xl p-6 neo-panel bg-white">
+      <section className="order-7 rounded-3xl p-6 neo-panel bg-white">
         <div className="mb-4">
           <h2 className="font-bold text-ink text-base">Lead Sources & Auto-Assignment</h2>
           <p className="text-xs text-ink-faint mt-0.5">
@@ -870,14 +896,14 @@ export default async function AdminLeadsPage({
       </section>
 
       {/* 4.6 Bulk Excel / CSV Ingestor */}
-      <section>
+      <section className="order-8">
         <ExcelUploader employees={employeeOptions} />
       </section>
 
       {/* 5. FULL-WIDTH Master Leads Table (No blank space on the left) */}
       <section
         id="master-leads"
-        className="scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
+        className="order-5 scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
       >
         <div className="border-b border-line px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-slate-50/50">
           <div>
@@ -902,6 +928,9 @@ export default async function AdminLeadsPage({
             <form method="GET" action="/admin/leads" className="flex items-center gap-2">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
+              {params?.range && <input type="hidden" name="range" value={params.range} />}
+              {params?.from && <input type="hidden" name="from" value={params.from} />}
+              {params?.to && <input type="hidden" name="to" value={params.to} />}
               <div className="relative">
                 <input
                   type="text"
@@ -964,7 +993,7 @@ export default async function AdminLeadsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
-              {filteredLeads.map((lead) => {
+              {paginatedLeads.map((lead) => {
                 const sourceMeta = leadSources.find((s) => s.value === lead.source);
                 const leadDataText = extractLeadData(lead.rawPayload) || lead.inquiryDetails || "Inquiry recorded via API";
                 const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
@@ -1132,7 +1161,7 @@ export default async function AdminLeadsPage({
 
         {/* Mobile Touch Cards View (lg:hidden) */}
         <div className="lg:hidden divide-y divide-line-soft">
-          {filteredLeads.map((lead) => {
+          {paginatedLeads.map((lead) => {
             const cleanPhone = (lead.phoneNumber || "").replace(/[^0-9]/g, "");
             const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
             const leadDataText = extractLeadData(lead.rawPayload) || lead.inquiryDetails || "Inquiry recorded via API";
@@ -1287,6 +1316,43 @@ export default async function AdminLeadsPage({
             </div>
           )}
         </div>
+
+        {filteredLeads.length > 0 && (
+          <div className="flex flex-col gap-3 border-t border-line bg-slate-50/60 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-ink-muted">
+              Showing {(currentPage - 1) * LEADS_PER_PAGE + 1}–{Math.min(currentPage * LEADS_PER_PAGE, filteredLeads.length)} of {filteredLeads.length} leads
+            </p>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 ? (
+                <Link
+                  href={buildLeadsUrl({ page: currentPage - 1 })}
+                  className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:border-primary/40 hover:text-primary transition"
+                >
+                  ← Previous
+                </Link>
+              ) : (
+                <span className="rounded-xl border border-line-soft bg-slate-100 px-3 py-1.5 text-xs font-bold text-ink-faint">
+                  ← Previous
+                </span>
+              )}
+              <span className="px-2 text-xs font-bold text-ink">
+                Page {currentPage} of {totalPages}
+              </span>
+              {currentPage < totalPages ? (
+                <Link
+                  href={buildLeadsUrl({ page: currentPage + 1 })}
+                  className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:border-primary/40 hover:text-primary transition"
+                >
+                  Next →
+                </Link>
+              ) : (
+                <span className="rounded-xl border border-line-soft bg-slate-100 px-3 py-1.5 text-xs font-bold text-ink-faint">
+                  Next →
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
