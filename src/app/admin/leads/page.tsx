@@ -917,7 +917,6 @@ export default async function AdminLeadsPage({
             <tbody className="divide-y divide-line-soft">
               {paginatedLeads.map((lead) => {
                 const sourceMeta = leadSources.find((s) => s.value === lead.source);
-                const leadDataText = extractLeadData(lead.rawPayload) || lead.inquiryDetails || "Inquiry recorded via API";
                 const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
 
                 return (
