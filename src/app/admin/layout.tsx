@@ -1,3 +1,4 @@
+import { hasDashboard } from "@/types/company";
 import { AppShell } from "@/components/AppShell";
 import { SupportModeBanner } from "@/components/SupportModeBanner";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,7 @@ export default async function AdminLayout({
 
   // Core Lead Management Suite (Always Active for All Clients - ₹0 Marg Cost)
   const navItems: { href: string; label: string }[] = [
+    ...(hasDashboard(company?.planTier) ? [{ href: "/admin", label: "Dashboard" }] : []),
     { href: "/admin/leads", label: "Lead Center" },
     // "Leads IQ" and "Sources & Excel" are hidden from navigation for now
     // (routes stay live — Sources & Excel's Auto-Assignment Rules and

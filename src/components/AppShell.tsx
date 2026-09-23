@@ -46,6 +46,9 @@ export function AppShell({
         { href: "/employee/clients", label: "Clients" },
       ]
     : [
+        ...(navItems.some((item) => item.href === "/admin")
+          ? [{ href: "/admin", label: "Dashboard" }]
+          : []),
         { href: "/admin/leads", label: "Lead Center" },
         { href: "/admin/employees", label: "Reps" },
         { href: "/admin/calls", label: "Calls" },
