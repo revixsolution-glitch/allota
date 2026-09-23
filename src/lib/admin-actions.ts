@@ -1143,6 +1143,52 @@ export async function updateEmployeeLeadStatus(formData: FormData) {
   }
 }
 
+const leadRemarkSchema = z.object({
+  leadId: requiredText,
+  remark: requiredText,
+});
+
+export async function addLeadRemark(formData: FormData) {
+  const session = await getSession();
+  if (!session || !session.employeeId) {
+    redirect("/login");
+  }
+
+  const input = leadRemarkSchema.parse({
+    leadId: formData.get("leadId"),
+    remark: formData.get("remark"),
+  });
+
+  const lead = await prisma.lead.findUnique({
+    where: { id: input.leadId },
+  });
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  if (session.role !== Role.ADMIN && session.role !== Role.SUPER_ADMIN && lead.assignedEmployeeId !== session.employeeId) {
+    throw new Error("Unauthorized to add a remark to this lead");
+  }
+
+  await prisma.leadRemark.create({
+    data: {
+      leadId: input.leadId,
+      employeeId: session.employeeId,
+      remark: input.remark,
+    },
+  });
+
+  revalidatePath("/employee");
+  revalidatePath("/employee/leads");
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/leads-iq");
+  revalidatePath("/admin/employees");
+  if (lead.assignedEmployeeId) {
+    revalidatePath(`/admin/employees/${lead.assignedEmployeeId}`);
+  }
+}
+
 const logCallSchema = z.object({
   leadId: requiredText,
   direction: z.string().default("OUTBOUND"),

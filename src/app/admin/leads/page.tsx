@@ -127,6 +127,10 @@ export default async function AdminLeadsPage({
         assignedEmployee: true,
         client: { include: { territory: true } },
         _count: { select: { calls: true } },
+        remarks: {
+          include: { employee: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -888,6 +892,28 @@ export default async function AdminLeadsPage({
                           🔄 Reassigned ({lead.reassignedCount}x)
                         </span>
                       )}
+                      {lead.remarks.length > 0 && (
+                        <details className="mt-1.5 group">
+                          <summary className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.2 cursor-pointer select-none">
+                            📝 Remarks ({lead.remarks.length})
+                          </summary>
+                          <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-xl border border-line-soft bg-slate-50 p-2">
+                            {lead.remarks.map((r) => (
+                              <div key={r.id} className="text-[11px] leading-relaxed">
+                                <p className="text-ink">{r.remark}</p>
+                                <p className="text-[10px] text-ink-faint font-semibold">
+                                  — {r.employee.name}, {new Date(r.createdAt).toLocaleString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
                     </td>
 
                     {/* Assigned Representative */}
@@ -1022,6 +1048,30 @@ export default async function AdminLeadsPage({
                 <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
                   {leadDataText}
                 </p>
+
+                {/* Employee Remarks on Mobile */}
+                {lead.remarks.length > 0 && (
+                  <details className="group">
+                    <summary className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 cursor-pointer select-none">
+                      📝 Remarks ({lead.remarks.length})
+                    </summary>
+                    <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-xl border border-line-soft bg-slate-50 p-2">
+                      {lead.remarks.map((r) => (
+                        <div key={r.id} className="text-[11px] leading-relaxed">
+                          <p className="text-ink">{r.remark}</p>
+                          <p className="text-[10px] text-ink-faint font-semibold">
+                            — {r.employee.name}, {new Date(r.createdAt).toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
 
                 {/* Rep Assignment & Stage Form on Mobile */}
                 <div className="space-y-2 pt-1 border-t border-line-soft">

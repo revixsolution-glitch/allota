@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
-import { updateEmployeeLeadStatus, logEmployeeCall } from "@/lib/admin-actions";
+import { updateEmployeeLeadStatus, logEmployeeCall, addLeadRemark } from "@/lib/admin-actions";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -60,6 +60,10 @@ export default async function EmployeeLeadsPage({
         reassignmentLogs: {
           take: 1,
           orderBy: { reassignedAt: "desc" },
+        },
+        remarks: {
+          include: { employee: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -226,6 +230,7 @@ export default async function EmployeeLeadsPage({
                   <th className="px-4 py-3.5">Location</th>
                   <th className="px-4 py-3.5">Inquiry Details</th>
                   <th className="px-4 py-3.5">Update Stage</th>
+                  <th className="px-4 py-3.5">Remarks</th>
                   <th className="px-5 py-3.5 text-right">Telephony Touch</th>
                 </tr>
               </thead>
@@ -330,6 +335,59 @@ export default async function EmployeeLeadsPage({
                             Save
                           </button>
                         </form>
+                      </td>
+
+                      {/* Remarks */}
+                      <td className="px-4 py-4">
+                        <details className="inline-block text-left group">
+                          <summary className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
+                            <span>📝 Remarks</span>
+                            <span className="text-[10px] text-amber-600">
+                              ({lead.remarks.length})
+                            </span>
+                          </summary>
+
+                          <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
+                            <h4 className="text-xs font-extrabold text-ink mb-2">
+                              Remarks for {lead.name || "this lead"}
+                            </h4>
+
+                            {lead.remarks.length > 0 && (
+                              <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
+                                {lead.remarks.map((r) => (
+                                  <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
+                                    <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
+                                    <p className="mt-1 text-[10px] text-ink-faint">
+                                      {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
+                                        day: "numeric",
+                                        month: "short",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <form action={addLeadRemark} className="space-y-2">
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <textarea
+                                name="remark"
+                                rows={2}
+                                required
+                                placeholder="Write a short remark for admin..."
+                                className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                              />
+                              <button
+                                type="submit"
+                                className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
+                              >
+                                Add Remark
+                              </button>
+                            </form>
+                          </div>
+                        </details>
                       </td>
 
                       {/* Telephony Touch / Quick Log Call */}
@@ -521,6 +579,56 @@ export default async function EmployeeLeadsPage({
                       </button>
                     </form>
                   </div>
+
+                  {/* Inline Remarks accordion */}
+                  <details className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 group">
+                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-amber-900 select-none list-none">
+                      <div className="flex items-center gap-1.5">
+                        <span>📝 Remarks</span>
+                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                          {lead.remarks.length}
+                        </span>
+                      </div>
+                      <span className="text-amber-700 font-bold transition-transform group-open:rotate-180">▾</span>
+                    </summary>
+
+                    <div className="mt-3 pt-2 border-t border-amber-200/60 space-y-2.5">
+                      {lead.remarks.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                          {lead.remarks.map((r) => (
+                            <div key={r.id} className="rounded-xl bg-white border border-line-soft p-2">
+                              <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
+                              <p className="mt-1 text-[10px] text-ink-faint">
+                                {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <form action={addLeadRemark} className="space-y-2">
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <textarea
+                          name="remark"
+                          rows={2}
+                          required
+                          placeholder="Write a short remark for admin..."
+                          className="w-full rounded-xl border border-line bg-white p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                        <button
+                          type="submit"
+                          className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
+                        >
+                          Add Remark
+                        </button>
+                      </form>
+                    </div>
+                  </details>
 
                   {/* Inline Log Call accordian */}
                   <details className="rounded-xl border border-teal-200 bg-teal-50/50 p-3 group">
