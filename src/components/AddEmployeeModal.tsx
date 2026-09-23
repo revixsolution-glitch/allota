@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createCompanyEmployee } from "@/lib/admin-actions";
 import { SOURCE_META } from "@/lib/lead-sources";
+import { SourceIcon } from "@/components/SourceIcon";
 
 export function AddEmployeeModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -183,7 +184,7 @@ export function AddEmployeeModal() {
                         className="flex items-center gap-1.5 rounded-lg border border-line bg-slate-50/50 px-2.5 py-1.5 text-[11px] font-semibold text-ink cursor-pointer hover:bg-slate-100 transition"
                       >
                         <input type="checkbox" name="sources" value={s.value} className="accent-primary" />
-                        <span>{s.icon}</span>
+                        <SourceIcon source={s.value} className="h-3.5 w-3.5 shrink-0" />
                         <span>{s.label}</span>
                       </label>
                     ))}

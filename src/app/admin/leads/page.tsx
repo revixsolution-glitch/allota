@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
-import { allotLeadsBatch, createLead, updateLead } from "@/lib/admin-actions";
+import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { SourceIcon } from "@/components/SourceIcon";
+import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 
 const leadSources = [
   {
@@ -120,6 +122,7 @@ export default async function AdminLeadsPage({
     unassignedDivisionStats,
     unassignedExcelBatches,
     settings,
+    sourceAssignments,
   ] = await Promise.all([
     prisma.lead.findMany({
       where: leadWhere,
@@ -188,6 +191,11 @@ export default async function AdminLeadsPage({
       : prisma.companySettings.findFirst({
           where: { id: "default" },
         }),
+    prisma.leadSourceAssignment.findMany({
+      where: companyScope,
+      include: { employee: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   // Source count mapping
@@ -223,6 +231,22 @@ export default async function AdminLeadsPage({
   };
 
   const activeLeadSources = leadSources.filter((s) => isSourceActive(s.value));
+
+  const employeeOptions = employees.map((e) => ({
+    id: e.id,
+    name: e.name,
+    leadCount: e._count.leads,
+  }));
+
+  const assignmentsBySource = new Map<
+    LeadSource,
+    { id: string; employeeId: string; employeeName: string }[]
+  >();
+  for (const a of sourceAssignments) {
+    const list = assignmentsBySource.get(a.source) || [];
+    list.push({ id: a.id, employeeId: a.employeeId, employeeName: a.employee.name });
+    assignmentsBySource.set(a.source, list);
+  }
 
   // Map division counts
   const divisionCountMap = new Map(
@@ -732,6 +756,121 @@ export default async function AdminLeadsPage({
             </div>
           </form>
         </details>
+      </section>
+
+      {/* 4.5 Lead Sources & Auto-Assignment (compact, one card per channel) */}
+      <section className="rounded-3xl p-6 neo-panel bg-white">
+        <div className="mb-4">
+          <h2 className="font-bold text-ink text-base">Lead Sources & Auto-Assignment</h2>
+          <p className="text-xs text-ink-faint mt-0.5">
+            Connected channels route new inquiries straight to the reps dedicated below, rotating evenly
+            between them. Sources without a connection stay greyed out until set up in Settings.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {leadSources.map((source) => {
+            const connected = isSourceActive(source.value);
+            const assigned = assignmentsBySource.get(source.value) || [];
+            const assignedIds = new Set(assigned.map((a) => a.employeeId));
+            const availableEmployees = employeeOptions.filter((e) => !assignedIds.has(e.id));
+            const count = sourceCountMap.get(source.value) || 0;
+
+            return (
+              <div
+                key={source.value}
+                className={`rounded-2xl border p-4 transition ${
+                  connected ? "bg-white border-line" : "bg-slate-50 border-line-soft opacity-60"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <SourceIcon source={source.value} className="h-5 w-5 shrink-0" />
+                    <span className="text-sm font-bold text-ink">{source.shortLabel}</span>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                      connected
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-slate-200 text-ink-faint"
+                    }`}
+                  >
+                    {connected ? "● Connected" : "Not Connected"}
+                  </span>
+                </div>
+
+                {connected ? (
+                  <>
+                    <p className="text-[11px] text-ink-muted mb-2">{count} inquiries</p>
+                    <details className="group">
+                      <summary className="cursor-pointer text-[10px] font-bold text-primary underline decoration-dotted select-none">
+                        {assigned.length > 0
+                          ? `${assigned.length} rep${assigned.length > 1 ? "s" : ""} assigned — Edit`
+                          : "Assign reps"}
+                      </summary>
+                      <div className="mt-2 space-y-1.5">
+                        {assigned.map((a) => (
+                          <form
+                            key={a.id}
+                            action={removeSourceEmployeeMapping}
+                            className="flex items-center justify-between rounded-lg bg-slate-50 border border-line-soft px-2 py-1"
+                          >
+                            <input type="hidden" name="mappingId" value={a.id} />
+                            <span className="text-[11px] font-semibold text-ink">{a.employeeName}</span>
+                            <button
+                              type="submit"
+                              className="text-[10px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        ))}
+                        {availableEmployees.length > 0 && (
+                          <form action={addSourceEmployeeMapping} className="flex items-center gap-1">
+                            <input type="hidden" name="source" value={source.value} />
+                            <select
+                              name="employeeId"
+                              required
+                              defaultValue=""
+                              className="h-7 flex-1 rounded-lg border border-line bg-white px-1.5 text-[10px] font-semibold text-ink focus:outline-none"
+                            >
+                              <option value="" disabled>
+                                Add rep...
+                              </option>
+                              {availableEmployees.map((e) => (
+                                <option key={e.id} value={e.id}>
+                                  {e.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="submit"
+                              className="h-7 shrink-0 rounded-lg bg-primary px-2 text-[10px] font-bold text-white hover:bg-primary-strong transition cursor-pointer"
+                            >
+                              Add
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </details>
+                  </>
+                ) : (
+                  <Link
+                    href="/admin/settings"
+                    className="text-[10px] font-bold text-ink-faint hover:text-primary transition"
+                  >
+                    Connect in Settings →
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 4.6 Bulk Excel / CSV Ingestor */}
+      <section>
+        <ExcelUploader employees={employeeOptions} />
       </section>
 
       {/* 5. FULL-WIDTH Master Leads Table (No blank space on the left) */}

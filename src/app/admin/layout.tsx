@@ -29,8 +29,9 @@ export default async function AdminLayout({
   const navItems: { href: string; label: string }[] = [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/leads", label: "Lead Center" },
-    { href: "/admin/leads-iq", label: "Leads IQ" },
-    { href: "/admin/sources", label: "Sources & Excel" },
+    // "Leads IQ" and "Sources & Excel" are hidden from navigation for now
+    // (routes stay live — Sources & Excel's Auto-Assignment Rules and
+    // Bulk Excel Uploader now live inside Lead Center instead).
     { href: "/admin/leads-reassign", label: "Leads Reassign" },
     { href: "/admin/dead-leads", label: "Dead Leads" },
     { href: "/admin/employees", label: "Employees" },
