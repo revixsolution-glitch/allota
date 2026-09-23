@@ -4,101 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import * as XLSX from "xlsx";
 
-import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
+import { normalizePhoneKey } from "@/lib/phone-utils";
+import { analyzeSheet, extractLead, LEAD_FIELDS, type ColumnMapping } from "@/lib/lead-sheet";
 
 function cleanString(val: any): string {
   if (val === null || val === undefined) return "";
   return String(val).trim();
-}
-
-const DIVISION_TERMS = [
-  "pcd pharma franchise", "pcd franchise", "pcd", "pharma franchise",
-  "third party manufacturing", "third party", "3rd party", "contract manufacturing", "contract mfg",
-  "manufacturing", "mfg", "propaganda", "franchise", "generic", "ethical",
-  "ayurvedic", "herbal", "allopathic", "cosmetic", "veterinary", "derma", "cardiac", "diabetic"
-];
-
-function isDivisionTerm(val: any): boolean {
-  if (!val) return false;
-  const lower = String(val).toLowerCase().trim();
-  return DIVISION_TERMS.some(
-    (term) => lower === term || lower.includes(term)
-  );
-}
-
-function parseDivisionValue(val: any, fallback = "PCD_FRANCHISE"): string {
-  if (!val) return fallback;
-  const lower = String(val).toLowerCase();
-  if (lower.includes("third") || lower.includes("mfg") || lower.includes("contract") || lower.includes("3rd") || lower.includes("party")) {
-    return "THIRD_PARTY";
-  }
-  if (lower.includes("pcd") || lower.includes("franchise") || lower.includes("propaganda") || lower.includes("ethical")) {
-    return "PCD_FRANCHISE";
-  }
-  return fallback;
-}
-
-function isLikelyPersonOrBusinessName(val: any): boolean {
-  if (!val) return false;
-  const s = String(val).trim();
-  if (s.length < 2 || s.length > 80) return false;
-  // Cannot be a phone number
-  if (extractPhoneNumber(s)) return false;
-  // Cannot be purely numeric / punctuation
-  if (/^[\d\s.,+/#-]+$/.test(s)) return false;
-  // Cannot be a division term
-  if (isDivisionTerm(s)) return false;
-  // Cannot be email or web URL
-  if (s.includes("@") || s.includes("http://") || s.includes("https://") || s.includes(".com") || s.includes(".in")) return false;
-  // Cannot be date string
-  if (/^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(s)) return false;
-  // Cannot be common boolean or noise words
-  const lower = s.toLowerCase();
-  if (["sr no", "sl no", "s no", "na", "n/a", "none", "null", "no", "yes", "true", "false", "undefined"].includes(lower)) return false;
-  return true;
-}
-
-/**
- * Dynamically detects which row contains the table headers.
- * Bypasses title headers, blank top rows, and metadata cards.
- * Avoids misclassifying rows with actual mobile numbers as headers.
- */
-function findHeaderRowIndex(rows: any[][]): { headerRowIndex: number; hasHeader: boolean } {
-  const headerKeywords = [
-    "name", "party", "chemist", "doctor", "dr", "customer", "client", "firm", "person", "agency", "shop", "store", "stockist", "distributor", "dealer",
-    "phone", "mobile", "mob", "whatsapp", "wapp", "wa", "cell", "tel", "calling", "contact",
-    "city", "district", "dist", "town", "station", "location", "place", "state", "address", "hq", "area", "headquarter",
-    "inquiry", "enquiry", "remark", "note", "product", "requirement", "division", "category", "segment"
-  ];
-
-  let bestIndex = 0;
-  let maxMatches = 0;
-
-  const limit = Math.min(rows.length, 15);
-  for (let r = 0; r < limit; r++) {
-    const row = rows[r];
-    if (!Array.isArray(row)) continue;
-
-    // If any cell in this row is already a valid phone number, it is almost certainly a data row, not a header row
-    const hasPhoneData = row.some((cell) => extractPhoneNumber(cell) !== null);
-    if (hasPhoneData) continue;
-
-    let matches = 0;
-    for (const cell of row) {
-      if (cell !== null && cell !== undefined) {
-        const norm = String(cell).toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (norm && headerKeywords.some((kw) => norm.includes(kw))) {
-          matches++;
-        }
-      }
-    }
-    if (matches > maxMatches) {
-      maxMatches = matches;
-      bestIndex = r;
-    }
-  }
-
-  return { headerRowIndex: bestIndex, hasHeader: maxMatches >= 1 };
 }
 
 export async function POST(request: Request) {
@@ -157,11 +68,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { headerRowIndex, hasHeader } = findHeaderRowIndex(nonEmptyRows);
-    const headerRow: string[] = hasHeader
-      ? nonEmptyRows[headerRowIndex].map((c) => cleanString(c))
-      : [];
-    const dataRows = hasHeader ? nonEmptyRows.slice(headerRowIndex + 1) : nonEmptyRows;
+    // Same parser the upload preview uses, so the preview always matches the import.
+    const analysis = analyzeSheet(aoa);
+    const dataRows = analysis.rows;
+    const headerRow = analysis.columnLabels;
 
     if (dataRows.length === 0) {
       return NextResponse.json(
@@ -170,146 +80,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Optional user override from the preview: { name: 1, phone: 2, city: null, ... } (column indexes)
+    const mapping: ColumnMapping = { ...analysis.mapping };
     const columnMappingRaw = formData.get("columnMapping") as string | null;
-    let explicitMapping: {
-      nameCol?: string;
-      phoneCol?: string;
-      divisionCol?: string;
-      cityCol?: string;
-      stateCol?: string;
-      inquiryCol?: string;
-    } | null = null;
     if (columnMappingRaw) {
       try {
-        explicitMapping = JSON.parse(columnMappingRaw);
-      } catch {
-        explicitMapping = null;
-      }
-    }
-
-    // Map column types by analyzing header row and explicit user mapping
-    const colTypes: Record<number, "name" | "phone" | "city" | "state" | "division" | "inquiry"> = {};
-
-    if (explicitMapping) {
-      headerRow.forEach((colName, idx) => {
-        const colIdentifier = colName || `Column ${idx + 1}`;
-        if (explicitMapping?.nameCol && (colName === explicitMapping.nameCol || colIdentifier === explicitMapping.nameCol)) {
-          colTypes[idx] = "name";
-        } else if (explicitMapping?.phoneCol && (colName === explicitMapping.phoneCol || colIdentifier === explicitMapping.phoneCol)) {
-          colTypes[idx] = "phone";
-        } else if (explicitMapping?.divisionCol && (colName === explicitMapping.divisionCol || colIdentifier === explicitMapping.divisionCol)) {
-          colTypes[idx] = "division";
-        } else if (explicitMapping?.cityCol && (colName === explicitMapping.cityCol || colIdentifier === explicitMapping.cityCol)) {
-          colTypes[idx] = "city";
-        } else if (explicitMapping?.stateCol && (colName === explicitMapping.stateCol || colIdentifier === explicitMapping.stateCol)) {
-          colTypes[idx] = "state";
-        } else if (explicitMapping?.inquiryCol && (colName === explicitMapping.inquiryCol || colIdentifier === explicitMapping.inquiryCol)) {
-          colTypes[idx] = "inquiry";
+        const override = JSON.parse(columnMappingRaw) as Record<string, unknown>;
+        for (const field of LEAD_FIELDS) {
+          const v = override[field];
+          if (v === null || (typeof v === "number" && v >= 0 && v < analysis.columnCount)) {
+            mapping[field] = v as number | null;
+          }
         }
-      });
-    }
-
-    // Auto-detect any unmapped columns using strict semantic priority
-    headerRow.forEach((colName, idx) => {
-      if (colTypes[idx]) return; // Already explicitly mapped
-      const k = colName.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (!k) return;
-
-      const isDivisionHeader =
-        k.includes("type") ||
-        k.includes("division") ||
-        k.includes("category") ||
-        k.includes("segment") ||
-        k.includes("franchise") ||
-        k.includes("manufacturing") ||
-        k.includes("mfg") ||
-        k.includes("nature") ||
-        k.includes("business") ||
-        k.includes("propaganda") ||
-        k === "pcd";
-
-      if (
-        k.includes("phone") ||
-        k.includes("mobile") ||
-        k.includes("whatsapp") ||
-        k.includes("wapp") ||
-        k.includes("wa") ||
-        k.includes("cell") ||
-        k.includes("tel") ||
-        k.includes("calling") ||
-        k === "mob" ||
-        k === "mobno" ||
-        k === "phoneno" ||
-        k === "contactno" ||
-        k === "contactnumber" ||
-        (k === "contact" && !k.includes("person") && !k.includes("name"))
-      ) {
-        colTypes[idx] = "phone";
-      } else if (isDivisionHeader) {
-        // Division / Lead Type headers MUST take priority over generic name matches (e.g. "Lead Type Name", "Division Name")
-        colTypes[idx] = "division";
-      } else if (
-        (k.includes("name") ||
-         k.includes("party") ||
-         k.includes("chemist") ||
-         k.includes("doctor") ||
-         k.includes("dr") ||
-         k.includes("customer") ||
-         k.includes("client") ||
-         k.includes("firm") ||
-         k.includes("agency") ||
-         k.includes("person") ||
-         k.includes("prospect") ||
-         k.includes("applicant") ||
-         k.includes("shop") ||
-         k.includes("store") ||
-         k.includes("stockist") ||
-         k.includes("distributor") ||
-         k.includes("dealer") ||
-         k === "lead" ||
-         k === "contact") &&
-        !isDivisionHeader &&
-        !k.includes("inquiry") &&
-        !k.includes("product")
-      ) {
-        colTypes[idx] = "name";
-      } else if (
-        k.includes("city") ||
-        k.includes("district") ||
-        k.includes("dist") ||
-        k.includes("town") ||
-        k.includes("station") ||
-        k.includes("location") ||
-        k.includes("place") ||
-        k.includes("hq") ||
-        k.includes("headquarter") ||
-        k.includes("territory") ||
-        k.includes("area") ||
-        k.includes("address")
-      ) {
-        colTypes[idx] = "city";
-      } else if (
-        k.includes("state") ||
-        k.includes("province") ||
-        k.includes("region") ||
-        k.includes("zone")
-      ) {
-        colTypes[idx] = "state";
-      } else if (
-        k.includes("inquiry") ||
-        k.includes("enquiry") ||
-        k.includes("remark") ||
-        k.includes("note") ||
-        k.includes("requirement") ||
-        k.includes("product") ||
-        k.includes("detail") ||
-        k.includes("comment") ||
-        k.includes("message") ||
-        k.includes("description")
-      ) {
-        colTypes[idx] = "inquiry";
+      } catch {
+        // ignore malformed override and keep auto-detected mapping
       }
-    });
+    }
 
     // Gather existing phone numbers from DB for deduplication (Both Leads and converted Clients)
     const [existingLeads, existingClients] = await Promise.all([
@@ -358,92 +144,21 @@ export async function POST(request: Request) {
     let duplicateCount = 0;
     let invalidCount = 0;
 
+    const defaultDivision = divisionInput === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE";
+
     for (const row of dataRows) {
-      if (!Array.isArray(row) || !row.some((c) => cleanString(c) !== "")) {
-        continue;
-      }
-
-      let rawName = "";
-      let rawPhone = "";
-      let rawCity = "";
-      let rawState = "";
-      let rawDivision = divisionInput;
-      let rawInquiry = "";
-
-      // 1. First pass: Map values by classified column header
-      row.forEach((cell, idx) => {
-        const val = cleanString(cell);
-        if (!val) return;
-
-        const type = colTypes[idx];
-        if (type === "phone" && !rawPhone) {
-          rawPhone = val;
-        } else if (type === "name" && !rawName) {
-          // Never assign division values ("PCD Pharma Franchise", "Third Party", etc.) as the person/business name!
-          if (isDivisionTerm(val)) {
-            rawDivision = parseDivisionValue(val, rawDivision);
-          } else if (isLikelyPersonOrBusinessName(val)) {
-            rawName = val;
-          }
-        } else if (type === "division") {
-          rawDivision = parseDivisionValue(val, rawDivision);
-        } else if (type === "city" && !rawCity) {
-          rawCity = val;
-        } else if (type === "state" && !rawState) {
-          rawState = val;
-        } else if (type === "inquiry" && !rawInquiry) {
-          rawInquiry = val;
-        }
-      });
-
-      // 2. Second pass (Fallback): If rawPhone not found or invalid, scan ALL cells in the row
-      let parsedPhone = extractPhoneNumber(rawPhone);
-      if (!parsedPhone) {
-        for (let idx = 0; idx < row.length; idx++) {
-          const candidate = extractPhoneNumber(row[idx]);
-          if (candidate) {
-            parsedPhone = candidate;
-            rawPhone = String(row[idx]);
-            break;
-          }
-        }
-      }
-
-      // If no valid phone number exists anywhere in this row, mark invalid
-      if (!parsedPhone) {
+      const parsed = extractLead(row, mapping, defaultDivision);
+      // No valid phone number anywhere in the row → invalid
+      if (!parsed) {
         invalidCount++;
         continue;
       }
-
-      // 3. Third pass (Name Recovery): If rawName is empty or accidentally matched a division term
-      if (!rawName || isDivisionTerm(rawName)) {
-        rawName = "";
-        for (let idx = 0; idx < row.length; idx++) {
-          const val = cleanString(row[idx]);
-          if (!val) continue;
-          if (val === rawPhone || extractPhoneNumber(val)) continue;
-          if (val === rawCity || val === rawState) continue;
-          if (isDivisionTerm(val)) {
-            rawDivision = parseDivisionValue(val, rawDivision);
-            continue;
-          }
-          if (isLikelyPersonOrBusinessName(val)) {
-            rawName = val;
-            break;
-          }
-        }
-      }
-
-      // 4. Fourth pass (Division Recovery): Check if any unmapped column specifies Division
-      if (rawDivision === divisionInput) {
-        for (let idx = 0; idx < row.length; idx++) {
-          const val = cleanString(row[idx]);
-          if (isDivisionTerm(val)) {
-            rawDivision = parseDivisionValue(val, rawDivision);
-            break;
-          }
-        }
-      }
+      const parsedPhone = parsed.phone;
+      const rawName = parsed.name;
+      const rawDivision: string = parsed.division;
+      const rawCity = parsed.city;
+      const rawState = parsed.state;
+      const rawInquiry = parsed.inquiry;
 
       const phoneKey = normalizePhoneKey(parsedPhone.digits);
       if (!phoneKey || existingPhones.has(phoneKey) || batchSeenPhones.has(phoneKey)) {

@@ -427,7 +427,7 @@ export default async function AdminLeadsPage({
           : "xl:grid-cols-8"
       }`}>
         <PlatformCard
-          href={`${buildLeadsUrl({ source: "all" })}#master-leads`}
+          href={buildLeadsUrl({ source: "all" })}
           label="All Platforms"
           detail={selectedDivision === "PCD_FRANCHISE" ? "All PCD Inquiries" : selectedDivision === "THIRD_PARTY" ? "All Third-Party" : "All Inquiries"}
           count={totalPlatformLeadCount}
@@ -437,7 +437,7 @@ export default async function AdminLeadsPage({
         {platformCardSources.map((source) => (
           <PlatformCard
             key={source.value}
-            href={`${buildLeadsUrl({ source: source.value })}#master-leads`}
+            href={buildLeadsUrl({ source: source.value })}
             label={source.shortLabel}
             detail={source.detail}
             count={sourceCountMap.get(source.value) ?? 0}
@@ -532,10 +532,6 @@ export default async function AdminLeadsPage({
       <section className="order-7 rounded-3xl p-6 neo-panel bg-white">
         <div className="mb-4">
           <h2 className="font-bold text-ink text-base">Lead Sources & Auto-Assignment</h2>
-          <p className="text-xs text-ink-faint mt-0.5">
-            Connected channels route new inquiries straight to the reps dedicated below, rotating evenly
-            between them. Sources without a connection stay greyed out until set up in Settings.
-          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1447,6 +1443,7 @@ function PlatformCard({
   return (
     <Link
       href={href}
+      scroll={false}
       className={
         active
           ? `rounded-3xl p-4 sm:p-5 ${currentTheme.active} transition-all duration-200 transform scale-[1.02]`
