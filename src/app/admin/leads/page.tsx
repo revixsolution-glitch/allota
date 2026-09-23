@@ -905,8 +905,8 @@ export default async function AdminLeadsPage({
         id="master-leads"
         className="order-5 scroll-mt-24 overflow-hidden rounded-3xl neo-panel bg-white"
       >
-        <div className="border-b border-line px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-slate-50/50">
-          <div>
+        <div className="border-b border-line px-6 py-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-slate-50/50">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-ink text-base">
                 {selectedPlatform ? `${selectedPlatform.shortLabel} Inquiries` : "Master Leads Database"}
@@ -924,20 +924,20 @@ export default async function AdminLeadsPage({
           </div>
 
           {/* Search Bar + Quick Actions */}
-          <div className="flex items-center gap-2">
-            <form method="GET" action="/admin/leads" className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 xl:justify-end">
+            <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap xl:flex-initial">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
               {params?.range && <input type="hidden" name="range" value={params.range} />}
               {params?.from && <input type="hidden" name="from" value={params.from} />}
               {params?.to && <input type="hidden" name="to" value={params.to} />}
-              <div className="relative">
+              <div className="relative min-w-44 flex-1 sm:flex-initial">
                 <input
                   type="text"
                   name="search"
                   defaultValue={search}
                   placeholder="Search leads, phone, notes..."
-                  className="w-64 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                  className="w-full sm:w-64 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
                 />
               </div>
               <button
