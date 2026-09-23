@@ -949,6 +949,9 @@ export default async function AdminLeadsPage({
                     {/* Lead & Contact */}
                     <td className="px-6 py-4">
                       <div className="space-y-0.5">
+                        {!lead.assignedEmployeeId && (
+                          <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
+                        )}
                         <p className="font-bold text-ink text-sm">
                           {lead.name ?? "Unnamed Prospect"}
                         </p>
@@ -1008,7 +1011,7 @@ export default async function AdminLeadsPage({
                         <select
                           name="assignedEmployeeId"
                           defaultValue={lead.assignedEmployeeId ?? ""}
-                          className={tableSelectClass}
+                          className={lead.assignedEmployeeId ? tableSelectClass : tableSelectUnassignedClass}
                         >
                           <option value="">Unassigned</option>
                           {employees.map((employee) => (
@@ -1083,6 +1086,9 @@ export default async function AdminLeadsPage({
                 {/* Lead Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
+                    {!lead.assignedEmployeeId && (
+                      <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
+                    )}
                     <h3 className="font-extrabold text-ink text-base">
                       {lead.name ?? "Unnamed Prospect"}
                     </h3>
@@ -1169,7 +1175,11 @@ export default async function AdminLeadsPage({
                       <select
                         name="assignedEmployeeId"
                         defaultValue={lead.assignedEmployeeId ?? ""}
-                        className="w-full h-8 rounded-lg border border-line bg-white px-2 text-xs font-medium text-ink"
+                        className={`w-full h-8 rounded-lg border px-2 text-xs font-medium ${
+                          lead.assignedEmployeeId
+                            ? "border-line bg-white text-ink"
+                            : "border-rose-200 bg-gradient-to-r from-amber-50 to-rose-100 text-rose-800"
+                        }`}
                       >
                         <option value="">Unassigned</option>
                         {employees.map((employee) => (
@@ -1275,6 +1285,9 @@ const inputClass =
 
 const tableSelectClass =
   "w-full min-w-36 rounded-xl border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-sm";
+
+const tableSelectUnassignedClass =
+  "w-full min-w-36 rounded-xl border border-rose-200 bg-gradient-to-r from-amber-50 to-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-300/50 shadow-sm";
 
 const smallButtonClass =
   "w-fit rounded-xl px-3 py-1.5 text-xs font-bold text-ink-muted neo-button hover:text-primary hover:border-primary/40";
