@@ -4,6 +4,7 @@ import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { AddEmployeeModal } from "@/components/AddEmployeeModal";
 import { SOURCE_META } from "@/lib/lead-sources";
 import { LeadSource } from "@/generated/prisma/enums";
+import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 
 function formatINR(amount: number): string {
   if (amount >= 100000) {
@@ -87,13 +88,20 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
     }),
     prisma.leadSourceAssignment.findMany({
       where: companyScope,
-      select: { source: true, employeeId: true },
+      select: { id: true, source: true, employeeId: true },
     }),
   ]);
 
   const sourceCounts = new Map<LeadSource, number>();
   for (const a of sourceAssignments) {
     sourceCounts.set(a.source, (sourceCounts.get(a.source) || 0) + 1);
+  }
+
+  const sourcesByEmployee = new Map<string, { id: string; source: LeadSource }[]>();
+  for (const a of sourceAssignments) {
+    const list = sourcesByEmployee.get(a.employeeId) || [];
+    list.push({ id: a.id, source: a.source });
+    sourcesByEmployee.set(a.employeeId, list);
   }
 
   const dedicatedEmployeeIds = selectedSource
@@ -246,6 +254,74 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* Auto-Assign Sources: badges + click-to-edit */}
+              <div className="mt-4">
+                <details className="group/sources">
+                  <summary className="flex flex-wrap items-center gap-1.5 cursor-pointer select-none list-none">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mr-0.5">
+                      Auto-Assign:
+                    </span>
+                    {(sourcesByEmployee.get(employee.id) || []).length === 0 ? (
+                      <span className="text-[11px] text-ink-faint italic">No sources — click to assign</span>
+                    ) : (
+                      (sourcesByEmployee.get(employee.id) || []).map((a) => {
+                        const meta = SOURCE_META.find((s) => s.value === a.source);
+                        return (
+                          <span
+                            key={a.id}
+                            className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-bold text-primary"
+                          >
+                            <span>{meta?.icon}</span>
+                            <span>{meta?.label}</span>
+                          </span>
+                        );
+                      })
+                    )}
+                    <span className="text-[10px] font-bold text-primary underline decoration-dotted">
+                      Edit
+                    </span>
+                  </summary>
+
+                  <div className="mt-2 rounded-xl border border-line bg-slate-50/70 p-3 grid grid-cols-2 gap-1.5">
+                    {SOURCE_META.map((s) => {
+                      const existing = (sourcesByEmployee.get(employee.id) || []).find(
+                        (a) => a.source === s.value
+                      );
+                      return (
+                        <form
+                          key={s.value}
+                          action={existing ? removeSourceEmployeeMapping : addSourceEmployeeMapping}
+                          className="flex items-center justify-between gap-1.5 rounded-lg bg-white border border-line px-2 py-1.5"
+                        >
+                          {existing ? (
+                            <input type="hidden" name="mappingId" value={existing.id} />
+                          ) : (
+                            <>
+                              <input type="hidden" name="source" value={s.value} />
+                              <input type="hidden" name="employeeId" value={employee.id} />
+                            </>
+                          )}
+                          <span className="text-[11px] font-semibold text-ink flex items-center gap-1">
+                            <span>{s.icon}</span>
+                            <span>{s.label}</span>
+                          </span>
+                          <button
+                            type="submit"
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition cursor-pointer ${
+                              existing
+                                ? "text-rose-700 bg-rose-50 hover:bg-rose-100"
+                                : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                            }`}
+                          >
+                            {existing ? "Remove" : "Add"}
+                          </button>
+                        </form>
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
 
               {/* Quick Metrics Strip */}

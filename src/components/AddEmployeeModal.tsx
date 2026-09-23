@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createCompanyEmployee } from "@/lib/admin-actions";
+import { SOURCE_META } from "@/lib/lead-sources";
 
 export function AddEmployeeModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -166,6 +167,27 @@ export function AddEmployeeModal() {
                     placeholder="••••••••"
                     className="w-full rounded-xl border border-line bg-slate-50/50 px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-inner"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1.5">
+                    Auto-Assign to Sources (optional)
+                  </label>
+                  <p className="text-[11px] text-ink-faint mb-2">
+                    New leads from these sources will round-robin to this rep. You can change this anytime.
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {SOURCE_META.map((s) => (
+                      <label
+                        key={s.value}
+                        className="flex items-center gap-1.5 rounded-lg border border-line bg-slate-50/50 px-2.5 py-1.5 text-[11px] font-semibold text-ink cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <input type="checkbox" name="sources" value={s.value} className="accent-primary" />
+                        <span>{s.icon}</span>
+                        <span>{s.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
