@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 
@@ -7,12 +8,20 @@ function dayBounds(d: Date) {
   return { start, end };
 }
 
-export default async function FollowUpsPage() {
+export default async function FollowUpsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ employeeId?: string }>;
+}) {
+  const employeeId = (await searchParams)?.employeeId || "";
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
 
   const logs = await prisma.leadFollowUpLog.findMany({
-    where: activeCompanyId ? { lead: { companyId: activeCompanyId } } : {},
+    where: {
+      ...(activeCompanyId ? { lead: { companyId: activeCompanyId } } : {}),
+      ...(employeeId ? { employeeId } : {}),
+    },
     include: {
       lead: { select: { id: true, name: true, phoneNumber: true, followUpAt: true, status: true } },
       employee: { select: { name: true } },
@@ -28,6 +37,10 @@ export default async function FollowUpsPage() {
     return { ...log, sequence: seq };
   });
   withSequence.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  const repName = employeeId
+    ? (await prisma.employee.findUnique({ where: { id: employeeId }, select: { name: true } }))?.name ?? null
+    : null;
 
   const now = new Date();
   const { start: todayStart, end: todayEnd } = dayBounds(now);
@@ -46,6 +59,12 @@ export default async function FollowUpsPage() {
 
   return (
     <div className="space-y-6">
+      {repName && (
+        <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
+          Showing only <strong>{repName}</strong>
+          <Link href="/admin/follow-ups" className="ml-auto text-xs font-bold text-sky-700 underline">Show everyone</Link>
+        </div>
+      )}
       {/* Top Banner */}
       <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-sky-500/70 bg-white">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

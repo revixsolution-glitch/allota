@@ -30,14 +30,23 @@ function buildAiReason(lead: {
   return "No AI call summary or inquiry notes on record for this lead.";
 }
 
-export default async function DeadLeadsPage() {
+export default async function DeadLeadsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ employeeId?: string }>;
+}) {
+  const employeeId = (await searchParams)?.employeeId || "";
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
 
   const [deadLeads] = await Promise.all([
     prisma.lead.findMany({
-      where: { status: LeadStatus.NOT_INTERESTED, ...companyScope },
+      where: {
+        status: LeadStatus.NOT_INTERESTED,
+        ...companyScope,
+        ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
+      },
       include: {
         assignedEmployee: { select: { id: true, name: true } },
         calls: {
@@ -53,8 +62,18 @@ export default async function DeadLeadsPage() {
     }),
   ]);
 
+  const repName = employeeId
+    ? (await prisma.employee.findUnique({ where: { id: employeeId }, select: { name: true } }))?.name ?? null
+    : null;
+
   return (
     <div className="space-y-6">
+      {repName && (
+        <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
+          Showing only <strong>{repName}</strong>
+          <Link href="/admin/dead-leads" className="ml-auto text-xs font-bold text-sky-700 underline">Show everyone</Link>
+        </div>
+      )}
       {/* Top Banner */}
       <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-rose-500/70 bg-white">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
