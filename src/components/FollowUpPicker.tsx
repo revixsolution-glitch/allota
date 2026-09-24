@@ -33,7 +33,7 @@ export function FollowUpPicker({
   const { label, tone } = formatFollowUp(followUpAt);
 
   // Show what is actually scheduled: none → prompt, 1–5 days → that preset, anything else → the saved date.
-  let selectValue = "";
+  let selectValue = "1"; // nothing scheduled yet → default to Tomorrow (1 day)
   let currentLabel = "";
   if (followUpAt) {
     const target = new Date(followUpAt);
@@ -114,11 +114,6 @@ export function FollowUpPicker({
             }}
             className={`${h} flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary`}
           >
-            {selectValue === "" && (
-              <option value="" disabled>
-                Set follow-up…
-              </option>
-            )}
             {selectValue === "current" && (
               <option value="current" disabled>
                 {currentLabel}
@@ -131,6 +126,15 @@ export function FollowUpPicker({
             <option value="5">In 5 days</option>
             <option value="custom">Custom date…</option>
           </select>
+        )}
+        {!followUpAt && !showCustom && (
+          <button
+            type="submit"
+            title="Schedule the selected follow-up"
+            className={`${h} shrink-0 rounded-lg bg-primary px-2.5 text-[11px] font-bold text-white hover:bg-primary-strong transition cursor-pointer`}
+          >
+            Set
+          </button>
         )}
       </form>
     </div>
