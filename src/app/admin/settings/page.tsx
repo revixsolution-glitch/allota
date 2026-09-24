@@ -3,6 +3,7 @@ import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { updateCompanyPlanSettings } from "@/lib/admin-actions";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 import { UpgradePlanCard } from "@/components/UpgradePlanCard";
+import { GradientText } from "@/components/GradientText";
 
 export default async function AdminSettingsPage() {
   const session = await getSession();
@@ -101,7 +102,8 @@ export default async function AdminSettingsPage() {
             </div>
 
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              {company?.name ? `${company.name} Settings` : "Organization Settings"}
+              {company?.name ? `${company.name} ` : "Organization "}
+              <GradientText>Settings</GradientText>
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-muted">
               {isSuperAdmin

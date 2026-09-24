@@ -7,6 +7,7 @@ import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
+import { GradientText } from "@/components/GradientText";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -196,7 +197,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
             </div>
 
             <h1 className="mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
-              Welcome, {employee?.name}!
+              Welcome, <GradientText>{employee?.name}</GradientText>!
             </h1>
           </div>
 

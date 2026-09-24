@@ -6,6 +6,7 @@ import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { GradientText } from "@/components/GradientText";
 
 export default async function AdminClientsPage({
   searchParams,
@@ -117,7 +118,7 @@ export default async function AdminClientsPage({
               </span>
             </div>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
-              Franchise Client Directory
+              Franchise Client <GradientText>Directory</GradientText>
             </h1>
           </div>
 

@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
+import { GradientText } from "@/components/GradientText";
 
 export default async function AdminStockIqPage(props: {
   searchParams: Promise<{
@@ -300,7 +301,7 @@ export default async function AdminStockIqPage(props: {
             </div>
 
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              Stock IQ & ERP Inventory Intelligence
+              Stock IQ & ERP Inventory <GradientText>Intelligence</GradientText>
             </h1>
           </div>
 

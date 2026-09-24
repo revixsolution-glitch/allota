@@ -2,6 +2,7 @@ import { createTerritory } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
+import { GradientText } from "@/components/GradientText";
 
 export default async function AdminTerritoriesPage() {
   const session = await getSession();
@@ -63,7 +64,7 @@ export default async function AdminTerritoriesPage() {
               </span>
             </div>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink">
-              Territory Distribution
+              Territory <GradientText>Distribution</GradientText>
             </h1>
           </div>
 

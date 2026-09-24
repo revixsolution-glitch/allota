@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { GradientText } from "@/components/GradientText";
 
 function dayBounds(d: Date) {
   const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -75,7 +76,7 @@ export default async function FollowUpsPage({
                 Representative Activity Log
               </span>
             </div>
-            <h1 className="mt-1 text-2xl font-extrabold text-ink">Follow Ups</h1>
+            <h1 className="mt-1 text-2xl font-extrabold text-ink">Follow <GradientText>Ups</GradientText></h1>
           </div>
 
           <div className="grid grid-cols-3 gap-3 shrink-0">
