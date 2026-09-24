@@ -311,7 +311,7 @@ export function LeadsReassignView({
               href="/admin/employees"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-ink border border-line neo-button hover:text-primary transition"
             >
-              <span>👥</span> Employee Audit
+              <span>👥</span> Employees
             </Link>
           </div>
         </div>
