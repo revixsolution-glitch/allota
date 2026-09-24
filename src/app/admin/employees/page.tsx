@@ -133,7 +133,10 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
               </span>
             </div>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-ink">
-              Representative Team Management
+              Employee{" "}
+              <span className="bg-[linear-gradient(135deg,#38bdf8,#a855f7_52%,#fb923c)] bg-clip-text text-transparent">
+                Management
+              </span>
             </h1>
           </div>
 
