@@ -361,16 +361,6 @@ Report generated via Allota AI Telephony Engine
       <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 neo-panel border-t-2 border-t-rose-500 bg-white shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-black text-rose-700">
-                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                AI Telephony Intelligence Hub
-              </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-ink-muted">
-                Company-Wide Telecalling Audit
-              </span>
-            </div>
-
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-ink">
               AI Calls Summary & Telephony <GradientText>Insights</GradientText>
             </h1>
@@ -412,12 +402,7 @@ Report generated via Allota AI Telephony Engine
           <div className="rounded-3xl p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-purple-200 border border-white/20">
-                    <span>📑</span> Executive Telephony Dossier & Audit
-                  </span>
-                </div>
-                <h2 className="text-2xl font-black tracking-tight mt-2 text-white">
+                <h2 className="text-2xl font-black tracking-tight text-white">
                   Allota AI Telephony: Verbatim Transcripts & Hinglish Summaries
                 </h2>
               </div>
@@ -1160,8 +1145,10 @@ function CallsTodayVsDate({ calls }: { calls: CallFeedItem[] }) {
 
   return (
     <div className="rounded-3xl bg-white p-5 neo-panel">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-extrabold text-ink">AI calls: today vs another date</h3>
+      <div className="-mx-5 -mt-5 mb-1 flex flex-wrap items-center justify-between gap-2 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-5 py-3.5">
+        <h3 className="text-lg font-extrabold tracking-tight text-ink">
+          AI calls: today vs <GradientText>another date</GradientText>
+        </h3>
         <input
           type="date"
           value={pickedDate}
@@ -1209,7 +1196,11 @@ function LeadQualityPie({ calls }: { calls: CallFeedItem[] }) {
 
   return (
     <div className="rounded-3xl bg-white p-5 neo-panel">
-      <h3 className="text-sm font-extrabold text-ink">Lead quality from AI calls</h3>
+      <div className="-mx-5 -mt-5 mb-1 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-5 py-3.5">
+        <h3 className="text-lg font-extrabold tracking-tight text-ink">
+          Lead quality from <GradientText>AI calls</GradientText>
+        </h3>
+      </div>
       {total === 0 ? (
         <p className="mt-6 text-center text-sm text-ink-muted">No calls to classify yet.</p>
       ) : (
