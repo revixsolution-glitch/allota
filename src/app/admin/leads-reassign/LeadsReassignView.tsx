@@ -295,20 +295,7 @@ export function LeadsReassignView({
       <section className="relative overflow-hidden rounded-3xl p-7 neo-panel border-t-2 border-t-amber-500">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between relative z-10">
           <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200">
-                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                Lead Reallocation Engine
-              </span>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
-                Strict Single-Ownership (Zero Duplicates)
-              </span>
-              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-800 border border-indigo-200">
-                Full Transfer Audit Logging
-              </span>
-            </div>
-
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-ink">
+            <h1 className="text-3xl font-black tracking-tight text-ink">
               Leads Reassign Control <GradientText>Center</GradientText>
             </h1>
           </div>
