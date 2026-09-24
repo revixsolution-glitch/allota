@@ -127,7 +127,9 @@ export async function POST(req: NextRequest) {
   // What happened?
   const talk = Math.min(Math.max(parseInt(input.duration ?? "0", 10) || 0, 0), MAX_DURATION_SEC);
   const direction = event === "outgoing_ended" ? "OUTBOUND" : "INBOUND";
-  const connected = (event === "incoming_ended" || event === "outgoing_ended") && talk > 0;
+  // "…_ended" with no duration field at all = answered (length unknown); duration 0 = never connected.
+  const durationSent = input.duration !== undefined && String(input.duration).trim() !== "";
+  const connected = (event === "incoming_ended" || event === "outgoing_ended") && (talk > 0 || !durationSent);
   const tags =
     event === "rejected"
       ? ["Declined by rep"]
