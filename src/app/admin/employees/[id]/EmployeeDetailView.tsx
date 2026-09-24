@@ -10,7 +10,7 @@ import {
   EmployeeSessionRow,
   EmployeeTaskRow,
 } from "./types";
-import { markWhatsAppAlertSent } from "@/lib/admin-actions";
+import { markWhatsAppAlertSent, updateEmployeePhone } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
 
@@ -254,6 +254,24 @@ export function EmployeeDetailView({
                   <span>✉️ {employee.email}</span>
                   <span>📍 Territory: <strong className="text-primary">{employee.territoryName}</strong></span>
                 </div>
+
+                <form action={updateEmployeePhone} className="mt-3 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="employeeId" value={employee.id} />
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">Change phone</label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    required
+                    placeholder="10-digit mobile number"
+                    className="h-8 w-44 rounded-lg border border-line bg-white px-2.5 text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="h-8 rounded-lg bg-slate-800 px-3 text-[11px] font-bold text-white transition hover:bg-slate-900 cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </form>
               </div>
             </div>
           </div>

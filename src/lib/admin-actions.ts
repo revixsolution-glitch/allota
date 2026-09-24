@@ -1677,3 +1677,42 @@ export async function purgeCorruptedLeads() {
 
   return { success: true, count: result.count };
 }
+
+const employeePhoneSchema = z.object({
+  employeeId: requiredText,
+  phoneNumber: z.string().trim(),
+});
+
+/** Change a representative's phone number (used to match phone call events to the rep). */
+export async function updateEmployeePhone(formData: FormData) {
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
+
+  const input = employeePhoneSchema.parse({
+    employeeId: formData.get("employeeId"),
+    phoneNumber: formData.get("phoneNumber") ?? "",
+  });
+
+  const digits = input.phoneNumber.replace(/\D/g, "").slice(-10);
+  if (!/^[6-9]\d{9}$/.test(digits)) {
+    throw new Error("Enter a valid 10-digit Indian mobile number.");
+  }
+  const formatted = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+
+  const employee = await prisma.employee.findFirst({
+    where: { id: input.employeeId, ...(activeCompanyId ? { companyId: activeCompanyId } : {}) },
+    select: { id: true },
+  });
+  if (!employee) throw new Error("Representative not found.");
+
+  const taken = await prisma.employee.findFirst({
+    where: { phoneNumber: formatted, id: { not: employee.id } },
+    select: { name: true },
+  });
+  if (taken) throw new Error(`That number already belongs to ${taken.name}.`);
+
+  await prisma.employee.update({ where: { id: employee.id }, data: { phoneNumber: formatted } });
+
+  revalidatePath("/admin/employees");
+  revalidatePath(`/admin/employees/${employee.id}`);
+}
