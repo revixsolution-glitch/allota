@@ -165,7 +165,6 @@ export function AdminCallsView({
     const leadVerdict = classifyCallLead(call);
     const text = `=====================================================
 ALLOTA AI CALL INTELLIGENCE REPORT [CONFIDENTIAL]
-Domain: allota.in
 Reference ID: DOC-CALL-${call.id.slice(-8).toUpperCase()}
 Company: Allota AI
 Representative: ${call.repName} (${call.repPhone || "Field"})
@@ -185,7 +184,7 @@ ${call.behaviorTags.join(", ") || "None"}
 [VERBATIM CALL TRANSCRIPT]
 ${call.transcript || "No audio transcript available."}
 
-Report generated via Allota AI Telephony Engine • allota.in
+Report generated via Allota AI Telephony Engine
 =====================================================`;
 
     navigator.clipboard.writeText(text).then(() => {
@@ -417,7 +416,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-black text-purple-200 border border-white/20">
                     <span>📑</span> Executive Telephony Dossier & Audit
                   </span>
-                  <span className="text-[11px] font-bold text-purple-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/20">allota.in</span>
                 </div>
                 <h2 className="text-2xl font-black tracking-tight mt-2 text-white">
                   Allota AI Telephony: Verbatim Transcripts & Hinglish Summaries
@@ -475,7 +473,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                 {/* 1. Date Filter Toolbar */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">📅 Date Range</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">📅 Date Range</span>
                     {datePreset !== "ALL" && (
                       <button
                         type="button"
@@ -537,7 +535,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                 {/* 2. AI Lead Status Filter Toolbar */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">🎯 AI Lead Status</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">🎯 AI Lead Status</span>
                     {leadCategoryFilter !== "ALL" && (
                       <button
                         type="button"
@@ -608,7 +606,7 @@ Report generated via Allota AI Telephony Engine • allota.in
               </div>
 
               {/* Call Cards List */}
-              <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[620px] overflow-y-auto p-1">
                 {filteredCalls.length === 0 ? (
                   <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                     No calls match current filters.
@@ -630,8 +628,8 @@ Report generated via Allota AI Telephony Engine • allota.in
                         }}
                         className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer ${
                           isSelected
-                            ? "bg-purple-50/90 border-2 border-purple-500 shadow-md scale-[1.015]"
-                            : "bg-white border border-line hover:border-purple-300 hover:bg-purple-50/20 hover:scale-[1.01] hover:shadow-xs"
+                            ? "bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 border border-violet-300 shadow-md"
+                            : "bg-white border border-line hover:border-violet-200 hover:bg-gradient-to-r hover:from-sky-50 hover:via-violet-50 hover:to-orange-50 hover:shadow-xs"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -747,9 +745,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                   <div className="border-b-2 border-slate-900 pb-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">
-                          Allota AI • allota.in
-                        </p>
                         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mt-0.5">
                           EXECUTIVE CALL INTELLIGENCE BRIEF
                         </h1>
@@ -768,7 +763,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                     {/* Metadata Strip */}
                     <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Field Representative
                         </span>
                         <p className="font-extrabold text-slate-900 mt-0.5">
@@ -780,7 +775,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                       </div>
 
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Customer / Lead
                         </span>
                         <p className="font-extrabold text-slate-900 mt-0.5">
@@ -792,7 +787,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                       </div>
 
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Timestamp & Duration
                         </span>
                         <p className="font-extrabold text-slate-900 mt-0.5">
@@ -804,7 +799,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                       </div>
 
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Connection Status
                         </span>
                         <div className="mt-0.5">
@@ -838,9 +833,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                               <p className="text-[10px] text-slate-500 mt-0.5">AI Lead Classification based on call audio dialogue</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-purple-700 bg-white px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
-                            allota.in
-                          </span>
                         </div>
                       );
                     })()}
@@ -881,7 +873,7 @@ Report generated via Allota AI Telephony Engine • allota.in
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           📍 Exclusive Territory
                         </p>
                         <p className="text-xs font-bold text-slate-800 mt-0.5">
@@ -890,7 +882,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                       </div>
 
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           🏢 Commercial Division
                         </p>
                         <p className="text-xs font-bold text-slate-800 mt-0.5">
