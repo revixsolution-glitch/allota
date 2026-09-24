@@ -41,6 +41,19 @@ function parseTime(v: unknown): Date {
   return isNaN(d.getTime()) ? new Date() : d;
 }
 
+/** 400 with a clear reason, plus a log line (phone numbers masked) so Vercel Logs show why it failed. */
+function reject(message: string, input: Record<string, string>) {
+  const mask = (v?: string) => (v ? `${String(v).slice(0, 12)}…(${String(v).length})` : "(empty)");
+  console.warn("call-event rejected:", message, {
+    event: input.event ?? "(none)",
+    employeePhone: mask(input.employeePhone),
+    customerPhone: mask(input.customerPhone),
+    duration: input.duration ?? "(none)",
+    fields: Object.keys(input),
+  });
+  return NextResponse.json({ error: message, received: Object.keys(input) }, { status: 400 });
+}
+
 export async function GET(req: NextRequest) {
   const ok = authorized(req);
   if (ok === "unconfigured") return NextResponse.json({ error: "Call events are not configured on the server." }, { status: 503 });
@@ -55,29 +68,34 @@ export async function POST(req: NextRequest) {
 
   // Accept JSON, form-encoded, or query-string input.
   const input: Record<string, string> = Object.fromEntries(new URL(req.url).searchParams.entries());
+  // MacroDroid often sends JSON as text/plain, so read the raw text and try JSON first, then form encoding.
   try {
-    const type = req.headers.get("content-type") || "";
-    if (type.includes("application/json")) {
-      Object.assign(input, await req.json());
-    } else if (type.includes("form")) {
-      const fd = await req.formData();
-      fd.forEach((v, k) => (input[k] = String(v)));
+    const raw = (await req.text()).trim();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          for (const [k, v] of Object.entries(parsed)) input[k] = String(v ?? "");
+        }
+      } catch {
+        new URLSearchParams(raw).forEach((v, k) => (input[k] = v));
+      }
     }
   } catch {
-    return NextResponse.json({ error: "Could not read the request body." }, { status: 400 });
+    return reject("Could not read the request body.", input);
   }
 
   const event = String(input.event || "").toLowerCase().trim();
   if (!["missed", "rejected", "incoming_ended", "outgoing_ended"].includes(event)) {
-    return NextResponse.json(
-      { error: "event must be one of: missed, rejected, incoming_ended, outgoing_ended" },
-      { status: 400 }
-    );
+    return reject("event must be one of: missed, rejected, incoming_ended, outgoing_ended", input);
   }
   const repDigits = digits10(input.employeePhone);
   const customerDigits = digits10(input.customerPhone);
   if (repDigits.length < 10 || customerDigits.length < 7) {
-    return NextResponse.json({ error: "employeePhone and customerPhone are required." }, { status: 400 });
+    return reject(
+      "employeePhone and customerPhone must be filled with real phone numbers (a value like [call_number] means the MacroDroid variable was not replaced).",
+      input
+    );
   }
 
   // Rep: exact match on the last 10 digits of a stored employee phone. No auto-creation.
