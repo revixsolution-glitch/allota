@@ -31,10 +31,8 @@ export default async function EmployeeLayout({
     navItems.push({ href: "/employee/clients", label: "My Clients" });
   }
 
-  const displayTitle =
-    company?.name && !company.name.includes("Pharma Life") && !company.name.includes("Pharma CRM")
-      ? company.name
-      : "Allota AI";
+  // The business name entered when the company was onboarded.
+  const displayTitle = company?.name?.trim() || "Allota AI";
 
   return (
     <AppShell
