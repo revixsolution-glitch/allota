@@ -4,7 +4,7 @@ import { LeadSource } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ExcelUploader } from "./ExcelUploader";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
-import { SOURCE_META } from "@/lib/lead-sources";
+import { SELECTABLE_SOURCES } from "@/lib/lead-sources";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -410,7 +410,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {SOURCE_META.map((s) => {
+          {SELECTABLE_SOURCES.map((s) => {
             const assigned = assignmentsBySource.get(s.value) || [];
             const assignedIds = new Set(assigned.map((a) => a.employeeId));
             const availableEmployees = employeeOptions.filter((e) => !assignedIds.has(e.id));

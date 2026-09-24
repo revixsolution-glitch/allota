@@ -915,8 +915,6 @@ export function LeadsReassignView({
                   <option value="META">Meta Ads Leads</option>
                   <option value="INDIAMART">IndiaMART Leads</option>
                   <option value="WEBSITE">Website Forms</option>
-                  <option value="WHATSAPP">WhatsApp Inquiries</option>
-                  <option value="SOCIAL">Social Signals</option>
                   <option value="MANUAL">Manual / Walk-in</option>
                 </select>
 

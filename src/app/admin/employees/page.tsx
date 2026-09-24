@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { AddEmployeeModal } from "@/components/AddEmployeeModal";
-import { SOURCE_META } from "@/lib/lead-sources";
+import { SOURCE_META, SELECTABLE_SOURCES, HIDDEN_SOURCES } from "@/lib/lead-sources";
 import { LeadSource } from "@/generated/prisma/enums";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { SourceIcon } from "@/components/SourceIcon";
@@ -110,6 +110,10 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
     sourcesByEmployee.set(a.employeeId, list);
   }
 
+  // Hidden sources (WhatsApp, Social) never show, even if an old assignment exists.
+  const visibleAssignments = (employeeId: string) =>
+    (sourcesByEmployee.get(employeeId) || []).filter((a) => !HIDDEN_SOURCES.includes(a.source));
+
   const dedicatedEmployeeIds = selectedSource
     ? new Set(
         sourceAssignments.filter((a) => a.source === selectedSource).map((a) => a.employeeId)
@@ -164,7 +168,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
           >
             All Employees ({employees.length})
           </Link>
-          {SOURCE_META.map((s) => (
+          {SELECTABLE_SOURCES.map((s) => (
             <Link
               key={s.value}
               href={`/admin/employees?source=${s.value}`}
@@ -273,10 +277,10 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                     <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mr-0.5">
                       Auto-Assign:
                     </span>
-                    {(sourcesByEmployee.get(employee.id) || []).length === 0 ? (
+                    {visibleAssignments(employee.id).length === 0 ? (
                       <span className="text-[11px] text-ink-faint italic">No sources — click to assign</span>
                     ) : (
-                      (sourcesByEmployee.get(employee.id) || []).map((a) => {
+                      visibleAssignments(employee.id).map((a) => {
                         const meta = SOURCE_META.find((s) => s.value === a.source);
                         return (
                           <span
@@ -295,7 +299,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                   </summary>
 
                   <div className="mt-2 rounded-xl border border-line bg-slate-50/70 p-3 grid grid-cols-2 gap-1.5">
-                    {SOURCE_META.map((s) => {
+                    {SELECTABLE_SOURCES.map((s) => {
                       const existing = (sourcesByEmployee.get(employee.id) || []).find(
                         (a) => a.source === s.value
                       );

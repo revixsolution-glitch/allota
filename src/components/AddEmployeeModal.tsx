@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createCompanyEmployee } from "@/lib/admin-actions";
-import { SOURCE_META } from "@/lib/lead-sources";
+import { SELECTABLE_SOURCES } from "@/lib/lead-sources";
 import { SourceIcon } from "@/components/SourceIcon";
 
 export function AddEmployeeModal() {
@@ -178,7 +178,7 @@ export function AddEmployeeModal() {
                     New leads from these sources will round-robin to this rep. You can change this anytime.
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {SOURCE_META.map((s) => (
+                    {SELECTABLE_SOURCES.map((s) => (
                       <label
                         key={s.value}
                         className="flex items-center gap-1.5 rounded-lg border border-line bg-slate-50/50 px-2.5 py-1.5 text-[11px] font-semibold text-ink cursor-pointer hover:bg-slate-100 transition"
