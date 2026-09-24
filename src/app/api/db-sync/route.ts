@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -7,6 +8,12 @@ import { Role, LeadSource, LeadStatus, ClientStatus } from "@/generated/prisma/e
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Maintenance/seed script: platform super admin only. It must never be reachable anonymously.
+  const session = await getSession();
+  if (!session || session.role !== Role.SUPER_ADMIN) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     await ensureCompanySettingsColumns();
 

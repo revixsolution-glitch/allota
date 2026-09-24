@@ -33,45 +33,24 @@ export async function POST(request: Request) {
     );
   }
 
-  let targetEmail = email.toLowerCase().trim();
-  let user = await prisma.user.findUnique({
+  const targetEmail = email.toLowerCase().trim();
+  const user = await prisma.user.findUnique({
     where: { email: targetEmail },
-    include: { employee: true },
+    include: { employee: true, company: { select: { status: true } } },
   });
 
-  if (!user && (targetEmail.includes("admin.kesrox") || targetEmail.includes("kesrox") || targetEmail.includes("admin@kesrox"))) {
-    user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: "admin.kesrox@pharmacrm.test" },
-          { email: "admin@kesrox.com" },
-          { company: { slug: "kesrox-pharma" }, role: "ADMIN" },
-        ],
-      },
-      include: { employee: true },
-    });
-  }
-
-  if (!user && (targetEmail.includes("savi") || targetEmail.includes("kesorx"))) {
-    user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: "savi.kesorx@pharmacrm.test" },
-          { employee: { name: { contains: "Savi", mode: "insensitive" } } },
-        ],
-      },
-      include: { employee: true },
-    });
-  }
-
-  const isMatch = user && (
-    (await verifyPassword(password, user.passwordHash)) ||
-    (user.employee?.name?.toLowerCase().includes("savi") && (password === "employee123" || password === "savi123")) ||
-    (user.email.includes("kesrox") && user.role === "ADMIN" && (password === "admin123" || password === "kesrox123"))
-  );
+  const isMatch = user ? await verifyPassword(password, user.passwordHash) : false;
 
   if (!user || !isMatch) {
     return Response.json({ error: "Invalid email or password" }, { status: 401 });
+  }
+
+  // Only companies onboarded from the super admin (and not suspended) can be used.
+  if (user.company?.status === "SUSPENDED") {
+    return Response.json(
+      { error: "This company's access is suspended. Please contact Allota support." },
+      { status: 403 }
+    );
   }
 
   const token = signSession({
