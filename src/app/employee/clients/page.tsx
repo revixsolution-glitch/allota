@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { GradientText } from "@/components/GradientText";
 
 export default async function EmployeeClientsPage({
   searchParams,
@@ -69,7 +70,7 @@ export default async function EmployeeClientsPage({
               </span>
             </div>
             <h1 className="mt-1 text-2xl font-extrabold text-ink">
-              My Active Clients ({clients.length})
+              My Active <GradientText>Clients</GradientText> ({clients.length})
             </h1>
             <p className="mt-1 text-xs text-ink-muted">
               Representative: <strong className="text-ink">{employee?.name}</strong> • Retailers, PCD Franchisees, and Hospitals under your coverage

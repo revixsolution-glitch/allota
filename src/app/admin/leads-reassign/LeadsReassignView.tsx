@@ -9,6 +9,7 @@ import {
   EmployeeOption,
   ReassignmentAuditRow,
 } from "./types";
+import { GradientText } from "@/components/GradientText";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -308,7 +309,7 @@ export function LeadsReassignView({
             </div>
 
             <h1 className="mt-3 text-3xl font-black tracking-tight text-ink">
-              Leads Reassign Control Center
+              Leads Reassign Control <GradientText>Center</GradientText>
             </h1>
           </div>
 

@@ -14,6 +14,7 @@ import { getSession, getActiveCompanyId } from "@/lib/auth";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
+import { GradientText } from "@/components/GradientText";
 
 interface AdminCreditManagementPageProps {
   searchParams?: Promise<{
@@ -178,7 +179,7 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
             </div>
 
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              Credit Management & AI Collections
+              Credit Management & AI <GradientText>Collections</GradientText>
             </h1>
           </div>
 

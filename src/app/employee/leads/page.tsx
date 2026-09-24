@@ -8,6 +8,7 @@ import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
+import { GradientText } from "@/components/GradientText";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -164,7 +165,7 @@ export default async function EmployeeLeadsPage({
               </span>
             </div>
             <h1 className="mt-1 text-2xl font-extrabold text-ink">
-              My Allotted Leads ({totalLeads})
+              My Allotted <GradientText>Leads</GradientText> ({totalLeads})
             </h1>
             <p className="mt-1 text-xs text-ink-muted">
               Representative: <strong className="text-ink">{employee?.name}</strong> • Phone: {employee?.phoneNumber}

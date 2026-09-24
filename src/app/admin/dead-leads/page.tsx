@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLeadActiveStatus } from "@/lib/admin-actions";
+import { GradientText } from "@/components/GradientText";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -84,7 +85,7 @@ export default async function DeadLeadsPage({
                 Closed-Out Inquiries
               </span>
             </div>
-            <h1 className="mt-1 text-2xl font-extrabold text-ink">Dead Leads ({deadLeads.length})</h1>
+            <h1 className="mt-1 text-2xl font-extrabold text-ink">Dead <GradientText>Leads</GradientText> ({deadLeads.length})</h1>
           </div>
         </div>
       </section>

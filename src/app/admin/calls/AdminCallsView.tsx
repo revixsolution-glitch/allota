@@ -5,6 +5,7 @@ import Link from "next/link";
 import { markWhatsAppAlertSent, toggleCallFollowUpFlag } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage, classifyCallLead } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
+import { GradientText } from "@/components/GradientText";
 
 export interface CallFeedItem {
   id: string;
@@ -372,7 +373,7 @@ Report generated via Allota AI Telephony Engine • allota.in
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-ink">
-              AI Calls Summary & Telephony Insights
+              AI Calls Summary & Telephony <GradientText>Insights</GradientText>
             </h1>
           </div>
 

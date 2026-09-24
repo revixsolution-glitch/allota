@@ -11,6 +11,7 @@ import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { GradientText } from "@/components/GradientText";
 
 export default async function AdminReordersPage(props: {
   searchParams: Promise<{
@@ -338,7 +339,7 @@ export default async function AdminReordersPage(props: {
             </div>
 
             <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink">
-              Monthly Reorders & Client Cadence Intelligence
+              Monthly Reorders & Client Cadence <GradientText>Intelligence</GradientText>
             </h1>
           </div>
 
