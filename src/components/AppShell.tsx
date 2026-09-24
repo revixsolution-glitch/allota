@@ -88,11 +88,9 @@ export function AppShell({
               priority
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-black text-ink leading-tight" title={title}>
+              <p className="truncate text-sm font-black text-ink leading-tight">Allota AI</p>
+              <p className="truncate text-[10px] font-semibold text-primary uppercase tracking-wider" title={title}>
                 {title}
-              </p>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
-                {portalType} Portal
               </p>
             </div>
           </div>
@@ -142,8 +140,8 @@ export function AppShell({
               className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-xs"
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-ink">{title}</p>
-              <p className="text-xs font-semibold text-primary">{portalType} Workspace</p>
+              <p className="truncate text-sm font-bold text-ink">Allota AI</p>
+              <p className="truncate text-xs font-semibold text-primary" title={title}>{title}</p>
             </div>
           </div>
           <button
@@ -233,12 +231,10 @@ export function AppShell({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <p className="truncate text-sm font-bold tracking-tight text-ink" title={title}>
-                {title}
-              </p>
+              <p className="truncate text-sm font-bold tracking-tight text-ink">Allota AI</p>
             </div>
-            <p className="truncate text-xs font-medium text-primary">
-              {portalType} Portal
+            <p className="truncate text-xs font-medium text-primary" title={title}>
+              {title}
             </p>
           </div>
         </div>
