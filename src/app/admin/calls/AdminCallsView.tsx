@@ -398,49 +398,6 @@ Report generated via Allota AI Telephony Engine • allota.in
         </div>
       </section>
 
-      {/* 2. Top Metric Scorecards */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500 bg-white">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Calls Made</p>
-          <p className="mt-2 text-2xl font-black text-ink">{totalCalls} Calls</p>
-          <p className="mt-1 text-xs text-ink-muted">Across {reps.length} active reps</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-600 bg-white">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Picked / Answered</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">{connectedCalls}</span>
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              {connectionRate}% Picked
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-ink-muted">Active client discussions</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-amber-600 bg-white">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Not Answered / Missed</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-700">{missedCalls}</span>
-            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              {missedRate}% Missed
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-ink-muted">Call went unanswered</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-indigo-600 bg-white">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Avg Talk Duration</p>
-          <p className="mt-2 text-2xl font-black text-indigo-700">{formatDuration(avgDurationSec)}</p>
-          <p className="mt-1 text-xs text-ink-muted">For connected discussions</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-teal-600 bg-white">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">WhatsApp Dispatched</p>
-          <p className="mt-2 text-2xl font-black text-teal-700">{whatsappSentCount} Alerts</p>
-          <p className="mt-1 text-xs text-ink-muted">AI recovery follow-ups sent</p>
-        </div>
-      </section>
-
       {/* Calls today vs a chosen date, and lead-quality pie */}
       <section className="grid gap-4 md:grid-cols-2">
         <CallsTodayVsDate calls={callsList} />
