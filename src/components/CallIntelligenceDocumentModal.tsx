@@ -144,7 +144,7 @@ ${activeCall.behaviorTags.join(", ") || "None"}
 [VERBATIM CALL TRANSCRIPT]
 ${activeCall.transcript || "No audio transcript available."}
 
-Report generated via Allota AI Telephony Engine • allota.in
+Report generated via Allota AI Telephony Engine
 =====================================================`;
 
     navigator.clipboard.writeText(text).then(() => {
@@ -183,9 +183,6 @@ Report generated via Allota AI Telephony Engine • allota.in
                 <h2 className="text-base font-extrabold text-slate-900">
                   Allota AI Call Intelligence Dossier
                 </h2>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
-                  allota.in
-                </span>
                 {activeClassification && (
                   <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${activeClassification.badgeClass}`}>
                     {activeClassification.label}
@@ -396,7 +393,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                   {/* Metadata Table Grid */}
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Field Representative
                       </span>
                       <p className="font-extrabold text-slate-900 mt-0.5">
@@ -408,7 +405,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Customer / Prospect
                       </span>
                       <p className="font-extrabold text-slate-900 mt-0.5">
@@ -420,7 +417,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Timestamp & Length
                       </span>
                       <p className="font-extrabold text-slate-900 mt-0.5">
@@ -432,7 +429,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                     </div>
 
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Call Outcome
                       </span>
                       <div className="mt-0.5">
@@ -502,7 +499,7 @@ Report generated via Allota AI Telephony Engine • allota.in
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         📍 Exclusive Territory
                       </p>
                       <p className="text-xs font-bold text-slate-800 mt-1">
@@ -511,7 +508,7 @@ Report generated via Allota AI Telephony Engine • allota.in
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         🏢 Commercial Division
                       </p>
                       <p className="text-xs font-bold text-slate-800 mt-1">
