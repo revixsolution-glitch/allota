@@ -201,8 +201,12 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
           );
           const convertedLeadsCount = employee.leads.filter((l) => l.status === "CONVERTED").length;
           const deadLeadsCount = employee.leads.filter((l) => l.status === "NOT_INTERESTED").length;
-          const repeatClientsCount = employee.clients.filter((c) => c.isRepeatCustomer).length;
-          const newClientsCount = employee.clients.length - repeatClientsCount;
+          const startOfToday = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+          const openFollowUps = employee.leads.filter(
+            (l) => l.followUpAt && l.status !== "NOT_INTERESTED" && l.status !== "CONVERTED"
+          );
+          const scheduledFollowUps = openFollowUps.length;
+          const overdueFollowUps = openFollowUps.filter((l) => (l.followUpAt as Date) < startOfToday).length;
 
           const latestSession = employee.sessions[0];
           const isShiftActive = latestSession?.status === "ACTIVE";
@@ -328,7 +332,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
               </div>
 
               {/* Quick Metrics Strip */}
-              <div className={`mt-5 grid gap-2.5 ${isCorePlan ? "grid-cols-3" : "grid-cols-4"}`}>
+              <div className={`mt-5 grid grid-cols-2 gap-2.5 ${isCorePlan ? "sm:grid-cols-4" : "sm:grid-cols-5"}`}>
                 {!isCorePlan && (
                   <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
                     <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Marg Sales</p>
@@ -338,43 +342,55 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                   </div>
                 )}
 
-                <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
-                  <p className="text-[10px] uppercase font-bold text-teal-800 tracking-wider">Clients</p>
-                  <p className="mt-1 text-sm font-black text-teal-700">
-                    {employee.clients.length} <span className="text-[9px] font-normal text-ink-faint">({newClientsCount}N/{repeatClientsCount}R)</span>
-                  </p>
-                </div>
-
-                <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
+                <Link
+                  href={`/admin/leads?employeeId=${employee.id}`}
+                  title={`Open ${employee.name}'s leads`}
+                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-indigo-50/50 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
+                >
                   <p className="text-[10px] uppercase font-bold text-indigo-800 tracking-wider">Leads</p>
                   <p className="mt-1 text-sm font-black text-indigo-700">
-                    {employee.leads.length} <span className="text-[9px] font-normal text-emerald-700 font-bold">({convertedLeadsCount}W)</span>
+                    {employee.leads.length} <span className="text-[9px] font-bold text-emerald-700">({convertedLeadsCount}W)</span>
                   </p>
-                </div>
+                </Link>
+
+                <Link
+                  href={`/admin/follow-ups?employeeId=${employee.id}`}
+                  title={`Open ${employee.name}'s follow-ups`}
+                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-sky-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
+                >
+                  <p className="text-[10px] uppercase font-bold text-sky-800 tracking-wider">Follow-ups</p>
+                  <p className="mt-1 text-sm font-black text-sky-700">
+                    {scheduledFollowUps}{" "}
+                    {overdueFollowUps > 0 && (
+                      <span className="text-[9px] font-bold text-rose-700">({overdueFollowUps} overdue)</span>
+                    )}
+                  </p>
+                </Link>
+
+                <Link
+                  href={`/admin/dead-leads?employeeId=${employee.id}`}
+                  title={`Open ${employee.name}'s dead leads`}
+                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-rose-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
+                >
+                  <p className="text-[10px] uppercase font-bold text-rose-800 tracking-wider">Dead Leads</p>
+                  <p className="mt-1 text-sm font-black text-rose-700">{deadLeadsCount}</p>
+                </Link>
 
                 <Link
                   href={`/admin/employees/${employee.id}?tab=calls`}
-                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-purple-50/60 hover:bg-purple-100/70 hover:border-purple-300 hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200 block group/aicall cursor-pointer"
+                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-purple-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition block"
                   title="View AI Call Summaries & Verbatim Transcripts"
                 >
                   <p className="text-[10px] uppercase font-black text-purple-800 tracking-wider flex items-center justify-center gap-1">
                     <span>🤖</span> AI Calls
                   </p>
-                  <p className="mt-1 text-sm font-black text-purple-700 group-hover/aicall:text-purple-900">
-                    {employee.calls.length}
-                  </p>
+                  <p className="mt-1 text-sm font-black text-purple-700">{employee.calls.length}</p>
                 </Link>
               </div>
 
               {/* Bottom Card Footer */}
               <div className="mt-4 pt-3 border-t border-line flex flex-wrap items-center justify-between gap-2 text-xs text-ink-faint">
-                <span>
-                  {deadLeadsCount > 0 ? (
-                    <span className="text-rose-700 font-semibold">{deadLeadsCount} Dead Leads marked</span>
-                  ) : (
-                    <span>{employee.tasks.length} Field Tasks</span>
-                  )}
-                </span>
+                <span>{employee.tasks.length} Field Tasks</span>
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/admin/employees/${employee.id}?tab=calls`}

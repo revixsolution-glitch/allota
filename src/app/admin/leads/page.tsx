@@ -74,6 +74,7 @@ export default async function AdminLeadsPage({
     source?: string;
     division?: string;
     unassigned?: string;
+    employeeId?: string;
     search?: string;
     range?: string;
     from?: string;
@@ -106,6 +107,7 @@ export default async function AdminLeadsPage({
         : "All Categories";
 
   const unassignedOnly = params?.unassigned === "1";
+  const repFilterId = params?.employeeId || "";
   const search = (params?.search || "").trim().toLowerCase();
   const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
 
@@ -125,7 +127,10 @@ export default async function AdminLeadsPage({
   }
   if (unassignedOnly) {
     leadWhere.assignedEmployeeId = null;
+  } else if (repFilterId) {
+    leadWhere.assignedEmployeeId = repFilterId;
   }
+  const repScope = repFilterId && !unassignedOnly ? { assignedEmployeeId: repFilterId } : {};
   if (dateFilter.start && dateFilter.end) {
     leadWhere.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
   } else if (dateFilter.start) {
@@ -175,7 +180,7 @@ export default async function AdminLeadsPage({
     // Group by source with division filter so platform cards reflect division selection
     prisma.lead.groupBy({
       by: ["source"],
-      where: { ...divisionWhere, ...companyScope },
+      where: { ...divisionWhere, ...repScope, ...companyScope },
       _count: { _all: true },
     }),
     // Group by status with leadWhere
@@ -187,7 +192,7 @@ export default async function AdminLeadsPage({
     // Division counts across the entire lead pool (or filtered by selectedSource)
     prisma.lead.groupBy({
       by: ["division"],
-      where: { ...(selectedSource ? { source: selectedSource } : {}), ...companyScope },
+      where: { ...(selectedSource ? { source: selectedSource } : {}), ...repScope, ...companyScope },
       _count: { _all: true },
     }),
     // Unassigned leads counts for the Allotment Desk
@@ -354,6 +359,7 @@ export default async function AdminLeadsPage({
     if (s && s !== "all") sp.set("source", s);
     if (d && d !== "ALL") sp.set("division", d);
     if (onlyUnassigned) sp.set("unassigned", "1");
+    else if (repFilterId) sp.set("employeeId", repFilterId);
     if (q && q.trim()) sp.set("search", q.trim());
     if (params?.range) sp.set("range", params.range);
     if (params?.from) sp.set("from", params.from);
@@ -366,6 +372,15 @@ export default async function AdminLeadsPage({
 
   return (
     <div className="flex flex-col gap-7">
+      {repFilterId && !unassignedOnly && (
+        <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
+          Showing only <strong>{employees.find((e) => e.id === repFilterId)?.name ?? "this representative"}</strong>&apos;s leads
+          <Link href="/admin/leads" className="ml-auto text-xs font-bold text-sky-700 underline">
+            Show everyone
+          </Link>
+        </div>
+      )}
+
       {/* Top Banner */}
       <section className="order-1 relative overflow-hidden rounded-3xl px-7 py-6 neo-panel">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -652,6 +667,7 @@ export default async function AdminLeadsPage({
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
               {unassignedOnly && <input type="hidden" name="unassigned" value="1" />}
+              {repFilterId && !unassignedOnly && <input type="hidden" name="employeeId" value={repFilterId} />}
               {params?.range && <input type="hidden" name="range" value={params.range} />}
               {params?.from && <input type="hidden" name="from" value={params.from} />}
               {params?.to && <input type="hidden" name="to" value={params.to} />}
