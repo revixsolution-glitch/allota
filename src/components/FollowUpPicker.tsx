@@ -32,6 +32,25 @@ export function FollowUpPicker({
   const today = new Date().toISOString().slice(0, 10);
   const { label, tone } = formatFollowUp(followUpAt);
 
+  // Show what is actually scheduled: none → prompt, 1–5 days → that preset, anything else → the saved date.
+  let selectValue = "";
+  let currentLabel = "";
+  if (followUpAt) {
+    const target = new Date(followUpAt);
+    const now = new Date();
+    const diffDays = Math.round(
+      (new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime() -
+        new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) /
+        86400000
+    );
+    if (diffDays >= 1 && diffDays <= 5) {
+      selectValue = String(diffDays);
+    } else {
+      selectValue = "current";
+      currentLabel = target.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+  }
+
   const toneClass =
     tone === "overdue"
       ? "text-rose-700 bg-rose-50 border-rose-200"
@@ -83,8 +102,9 @@ export function FollowUpPicker({
           </>
         ) : (
           <select
+            key={followUpAt ?? "none"}
             name="days"
-            defaultValue="1"
+            defaultValue={selectValue}
             onChange={(e) => {
               if (e.target.value === "custom") {
                 setShowCustom(true);
@@ -94,6 +114,16 @@ export function FollowUpPicker({
             }}
             className={`${h} flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary`}
           >
+            {selectValue === "" && (
+              <option value="" disabled>
+                Set follow-up…
+              </option>
+            )}
+            {selectValue === "current" && (
+              <option value="current" disabled>
+                {currentLabel}
+              </option>
+            )}
             <option value="1">Tomorrow (1 day)</option>
             <option value="2">In 2 days</option>
             <option value="3">In 3 days</option>
