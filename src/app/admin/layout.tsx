@@ -71,10 +71,8 @@ export default async function AdminLayout({
   // Organization Settings & Integrations
   navItems.push({ href: "/admin/settings", label: "Settings" });
 
-  const displayTitle =
-    company?.name && !company.name.includes("Pharma Life") && !company.name.includes("Pharma CRM")
-      ? company.name
-      : "Allota AI";
+  // The business name entered when the company was onboarded.
+  const displayTitle = company?.name?.trim() || "Allota AI";
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
