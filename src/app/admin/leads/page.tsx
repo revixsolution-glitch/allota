@@ -5,7 +5,6 @@ import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, remo
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { SourceIcon } from "@/components/SourceIcon";
-import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 
 const leadSources = [
@@ -1055,7 +1054,24 @@ export default async function AdminLeadsPage({
 
                     {/* Status: Active (green) / Dead (red), as chosen by the employee */}
                     <td className="px-6 py-4">
-                      <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
+                      {lead.status === LeadStatus.NOT_INTERESTED ? (
+                        <Link
+                          href={`/admin/lead-history/${lead.id}`}
+                          title="Marked dead by the representative. Open full history"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-rose-500" />
+                          Dead
+                        </Link>
+                      ) : (
+                        <span
+                          title="Marked active by the representative"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Active
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
