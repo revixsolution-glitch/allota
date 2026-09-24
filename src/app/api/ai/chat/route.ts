@@ -1,58 +1,67 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession, getActiveCompanyId } from "@/lib/auth";
 
 // In-memory daily usage tracking for Gemini Free Tier cap
 // Free tier allows up to 1,500 requests/day (RPD) & 15 requests/minute (RPM)
 const GEMINI_FREE_DAILY_CAP = 1500;
 
-let currentDay = new Date().toISOString().slice(0, 10);
-let dailyUsageCount = 0;
-const minuteRequests: number[] = [];
+// Usage is tracked per company, because each company brings its own Gemini key (and its own quota).
+const usageByCompany = new Map<string, { day: string; count: number; minute: number[] }>();
 
-function checkAndIncrementQuota(): { allowed: boolean; remaining: number; used: number; reason?: string } {
+function checkAndIncrementQuota(companyId: string): { allowed: boolean; remaining: number; used: number; reason?: string } {
   const today = new Date().toISOString().slice(0, 10);
-  if (today !== currentDay) {
-    currentDay = today;
-    dailyUsageCount = 0;
+  let u = usageByCompany.get(companyId);
+  if (!u || u.day !== today) {
+    u = { day: today, count: 0, minute: [] };
+    usageByCompany.set(companyId, u);
   }
 
-  // Check 15 RPM rate-limiting
+  // 15 requests / minute
   const now = Date.now();
-  while (minuteRequests.length > 0 && minuteRequests[0] < now - 60000) {
-    minuteRequests.shift();
-  }
-
-  if (minuteRequests.length >= 15) {
+  while (u.minute.length > 0 && u.minute[0] < now - 60000) u.minute.shift();
+  if (u.minute.length >= 15) {
     return {
       allowed: false,
-      remaining: Math.max(0, GEMINI_FREE_DAILY_CAP - dailyUsageCount),
-      used: dailyUsageCount,
+      remaining: Math.max(0, GEMINI_FREE_DAILY_CAP - u.count),
+      used: u.count,
       reason: "Rate limit: Max 15 requests/minute on AI engine. Please wait a moment.",
     };
   }
 
-  // Check 1,500 Daily Requests Cap
-  if (dailyUsageCount >= GEMINI_FREE_DAILY_CAP) {
+  // Daily cap
+  if (u.count >= GEMINI_FREE_DAILY_CAP) {
     return {
       allowed: false,
       remaining: 0,
-      used: dailyUsageCount,
+      used: u.count,
       reason: `Daily usage cap reached (${GEMINI_FREE_DAILY_CAP} requests/day). Quota resets at 00:00 UTC.`,
     };
   }
 
-  dailyUsageCount++;
-  minuteRequests.push(now);
-
-  return {
-    allowed: true,
-    remaining: GEMINI_FREE_DAILY_CAP - dailyUsageCount,
-    used: dailyUsageCount,
-  };
+  u.count++;
+  u.minute.push(now);
+  return { allowed: true, remaining: GEMINI_FREE_DAILY_CAP - u.count, used: u.count };
 }
 
 export async function POST(req: Request) {
   try {
+    // Signed-in users only, and only their own company's data.
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ reply: "Please sign in to use the AI assistant.", error: "Unauthorized" }, { status: 401 });
+    }
+    const companyId = getActiveCompanyId(session);
+    if (!companyId) {
+      return NextResponse.json(
+        { reply: "Open a company workspace to use the AI assistant.", error: "No company" },
+        { status: 403 }
+      );
+    }
+    const isRep = session.role === "EMPLOYEE";
+    const leadScope = { companyId, ...(isRep && session.employeeId ? { assignedEmployeeId: session.employeeId } : {}) };
+    const callScope = isRep && session.employeeId ? { employeeId: session.employeeId } : { employee: { companyId } };
+
     const { message, history } = await req.json().catch(() => ({ message: "", history: [] }));
     const query = (message || "").trim();
 
@@ -61,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Check AI Tier Usage Cap (1500 requests/day)
-    const quota = checkAndIncrementQuota();
+    const quota = checkAndIncrementQuota(companyId);
     if (!quota.allowed) {
       return NextResponse.json({
         reply: quota.reason || "Daily free AI quota reached for today.",
@@ -78,10 +87,11 @@ export async function POST(req: Request) {
     todayStart.setHours(0, 0, 0, 0);
 
     const [todayCallsCount, totalLeadsCount, hotLeadsCount, recentCalls] = await Promise.all([
-      prisma.call.count({ where: { occurredAt: { gte: todayStart } } }).catch(() => 0),
-      prisma.lead.count().catch(() => 0),
-      prisma.lead.count({ where: { status: "INTERESTED" } }).catch(() => 0),
+      prisma.call.count({ where: { occurredAt: { gte: todayStart }, ...callScope } }).catch(() => 0),
+      prisma.lead.count({ where: leadScope }).catch(() => 0),
+      prisma.lead.count({ where: { status: "INTERESTED", ...leadScope } }).catch(() => 0),
       prisma.call.findMany({
+        where: callScope,
         take: 3,
         orderBy: { occurredAt: "desc" },
         include: { employee: true, lead: true, client: true },
@@ -119,11 +129,14 @@ STRICT SCOPE & GUARDRAIL:
   * REFUSE IMMEDIATELY: "Sorry, I can't help with that. I can only assist with Allota AI CRM, PCD pharma operations, telephony intelligence, leads, and orders." (or Hinglish equivalent).
   * Do NOT answer off-topic questions under any circumstances.`;
 
-    // Use dedicated chatbot key provided by user, or env variable, or fallback to GEMINI_API_KEY
+    // Each company uses the Gemini key entered for it at onboarding (Settings can change it).
+    // Server env keys are the platform fallback. Nothing is hardcoded.
+    const companySettings = await prisma.companySettings.findFirst({
+      where: { companyId },
+      select: { geminiApiKey: true },
+    });
     const apiKey =
-      process.env.GEMINI_CHAT_API_KEY ||
-      "AQ.Ab8RN6LxjvSqFmoA3uAGucmWGPCqT2qGON7fGC7XmrqsucZlvg" ||
-      process.env.GEMINI_API_KEY;
+      companySettings?.geminiApiKey?.trim() || process.env.GEMINI_CHAT_API_KEY || process.env.GEMINI_API_KEY;
     let reply = "";
     let actionUrl: string | undefined = undefined;
     let actionLabel: string | undefined = undefined;
