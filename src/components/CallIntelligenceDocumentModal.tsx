@@ -475,8 +475,8 @@ Report generated via Allota AI Telephony Engine
                     </div>
                   )}
 
-                  <div className="rounded-2xl border-l-4 border-l-purple-600 bg-purple-50/40 p-5 border border-purple-100">
-                    <p className="text-sm text-slate-800 leading-relaxed font-serif whitespace-pre-line">
+                  <div className="rounded-2xl border border-violet-200 border-l-4 border-l-violet-500 bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 p-5 shadow-sm">
+                    <p className="text-[15px] text-slate-900 leading-relaxed font-serif font-medium whitespace-pre-line">
                       {activeCall.aiSummary || activeCall.summary || (
                         activeCall.missed
                           ? "Outbound voice connection attempt was unanswered by the customer. No discussion recorded."
