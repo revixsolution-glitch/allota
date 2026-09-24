@@ -95,7 +95,7 @@ export function AdminCallsView({
   companyName: string;
 }) {
   const [callsList, setCallsList] = useState<CallFeedItem[]>(initialCalls);
-  const [activeViewTab, setActiveViewTab] = useState<"DOCUMENTS" | "FEED" | "MISSED" | "LEADERBOARD">("DOCUMENTS");
+  const [activeViewTab] = useState<"DOCUMENTS">("DOCUMENTS");
   const [selectedRepId, setSelectedRepId] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ANSWERED" | "MISSED" | "WHATSAPP_SENT">("ALL");
   const [datePreset, setDatePreset] = useState<"ALL" | "TODAY" | "YESTERDAY" | "7DAYS" | "THIS_MONTH" | "CUSTOM">("ALL");
@@ -441,99 +441,11 @@ Report generated via Allota AI Telephony Engine • allota.in
         </div>
       </section>
 
-      {/* 3. View Switcher Tabs (Live Feed First) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveViewTab("DOCUMENTS")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
-              activeViewTab === "DOCUMENTS"
-                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30 scale-[1.02]"
-                : "bg-white text-ink-muted border border-line hover:border-purple-300 hover:text-purple-700"
-            }`}
-          >
-            <span>📑 Transcripts & AI Summaries</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeViewTab === "DOCUMENTS" ? "bg-white/20 text-white" : "bg-purple-100 text-purple-800"
-              }`}
-            >
-              {filteredCalls.length} Docs
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveViewTab("FEED")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
-              activeViewTab === "FEED"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/25 scale-[1.02]"
-                : "bg-white text-ink-muted border border-line hover:border-purple-300 hover:text-purple-700"
-            }`}
-          >
-            <span>🎙️ Live AI Calls Feed</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeViewTab === "FEED" ? "bg-white/20 text-white" : "bg-slate-100 text-ink-muted"
-              }`}
-            >
-              {filteredCalls.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveViewTab("MISSED")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
-              activeViewTab === "MISSED"
-                ? "bg-amber-600 text-white shadow-md shadow-amber-600/25 scale-[1.02]"
-                : "bg-white text-ink-muted border border-line hover:border-amber-300 hover:text-amber-700"
-            }`}
-          >
-            <span>⚡ Unanswered Recovery Desk</span>
-            {pendingMissedAlerts.length > 0 && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  activeViewTab === "MISSED" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
-                }`}
-              >
-                {pendingMissedAlerts.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveViewTab("LEADERBOARD")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black transition-all ${
-              activeViewTab === "LEADERBOARD"
-                ? "bg-primary text-white shadow-md shadow-primary/25 scale-[1.02]"
-                : "bg-white text-ink-muted border border-line hover:border-primary/30 hover:text-primary"
-            }`}
-          >
-            <span>📊 Sales Reps Leaderboard</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeViewTab === "LEADERBOARD" ? "bg-white/20 text-white" : "bg-slate-100 text-ink-muted"
-              }`}
-            >
-              {reps.length}
-            </span>
-          </button>
-        </div>
-
-        {pendingMissedAlerts.length > 0 && activeViewTab !== "MISSED" && (
-          <button
-            type="button"
-            onClick={() => setActiveViewTab("MISSED")}
-            className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1.5"
-          >
-            <span>⚡</span>
-            <span>{pendingMissedAlerts.length} Unanswered calls require WhatsApp follow-up &rarr;</span>
-          </button>
-        )}
-      </div>
+      {/* Calls today vs a chosen date, and lead-quality pie */}
+      <section className="grid gap-4 md:grid-cols-2">
+        <CallsTodayVsDate calls={callsList} />
+        <LeadQualityPie calls={callsList} />
+      </section>
 
       {/* ============================================================ */}
       {/* TAB 0: DEDICATED TRANSCRIPTS & AI SUMMARIES DOCUMENT WORKSPACE */}
@@ -1197,368 +1109,6 @@ Report generated via Allota AI Telephony Engine • allota.in
         </section>
       )}
 
-      {/* TAB 2: Missed Calls Queue */}
-      {activeViewTab === "MISSED" && (
-        <section className="rounded-3xl p-6 bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-white border-2 border-amber-300 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500 text-white text-lg shadow-md shadow-amber-500/25">
-                ⚡
-              </span>
-              <div>
-                <h3 className="font-black text-ink text-base">
-                  Missed Call Recovery Queue ({pendingMissedAlerts.length} Unanswered Inquiries Awaiting Action)
-                </h3>
-              </div>
-            </div>
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800 self-start sm:self-auto border border-amber-300">
-              Immediate Follow-up
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingMissedAlerts.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-sm font-semibold text-ink-muted">
-                ✅ No pending unanswered calls! All prospects answered or followed up.
-              </div>
-            ) : (
-              pendingMissedAlerts.map((call) => (
-                <div
-                  key={call.id}
-                  className="rounded-2xl p-4 bg-white border border-amber-200 shadow-xs flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="font-extrabold text-sm text-ink">{call.targetName}</h4>
-                        <p className="font-mono text-xs text-ink-muted mt-0.5">{call.targetPhone || "No Phone"}</p>
-                      </div>
-                      <span className="rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5">
-                        Missed
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-ink-faint mt-1.5 flex items-center gap-1">
-                      <span>Rep:</span>
-                      <strong className="text-ink">{call.repName}</strong>
-                      {call.leadTerritory && <span>• 📍 {call.leadTerritory}</span>}
-                    </p>
-
-                    <div className="mt-2.5 rounded-xl bg-slate-50 p-2.5 border border-line text-[11px] text-ink-muted italic">
-                      &ldquo;Hello {call.targetName}, this is {call.repName} from {companyName}. We just tried calling you regarding your franchise inquiry...&rdquo;
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-ink-faint font-medium">
-                      {formatDate(call.occurredAt)} • {formatTime(call.occurredAt)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleSendAiWhatsAppAlert(call)}
-                      disabled={sendingAlertCallId === call.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer"
-                    >
-                      <span>{sendingAlertCallId === call.id ? "⏳" : "⚡"}</span>
-                      <span>Send AI WhatsApp</span>
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* TAB 3: Leaderboard */}
-      {activeViewTab === "LEADERBOARD" && (
-        <section className="rounded-3xl p-6 neo-panel bg-white">
-          <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h3 className="font-extrabold text-ink text-base">Representative Telecalling Leaderboard</h3>
-            </div>
-            <span className="text-xs font-semibold text-ink-muted">
-              {reps.length} Field Reps Active
-            </span>
-          </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-line text-ink-faint uppercase font-bold text-[10px] bg-slate-50/60">
-                <tr>
-                  <th className="py-3 px-4">Sales Representative</th>
-                  <th className="py-3 px-3">Total Calls</th>
-                  <th className="py-3 px-3">Picked / Answered</th>
-                  <th className="py-3 px-3">Not Answered</th>
-                  <th className="py-3 px-3">Connection %</th>
-                  <th className="py-3 px-3">Avg Duration</th>
-                  <th className="py-3 px-3">WhatsApp Sent</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line/60">
-                {reps.map((rep) => (
-                  <tr key={rep.id} className="hover:bg-slate-50/60 transition">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-xs shadow-xs">
-                          {rep.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-ink text-xs">{rep.name}</p>
-                          <p className="text-[10px] text-ink-faint font-mono">{rep.phoneNumber}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3 font-black text-ink">{rep.totalCalls}</td>
-                    <td className="py-3.5 px-3 font-bold text-emerald-700">{rep.connectedCalls}</td>
-                    <td className="py-3.5 px-3 font-bold text-rose-700">{rep.missedCalls}</td>
-                    <td className="py-3.5 px-3 font-black text-indigo-700">{rep.connectionRate}%</td>
-                    <td className="py-3.5 px-3 text-ink-muted">{formatDuration(rep.avgDurationSec)}</td>
-                    <td className="py-3.5 px-3">
-                      <span className="rounded-full bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 text-[10px] font-bold">
-                        {rep.whatsappSentCount} Sent
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Link
-                        href={`/admin/employees/${rep.id}?tab=calls`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition shadow-2xs"
-                      >
-                        <span>🤖</span> Rep AI Summaries &rarr;
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* TAB 1: Live Call Feed & AI Summaries (Shown when activeViewTab === "FEED") */}
-      {activeViewTab === "FEED" && (
-      <section className="rounded-3xl p-6 neo-panel bg-white">
-        <div className="border-b border-line pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 px-2.5 py-0.5 text-[10px] font-black text-purple-700">
-                <span>✨</span> AI Telephony Log
-              </span>
-              <span className="text-xs text-ink-faint">Executive Audit Feed</span>
-            </div>
-            <h3 className="font-extrabold text-ink text-lg mt-1">Live Call Feed & AI Discussion Summaries</h3>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Rep Selector */}
-            <select
-              value={selectedRepId}
-              onChange={(e) => setSelectedRepId(e.target.value)}
-              className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-xs"
-            >
-              <option value="ALL">All Representatives ({reps.length})</option>
-              {reps.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({r.totalCalls} calls)
-                </option>
-              ))}
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="rounded-xl border border-line bg-white px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-xs"
-            >
-              <option value="ALL">All Call Outcomes</option>
-              <option value="ANSWERED">🟢 Picked / Connected</option>
-              <option value="MISSED">🔴 Not Answered / Missed</option>
-              <option value="WHATSAPP_SENT">✓ WhatsApp Sent</option>
-            </select>
-
-            {/* Search Box */}
-            <input
-              type="text"
-              placeholder="Search contact, notes, tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-rose-500 w-56 shadow-xs"
-            />
-
-            {/* Open Document Reader Button */}
-            <button
-              type="button"
-              onClick={() => handleOpenCallDoc(filteredCalls[0]?.id || callsList[0]?.id)}
-              disabled={callsList.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-black shadow-sm transition disabled:opacity-50 cursor-pointer shrink-0"
-            >
-              <span>📄</span>
-              <span>Open Document Reader</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Call Cards Stream */}
-        <div className="mt-5 space-y-4">
-          {filteredCalls.map((c) => {
-            const isMissed = c.missed;
-            const cleanPhone = (c.targetPhone || "").replace(/\D/g, "");
-
-            return (
-              <div
-                key={c.id}
-                className={`rounded-2xl p-5 border transition-all ${
-                  isMissed
-                    ? "border-amber-200/80 bg-amber-50/20 hover:bg-amber-50/40"
-                    : "border-slate-200 bg-white hover:border-slate-300 shadow-xs"
-                }`}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                  {/* Left: Contact Info & Status */}
-                  <div className="space-y-1.5 min-w-[240px]">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-black text-ink text-base">{c.targetName}</h4>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                          isMissed
-                            ? "bg-rose-100 text-rose-800 border border-rose-200"
-                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        }`}
-                      >
-                        {isMissed ? "📵 Not Answered / Missed" : "📞 Answered / Connected"}
-                      </span>
-                    </div>
-
-                    {c.targetPhone && (
-                      <div className="flex items-center gap-2 text-xs font-mono text-ink-muted">
-                        <span>📱 {c.targetPhone}</span>
-                        <a
-                          href={`tel:${cleanPhone}`}
-                          className="text-primary hover:underline font-sans text-[11px] font-bold"
-                        >
-                          Call
-                        </a>
-                        <span>•</span>
-                        <a
-                          href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-emerald-700 hover:underline font-sans text-[11px] font-bold"
-                        >
-                          WhatsApp
-                        </a>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
-                      <span>Rep: <strong className="text-ink">{c.repName}</strong></span>
-                      <span>•</span>
-                      <span>Direction: <strong className="text-ink">{c.direction}</strong></span>
-                      <span>•</span>
-                      <span>Duration: <strong className="text-ink">{formatDuration(c.durationSec)}</strong></span>
-                      {c.leadTerritory && (
-                        <>
-                          <span>•</span>
-                          <span>📍 {c.leadTerritory}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Middle: AI Call Summary & Key Takeaways (Clickable Document Trigger) */}
-                  <div
-                    onClick={() => handleOpenCallDoc(c.id)}
-                    className="flex-1 rounded-2xl p-4 bg-slate-50/80 border border-line hover:bg-purple-50/30 hover:border-purple-300 transition-all cursor-pointer group/doc"
-                    title="Click to view full AI Intelligence Document & Verbatim Transcript"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs">🤖</span>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
-                          AI Executive Call Summary
-                        </span>
-                        <span className="text-[10px] text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded font-bold group-hover/doc:bg-purple-600 group-hover/doc:text-white transition">
-                          Click to Expand Brief 📄
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-ink-faint">
-                        {formatDate(c.occurredAt)} at {formatTime(c.occurredAt)}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-ink leading-relaxed whitespace-pre-line">
-                      {c.aiSummary || c.summary || (isMissed ? "Outbound attempt unanswered. Recommend instant follow-up via WhatsApp." : "Routine follow-up conversation recorded.")}
-                    </p>
-
-                    {/* Behavioral Tags */}
-                    {c.behaviorTags.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-line/60">
-                        {c.behaviorTags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-lg bg-white border border-line px-2 py-0.5 text-[10px] font-bold text-ink-muted shadow-2xs"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-2 pt-2 border-t border-line/40 flex items-center justify-between">
-                      <span className="text-[10px] text-purple-700 font-bold group-hover/doc:underline flex items-center gap-1">
-                        <span>📄</span> Read Full Executive Document & Transcript &rarr;
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Right: WhatsApp Alert Action & Status */}
-                  <div className="flex flex-col items-end justify-between gap-3 shrink-0">
-                    <div>
-                      {c.whatsappSent ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 text-xs font-black">
-                          <span>✓</span> AI WhatsApp Dispatched
-                        </span>
-                      ) : isMissed ? (
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiWhatsAppAlert(c)}
-                          disabled={sendingAlertCallId === callId(c)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-extrabold shadow-sm transition disabled:opacity-50 cursor-pointer"
-                          title="Send personalized AI follow-up message to this lead"
-                        >
-                          <span>{sendingAlertCallId === c.id ? "⏳" : "⚡"}</span>
-                          <span>Send AI WhatsApp Alert</span>
-                        </button>
-                      ) : (
-                        <span className="text-[11px] text-ink-faint">
-                          Direct connected call
-                        </span>
-                      )}
-                    </div>
-
-                    <Link
-                      href={`/admin/employees/${c.repId}?tab=calls`}
-                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
-                    >
-                      View Rep Profile &rarr;
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {filteredCalls.length === 0 && (
-            <div className="rounded-2xl p-10 text-center neo-panel bg-slate-50 border border-line">
-              <p className="text-sm font-bold text-ink">No calls matching current filters</p>
-              <p className="text-xs text-ink-muted mt-1">Try resetting filters or search query.</p>
-            </div>
-          )}
-        </div>
-      </section>
-      )}
-
       {/* Full Executive AI Call Intelligence Document Reader Modal */}
       <CallIntelligenceDocumentModal
         isOpen={docModalOpen}
@@ -1626,4 +1176,133 @@ Report generated via Allota AI Telephony Engine • allota.in
 
 function callId(c: CallFeedItem): string {
   return c.id;
+}
+
+
+const localDay = (d: Date) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD in the viewer's timezone
+
+function CallsTodayVsDate({ calls }: { calls: CallFeedItem[] }) {
+  const yesterday = new Date(Date.now() - 86400000);
+  const [pickedDate, setPickedDate] = useState(localDay(yesterday));
+
+  const stats = (day: string) => {
+    const list = calls.filter((c) => localDay(new Date(c.occurredAt)) === day);
+    const missed = list.filter((c) => c.missed).length;
+    return { total: list.length, missed, answered: list.length - missed };
+  };
+  const today = stats(localDay(new Date()));
+  const picked = stats(pickedDate);
+  const max = Math.max(today.total, picked.total, 1);
+  const diff = today.total - picked.total;
+
+  const Row = ({ label, s, bar }: { label: string; s: ReturnType<typeof stats>; bar: string }) => (
+    <div>
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="font-bold text-ink">{label}</span>
+        <span className="text-ink-muted">
+          <strong className="text-lg font-black text-ink">{s.total}</strong> calls · {s.answered} answered · {s.missed} missed
+        </span>
+      </div>
+      <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${bar}`} style={{ width: `${(s.total / max) * 100}%` }} />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-3xl bg-white p-5 neo-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-extrabold text-ink">AI calls: today vs another date</h3>
+        <input
+          type="date"
+          value={pickedDate}
+          max={localDay(new Date())}
+          onChange={(e) => e.target.value && setPickedDate(e.target.value)}
+          className="h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="Date to compare with today"
+        />
+      </div>
+      <div className="mt-4 space-y-4">
+        <Row label="Today" s={today} bar="bg-gradient-to-r from-sky-400 to-violet-400" />
+        <Row
+          label={new Date(`${pickedDate}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          s={picked}
+          bar="bg-gradient-to-r from-violet-300 to-orange-300"
+        />
+      </div>
+      <p className="mt-4 text-xs font-semibold text-ink-muted">
+        {diff === 0
+          ? "Same number of calls on both days."
+          : `Today has ${Math.abs(diff)} ${diff > 0 ? "more" : "fewer"} call${Math.abs(diff) === 1 ? "" : "s"} than the other date.`}
+      </p>
+    </div>
+  );
+}
+
+const PIE_SLICES = [
+  { key: "HOT", label: "🔥 Hot Lead", color: "#fb7185" },
+  { key: "WARM", label: "⚡ Warm Lead", color: "#fbbf24" },
+  { key: "COLD", label: "❄️ Cold Lead", color: "#7dd3fc" },
+  { key: "DEAD", label: "💀 Dead / Test", color: "#cbd5e1" },
+] as const;
+
+function LeadQualityPie({ calls }: { calls: CallFeedItem[] }) {
+  const counts: Record<string, number> = { HOT: 0, WARM: 0, COLD: 0, DEAD: 0 };
+  for (const c of calls) {
+    const k = classifyCallLead(c).category;
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  const total = PIE_SLICES.reduce((sum, sl) => sum + (counts[sl.key] || 0), 0);
+
+  const R = 42;
+  const C = 2 * Math.PI * R;
+  let offset = 0;
+
+  return (
+    <div className="rounded-3xl bg-white p-5 neo-panel">
+      <h3 className="text-sm font-extrabold text-ink">Lead quality from AI calls</h3>
+      {total === 0 ? (
+        <p className="mt-6 text-center text-sm text-ink-muted">No calls to classify yet.</p>
+      ) : (
+        <div className="mt-3 flex items-center gap-5">
+          <svg viewBox="0 0 100 100" className="h-32 w-32 shrink-0 -rotate-90" role="img" aria-label="Lead quality pie chart">
+            {PIE_SLICES.map((sl) => {
+              const n = counts[sl.key] || 0;
+              if (!n) return null;
+              const len = (n / total) * C;
+              const el = (
+                <circle
+                  key={sl.key}
+                  cx="50"
+                  cy="50"
+                  r={R}
+                  fill="none"
+                  stroke={sl.color}
+                  strokeWidth="16"
+                  strokeDasharray={`${len} ${C - len}`}
+                  strokeDashoffset={-offset}
+                />
+              );
+              offset += len;
+              return el;
+            })}
+          </svg>
+          <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
+            {PIE_SLICES.map((sl) => {
+              const n = counts[sl.key] || 0;
+              return (
+                <li key={sl.key} className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: sl.color }} />
+                  <span className="truncate font-semibold text-ink">{sl.label}</span>
+                  <span className="ml-auto font-bold text-ink">
+                    {n} <span className="text-xs font-semibold text-ink-muted">({Math.round((n / total) * 100)}%)</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
