@@ -253,13 +253,14 @@ export default async function AdminLeadsPage({
     }
   };
 
-  const activeLeadSources = leadSources.filter((s) => isSourceActive(s.value));
-
-  // Platform cards hidden for now (leads from these sources still appear in All Platforms and the table)
-  const HIDDEN_PLATFORM_CARDS: LeadSource[] = [LeadSource.WHATSAPP, LeadSource.SOCIAL];
-  const platformCardSources = activeLeadSources.filter(
-    (s) => !HIDDEN_PLATFORM_CARDS.includes(s.value)
+  // WhatsApp and Social are hidden everywhere in Lead Center (cards, dropdowns, source setup).
+  // Leads that already came from them stay in the database and in the table.
+  const HIDDEN_SOURCES: LeadSource[] = [LeadSource.WHATSAPP, LeadSource.SOCIAL];
+  const activeLeadSources = leadSources.filter(
+    (s) => isSourceActive(s.value) && !HIDDEN_SOURCES.includes(s.value)
   );
+  const platformCardSources = activeLeadSources;
+  const visibleLeadSources = leadSources.filter((s) => !HIDDEN_SOURCES.includes(s.value));
 
   const employeeOptions = employees.map((e) => ({
     id: e.id,
@@ -535,7 +536,7 @@ export default async function AdminLeadsPage({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {leadSources.map((source) => {
+          {visibleLeadSources.map((source) => {
             const connected = isSourceActive(source.value);
             const assigned = assignmentsBySource.get(source.value) || [];
             const assignedIds = new Set(assigned.map((a) => a.employeeId));
@@ -961,16 +962,6 @@ export default async function AdminLeadsPage({
                           <p className="text-xs font-mono text-ink-muted">
                             {lead.phoneNumber ?? "No phone recorded"}
                           </p>
-                          {lead.phoneNumber && (
-                            <a
-                              href={`https://wa.me/${lead.phoneNumber.replace(/[^0-9]/g, "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.2 font-bold hover:bg-emerald-100"
-                            >
-                              WhatsApp
-                            </a>
-                          )}
                         </div>
                         <p className="text-[10px] text-ink-faint">
                           Received: {new Date(lead.createdAt).toLocaleDateString("en-IN", {
@@ -1135,14 +1126,6 @@ export default async function AdminLeadsPage({
                         className="flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-700 active:bg-blue-100"
                       >
                         📞 Call
-                      </a>
-                      <a
-                        href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 active:bg-emerald-100"
-                      >
-                        💬 WhatsApp
                       </a>
                     </div>
                   )}
