@@ -5,6 +5,7 @@ import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, remo
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { SourceIcon } from "@/components/SourceIcon";
+import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 
 const leadSources = [
@@ -937,7 +938,8 @@ export default async function AdminLeadsPage({
                 <th className="px-6 py-3.5">Platform</th>
                 <th className="px-6 py-3.5">Assigned Representative</th>
                 <th className="px-6 py-3.5">Calls</th>
-                <th className="px-6 py-3.5">Pipeline Stage</th>
+                <th className="px-6 py-3.5">Remarks</th>
+                <th className="px-6 py-3.5">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -1039,30 +1041,21 @@ export default async function AdminLeadsPage({
                       </span>
                     </td>
 
-                    {/* Pipeline Stage */}
+                    {/* Remarks (opens the full history page) */}
                     <td className="px-6 py-4">
-                      <form action={updateLead} className="flex items-center gap-1.5">
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <input
-                          type="hidden"
-                          name="assignedEmployeeId"
-                          value={lead.assignedEmployeeId ?? ""}
-                        />
-                        <select
-                          name="status"
-                          defaultValue={lead.status}
-                          className={tableSelectClass}
-                        >
-                          {leadStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {formatStatus(status)}
-                            </option>
-                          ))}
-                        </select>
-                        <button type="submit" className={smallButtonClass}>
-                          Save
-                        </button>
-                      </form>
+                      <Link
+                        href={`/admin/lead-history/${lead.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100"
+                        title={lead.remarks[0]?.remark ?? "No remarks yet"}
+                      >
+                        <span>📝 Remarks</span>
+                        <span className="text-[10px] text-amber-700">({lead.remarks.length})</span>
+                      </Link>
+                    </td>
+
+                    {/* Status: Active (green) / Dead (red), as chosen by the employee */}
+                    <td className="px-6 py-4">
+                      <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
                     </td>
                   </tr>
                 );
@@ -1070,7 +1063,7 @@ export default async function AdminLeadsPage({
 
               {!filteredLeads.length && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-ink-faint">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-ink-faint">
                     No inquiries matched your criteria. Try changing the commercial filter or clearing search.
                   </td>
                 </tr>
