@@ -1,27 +1,39 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { CLOSED_LEAD_STATUSES, endOfDay, getFollowUpState } from "@/lib/follow-up";
 
 export const dynamic = "force-dynamic";
 
 export interface CrmNotification {
   id: string;
-  type: "CALL" | "LEAD" | "REORDER" | "CREDIT";
+  type: "CALL" | "LEAD" | "REORDER" | "CREDIT" | "FOLLOWUP";
   title: string;
   description: string;
   timestamp: string;
   href: string;
   badge: string;
   isUnread: boolean;
+  /** ISO time a follow-up reminder became due (drives the live pop-up). */
+  dueAt?: string;
 }
 
 export async function GET() {
   try {
     const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ notifications: [], unreadCount: 0, home: "/login" });
+    }
+    const isEmployee = session.role === "EMPLOYEE";
     const activeCompanyId = getActiveCompanyId(session);
     const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
 
     const now = new Date();
+
+    if (isEmployee) {
+      return NextResponse.json(await buildEmployeeNotifications(session.employeeId, now));
+    }
+
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [missedCalls, newLeads, overdueCredits] = await Promise.all([
@@ -118,11 +130,50 @@ export async function GET() {
       });
     }
 
+    // Team follow-up reminders: one line per rep that has overdue / due-today follow-ups.
+    const dueLeads = await prisma.lead
+      .findMany({
+        where: {
+          ...companyScope,
+          assignedEmployeeId: { not: null },
+          followUpAt: { not: null, lt: endOfDay(now) },
+          status: { notIn: [...CLOSED_LEAD_STATUSES] },
+        },
+        select: { id: true, followUpAt: true, assignedEmployee: { select: { id: true, name: true } } },
+      })
+      .catch(() => []);
+
+    const byRep = new Map<string, { name: string; overdue: number; today: number; latest: number }>();
+    for (const l of dueLeads) {
+      if (!l.assignedEmployee || !l.followUpAt) continue;
+      const row = byRep.get(l.assignedEmployee.id) ?? { name: l.assignedEmployee.name, overdue: 0, today: 0, latest: 0 };
+      if (getFollowUpState(l.followUpAt, now) === "overdue") row.overdue++;
+      else row.today++;
+      row.latest = Math.max(row.latest, l.followUpAt.getTime());
+      byRep.set(l.assignedEmployee.id, row);
+    }
+    const followUpNotes: CrmNotification[] = [...byRep.entries()]
+      .sort((a, b) => b[1].overdue - a[1].overdue || b[1].today - a[1].today)
+      .slice(0, 5)
+      .map(([repId, r]) => ({
+        id: `fu-rep-${repId}-${r.overdue}-${r.today}`,
+        type: "FOLLOWUP" as const,
+        title: `${r.name}: ${r.overdue > 0 ? `${r.overdue} overdue` : `${r.today} due today`} follow-up${(r.overdue || r.today) === 1 ? "" : "s"}`,
+        description: [r.overdue ? `${r.overdue} overdue` : "", r.today ? `${r.today} due today` : ""].filter(Boolean).join(" • "),
+        timestamp: formatRelativeTime(new Date(r.latest)),
+        href: "/admin/follow-ups",
+        badge: r.overdue > 0 ? "Overdue" : "Due today",
+        isUnread: true,
+      }));
+    notifications.unshift(...followUpNotes);
+
     const unreadCount = notifications.filter((n) => n.isUnread).length;
 
     return NextResponse.json({
       notifications,
       unreadCount,
+      home: "/admin/calls",
+      homeLabel: "View Telephony & CRM Alerts →",
     });
   } catch (error) {
     console.error("Notifications API error:", error);
@@ -139,4 +190,84 @@ function formatRelativeTime(date: Date): string {
   if (diffHrs < 24) return `${diffHrs}h ago`;
   const diffDays = Math.floor(diffHrs / 24);
   return `${diffDays}d ago`;
+}
+
+/** A rep only sees their own reminders and newly allotted leads. */
+async function buildEmployeeNotifications(employeeId: string | null, now: Date) {
+  const home = "/employee/leads?followUp=due";
+  if (!employeeId) return { notifications: [], unreadCount: 0, home, homeLabel: "Open my leads →" };
+
+  const [dueLeads, newLeads] = await Promise.all([
+    prisma.lead
+      .findMany({
+        where: {
+          assignedEmployeeId: employeeId,
+          followUpAt: { not: null, lt: endOfDay(now) },
+          status: { notIn: [...CLOSED_LEAD_STATUSES] },
+        },
+        orderBy: { followUpAt: "asc" },
+        take: 15,
+        select: { id: true, name: true, phoneNumber: true, followUpAt: true },
+      })
+      .catch(() => []),
+    prisma.lead
+      .findMany({
+        where: {
+          assignedEmployeeId: employeeId,
+          status: "ASSIGNED",
+          updatedAt: { gte: new Date(now.getTime() - 3 * 86400000) },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 3,
+        select: { id: true, name: true, city: true, state: true, updatedAt: true },
+      })
+      .catch(() => []),
+  ]);
+
+  const notifications: CrmNotification[] = [];
+
+  for (const l of dueLeads) {
+    if (!l.followUpAt) continue;
+    const state = getFollowUpState(l.followUpAt, now);
+    const time = l.followUpAt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+    const dateLabel = l.followUpAt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    const isDueNow = l.followUpAt <= now;
+    notifications.push({
+      // Includes the scheduled time, so rescheduling a lead raises a fresh reminder.
+      id: `fu-${l.id}-${l.followUpAt.getTime()}`,
+      type: "FOLLOWUP",
+      title:
+        state === "overdue"
+          ? `Follow-up overdue: ${l.name ?? "Lead"}`
+          : isDueNow
+          ? `Follow-up due now: ${l.name ?? "Lead"}`
+          : `Follow-up today: ${l.name ?? "Lead"}`,
+      description: `${l.phoneNumber ?? "No phone"} • ${state === "overdue" ? `was due ${dateLabel}` : `due ${time}`}`,
+      timestamp: formatRelativeTime(l.followUpAt),
+      href: "/employee/leads?followUp=due",
+      badge: state === "overdue" ? "Overdue" : "Due today",
+      isUnread: true,
+      dueAt: isDueNow ? l.followUpAt.toISOString() : undefined,
+    });
+  }
+
+  for (const l of newLeads) {
+    notifications.push({
+      id: `assigned-${l.id}-${l.updatedAt.getTime()}`,
+      type: "LEAD",
+      title: `New lead allotted: ${l.name ?? "Lead"}`,
+      description: [l.city, l.state].filter(Boolean).join(", ") || "PCD inquiry",
+      timestamp: formatRelativeTime(l.updatedAt),
+      href: "/employee/leads",
+      badge: "New Lead",
+      isUnread: true,
+    });
+  }
+
+  return {
+    notifications,
+    unreadCount: notifications.length,
+    home,
+    homeLabel: "Open my follow-ups →",
+  };
 }

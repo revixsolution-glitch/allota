@@ -10,6 +10,47 @@ export function GlobalNotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [readIds, setReadIds] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [home, setHome] = useState<{ href: string; label: string }>({
+    href: "/admin/calls",
+    label: "View Telephony & CRM Alerts →",
+  });
+  const [toast, setToast] = useState<CrmNotification | null>(null);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, []);
+
+  // Pop-up + desktop alert the first time a follow-up becomes due (once per reminder, per browser tab session).
+  function alertForDueFollowUps(list: CrmNotification[]) {
+    let alerted: string[] = [];
+    try {
+      alerted = JSON.parse(sessionStorage.getItem("allota_alerted_followups") || "[]");
+    } catch {}
+    const fresh = list.filter((n) => n.type === "FOLLOWUP" && n.dueAt && !alerted.includes(n.id));
+    if (fresh.length === 0) return;
+    try {
+      sessionStorage.setItem("allota_alerted_followups", JSON.stringify([...alerted, ...fresh.map((n) => n.id)]));
+    } catch {}
+    const first = fresh[0];
+    setToast(fresh.length > 1 ? { ...first, title: `${fresh.length} follow-ups are due`, description: fresh.map((n) => n.title.split(": ")[1] ?? "").filter(Boolean).slice(0, 3).join(", ") } : first);
+    setTimeout(() => setToast(null), 10000);
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification(fresh.length > 1 ? `${fresh.length} follow-ups are due` : first.title, {
+          body: fresh.length > 1 ? "Open Allota to see them." : first.description,
+        });
+      } catch {}
+    }
+  }
+
+  async function enableDesktopAlerts() {
+    if (!("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+  }
 
   // Load read notifications from localStorage
   useEffect(() => {
@@ -31,6 +72,8 @@ export function GlobalNotificationBell() {
         const data = await res.json();
         if (isMounted && Array.isArray(data.notifications)) {
           setNotifications(data.notifications);
+          if (data.home) setHome({ href: data.home, label: data.homeLabel || "View alerts →" });
+          alertForDueFollowUps(data.notifications);
           const unread = data.notifications.filter(
             (n: CrmNotification) => !readIds.includes(n.id)
           ).length;
@@ -175,6 +218,10 @@ export function GlobalNotificationBell() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
                           📞
                         </div>
+                      ) : item.type === "FOLLOWUP" ? (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                          ⏰
+                        </div>
                       ) : item.type === "LEAD" ? (
                         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                           🔥
@@ -206,16 +253,39 @@ export function GlobalNotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="p-2.5 bg-slate-50 border-t border-line text-center">
+          <div className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 border-t border-line">
             <Link
-              href="/admin/calls"
+              href={home.href}
               onClick={() => setIsOpen(false)}
               className="text-[11px] font-bold text-[#0284c7] hover:underline"
             >
-              View Telephony & CRM Alerts →
+              {home.label}
             </Link>
+            {notifPermission === "default" && (
+              <button
+                type="button"
+                onClick={enableDesktopAlerts}
+                className="text-[10px] font-bold text-ink-muted underline underline-offset-2 hover:text-ink cursor-pointer"
+              >
+                Enable desktop alerts
+              </button>
+            )}
           </div>
         </div>
+      )}
+
+      {toast && (
+        <Link
+          href={toast.href}
+          onClick={() => setToast(null)}
+          className="fixed right-4 top-20 z-[60] flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-sky-200 bg-white p-3.5 shadow-2xl"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-lg">⏰</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-extrabold text-ink">{toast.title}</span>
+            <span className="mt-0.5 block text-[11px] text-ink-muted">{toast.description}</span>
+          </span>
+        </Link>
       )}
 
       {/* Bell Ringing Animation Style */}
