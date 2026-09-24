@@ -537,7 +537,7 @@ Report generated via Allota AI Telephony Engine
                       { key: "HOT", label: "🔥 Hot Lead" },
                       { key: "WARM", label: "⚡ Warm Lead" },
                       { key: "COLD", label: "❄️ Cold Lead" },
-                      { key: "DEAD", label: "💀 Dead / Test" },
+                      { key: "DEAD", label: "💀 Dead" },
                     ].map((l) => (
                       <button
                         key={l.key}
@@ -1179,7 +1179,7 @@ const PIE_SLICES = [
   { key: "HOT", label: "🔥 Hot Lead", color: "#fb7185" },
   { key: "WARM", label: "⚡ Warm Lead", color: "#fbbf24" },
   { key: "COLD", label: "❄️ Cold Lead", color: "#7dd3fc" },
-  { key: "DEAD", label: "💀 Dead / Test", color: "#cbd5e1" },
+  { key: "DEAD", label: "💀 Dead", color: "#cbd5e1" },
 ] as const;
 
 function LeadQualityPie({ calls }: { calls: CallFeedItem[] }) {
