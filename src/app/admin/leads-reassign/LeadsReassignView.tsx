@@ -351,51 +351,6 @@ export function LeadsReassignView({
         </div>
       </section>
 
-      {/* KPI Stats Bar - Computed Dynamically */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-primary">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Total Pipeline Leads</p>
-            <span className="rounded bg-primary-soft px-2 py-0.5 text-[9px] font-bold text-primary-strong">
-              Active CRM Data
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-black text-ink">{summary.totalLeads}</p>
-          <p className="mt-1 text-xs text-ink-muted">Allocated across {employees.length} representatives</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-amber-500">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Stagnant Leads</p>
-            <span className="rounded bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-800">
-              Needs Follow-up
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-black text-amber-700">{summary.stagnantLeadsCount}</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-rose-500">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Dead Leads</p>
-            <span className="rounded bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-700">
-              Second Chance
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-black text-rose-700">{summary.deadLeadsCount}</p>
-        </div>
-
-        <div className="rounded-2xl p-5 neo-panel border-t-2 border-t-emerald-500">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Reassigned Win Rate</p>
-            <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
-              Rescued Leads
-            </span>
-          </div>
-          <p className="mt-2 text-2xl font-black text-emerald-700">{summary.reassignedWinRate}%</p>
-          <p className="mt-1 text-xs text-ink-muted">{summary.reassignedConvertedCount} leads converted after reassignment</p>
-        </div>
-      </section>
-
       {/* Toast Notification */}
       {toastMessage && (
         <div
