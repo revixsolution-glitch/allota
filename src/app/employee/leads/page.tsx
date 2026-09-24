@@ -7,12 +7,14 @@ import { FollowUpPicker } from "@/components/FollowUpPicker";
 import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
 
 export default async function EmployeeLeadsPage({
   searchParams,
 }: {
   searchParams?: Promise<{
     division?: string;
+    followUp?: string;
     search?: string;
     range?: string;
     from?: string;
@@ -33,6 +35,9 @@ export default async function EmployeeLeadsPage({
   const params = await searchParams;
   const selectedDivision = params?.division || "ALL";
   const search = (params?.search || "").trim().toLowerCase();
+  const followUpFilter = ["due", "overdue", "today", "upcoming"].includes(params?.followUp || "")
+    ? (params?.followUp as "due" | "overdue" | "today" | "upcoming")
+    : "all";
 
   const dateFilter = parseDashboardDateFilter(
     params?.range,
@@ -88,7 +93,7 @@ export default async function EmployeeLeadsPage({
   const totalLeads = pcdCount + tpCount;
 
   // Filter leads if search query present
-  const filteredLeads = search
+  const searchedLeads = search
     ? leads.filter((l) => {
         const name = (l.name || "").toLowerCase();
         const phone = (l.phoneNumber || "").toLowerCase();
@@ -104,6 +109,47 @@ export default async function EmployeeLeadsPage({
         );
       })
     : leads;
+
+  // Follow-up buckets (dead / converted leads never count as due)
+  const now = new Date();
+  const stateOf = (l: (typeof leads)[number]) =>
+    l.followUpAt && !(CLOSED_LEAD_STATUSES as readonly string[]).includes(l.status)
+      ? getFollowUpState(l.followUpAt, now)
+      : null;
+  const overdueCount = leads.filter((l) => stateOf(l) === "overdue").length;
+  const todayCount = leads.filter((l) => stateOf(l) === "today").length;
+  const upcomingCount = leads.filter((l) => stateOf(l) === "upcoming").length;
+
+  const followUpMatches = (l: (typeof leads)[number]) => {
+    const st = stateOf(l);
+    if (followUpFilter === "all") return true;
+    if (followUpFilter === "due") return st === "overdue" || st === "today";
+    return st === followUpFilter;
+  };
+  // Due follow-ups float to the top (oldest first); everything else keeps newest-first order.
+  const filteredLeads = searchedLeads
+    .filter(followUpMatches)
+    .sort((a, b) => {
+      const da = stateOf(a);
+      const db = stateOf(b);
+      const aDue = da === "overdue" || da === "today";
+      const bDue = db === "overdue" || db === "today";
+      if (aDue !== bDue) return aDue ? -1 : 1;
+      if (aDue && bDue) return (a.followUpAt as Date).getTime() - (b.followUpAt as Date).getTime();
+      if (followUpFilter === "upcoming") return (a.followUpAt as Date).getTime() - (b.followUpAt as Date).getTime();
+      return 0;
+    });
+
+  const buildUrl = (o: { division?: string; followUp?: string }) => {
+    const sp = new URLSearchParams();
+    const d = o.division ?? selectedDivision;
+    const f = o.followUp ?? followUpFilter;
+    if (d && d !== "ALL") sp.set("division", d);
+    if (f && f !== "all") sp.set("followUp", f);
+    if (search) sp.set("search", params?.search || "");
+    const qs = sp.toString();
+    return qs ? `/employee/leads?${qs}` : "/employee/leads";
+  };
 
   return (
     <div className="space-y-6">
@@ -136,7 +182,7 @@ export default async function EmployeeLeadsPage({
         </div>
 
         {/* Division Filter Chips & Search Bar */}
-        <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-line pt-4">
+        <div className="mt-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 border-t border-line pt-4">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/employee/leads"
@@ -172,11 +218,37 @@ export default async function EmployeeLeadsPage({
             </Link>
           </div>
 
+          {/* Follow-up reminders */}
+          <div className="flex w-full flex-wrap items-center gap-2 border-t border-line pt-3 sm:order-last sm:basis-full">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-faint">Follow-ups</span>
+            {(
+              [
+                { key: "all", label: "All", count: null, tone: "border-line bg-canvas text-ink-muted", on: "bg-slate-800 text-white border-slate-800" },
+                { key: "due", label: "Due now", count: overdueCount + todayCount, tone: "border-sky-200 bg-sky-50 text-sky-800", on: "bg-sky-700 text-white border-sky-700" },
+                { key: "overdue", label: "Overdue", count: overdueCount, tone: "border-rose-200 bg-rose-50 text-rose-700", on: "bg-rose-600 text-white border-rose-600" },
+                { key: "today", label: "Today", count: todayCount, tone: "border-amber-200 bg-amber-50 text-amber-800", on: "bg-amber-500 text-white border-amber-500" },
+                { key: "upcoming", label: "Upcoming", count: upcomingCount, tone: "border-emerald-200 bg-emerald-50 text-emerald-800", on: "bg-emerald-600 text-white border-emerald-600" },
+              ] as const
+            ).map((t) => (
+              <Link
+                key={t.key}
+                href={buildUrl({ followUp: t.key })}
+                className={`rounded-xl border px-3 py-1.5 text-[11px] font-bold transition ${
+                  followUpFilter === t.key ? t.on : t.tone
+                }`}
+              >
+                {t.label}
+                {t.count !== null && ` (${t.count})`}
+              </Link>
+            ))}
+          </div>
+
           {/* Search Bar */}
           <form className="flex items-center gap-2 w-full sm:w-auto">
             {selectedDivision !== "ALL" && (
               <input type="hidden" name="division" value={selectedDivision} />
             )}
+            {followUpFilter !== "all" && <input type="hidden" name="followUp" value={followUpFilter} />}
             <input
               type="text"
               name="search"

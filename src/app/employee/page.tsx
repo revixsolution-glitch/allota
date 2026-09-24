@@ -6,6 +6,7 @@ import { LeadStatus } from "@/generated/prisma/enums";
 import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -61,6 +62,8 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     company,
     pendingTasks,
     recentAllotments,
+    overdueFollowUps,
+    todayFollowUps,
   ] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
@@ -152,6 +155,20 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       orderBy: { reassignedAt: "desc" },
       take: 3,
     }),
+    prisma.lead.count({
+      where: {
+        assignedEmployeeId: employeeId,
+        followUpAt: { lt: startOfDay(new Date()) },
+        status: { notIn: [...CLOSED_LEAD_STATUSES] },
+      },
+    }),
+    prisma.lead.count({
+      where: {
+        assignedEmployeeId: employeeId,
+        followUpAt: { gte: startOfDay(new Date()), lt: endOfDay(new Date()) },
+        status: { notIn: [...CLOSED_LEAD_STATUSES] },
+      },
+    }),
   ]);
 
   const pcdCount =
@@ -240,6 +257,27 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           <p className="mt-0.5 text-[11px] text-teal-700">Telecalling Desk Active</p>
         </div>
       </section>
+
+      {/* Follow-up reminders */}
+      {(overdueFollowUps > 0 || todayFollowUps > 0) && (
+        <Link
+          href="/employee/leads?followUp=due"
+          className="flex flex-col gap-2 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 via-violet-50 to-orange-50 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-lg shadow-xs">⏰</span>
+            <div>
+              <p className="text-sm font-extrabold text-ink">Follow-ups need your attention</p>
+              <p className="text-xs font-semibold text-ink-muted">
+                {overdueFollowUps > 0 && <span className="text-rose-700">{overdueFollowUps} overdue</span>}
+                {overdueFollowUps > 0 && todayFollowUps > 0 && " • "}
+                {todayFollowUps > 0 && <span className="text-amber-700">{todayFollowUps} due today</span>}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-sky-800">View follow-ups &rarr;</span>
+        </Link>
+      )}
 
       {/* Unanswered Call Recovery Queue (1-Tap WhatsApp Alert) */}
       {missedCallsQueue.length > 0 && (
