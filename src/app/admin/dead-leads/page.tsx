@@ -1,11 +1,14 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
-import { deleteLead, updateLeadActiveStatus, updateLead } from "@/lib/admin-actions";
+import { deleteLead, updateLeadActiveStatus } from "@/lib/admin-actions";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
   await deleteLead(formData);
+  redirect("/admin/dead-leads");
 }
 
 function truncate(text: string, maxLen: number): string {
@@ -32,12 +35,7 @@ export default async function DeadLeadsPage() {
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
 
-  const [employees, deadLeads] = await Promise.all([
-    prisma.employee.findMany({
-      where: companyScope,
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+  const [deadLeads] = await Promise.all([
     prisma.lead.findMany({
       where: { status: LeadStatus.NOT_INTERESTED, ...companyScope },
       include: {
@@ -105,110 +103,17 @@ export default async function DeadLeadsPage() {
                   return (
                     <tr key={lead.id} className="align-top hover:bg-slate-50/70 transition">
                       <td className="px-5 py-4">
-                        <details className="group">
-                          <summary className="cursor-pointer list-none select-none">
-                            <p className="font-extrabold text-ink text-sm group-open:text-rose-700">
-                              {lead.name || "Unnamed Prospect"}
-                            </p>
-                            <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
-                              {lead.phoneNumber || "No phone"}
-                            </p>
-                            <span className="mt-1 inline-block text-[10px] font-bold text-primary underline decoration-dotted">
-                              View full history
-                            </span>
-                          </summary>
-
-                          <div className="mt-3 w-80 max-w-[90vw] rounded-2xl border border-line bg-slate-50 p-3.5 space-y-3">
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                Lead Details
-                              </p>
-                              <p className="text-[11px] text-ink">
-                                {lead.city ? `${lead.city}, ${lead.state || ""}` : "Location not provided"}
-                              </p>
-                              <p className="text-[11px] text-ink-muted">
-                                In CRM since {new Date(lead.createdAt).toLocaleDateString("en-IN", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                Call History ({lead.calls.length})
-                              </p>
-                              {lead.calls.length === 0 ? (
-                                <p className="text-[11px] text-ink-faint">No calls logged.</p>
-                              ) : (
-                                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
-                                  {lead.calls.map((c) => (
-                                    <div key={c.id} className="rounded-lg bg-white border border-line-soft p-2">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-bold text-ink">
-                                          {c.missed ? "🔴 Missed" : "🟢 Connected"} • {c.durationSec}s
-                                        </span>
-                                        <span className="text-[10px] text-ink-faint">
-                                          {new Date(c.occurredAt).toLocaleDateString("en-IN", {
-                                            day: "numeric",
-                                            month: "short",
-                                          })}
-                                        </span>
-                                      </div>
-                                      {c.aiSummary && (
-                                        <p className="mt-1 text-[10px] text-ink-muted leading-relaxed">
-                                          {truncate(c.aiSummary, 140)}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            {lead.remarks.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                  Remarks ({lead.remarks.length})
-                                </p>
-                                <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
-                                  {lead.remarks.map((r) => (
-                                    <div key={r.id} className="rounded-lg bg-white border border-line-soft p-2">
-                                      <p className="text-[10px] text-ink leading-relaxed">{r.remark}</p>
-                                      <p className="mt-0.5 text-[9px] text-ink-faint font-semibold">
-                                        — {r.employee.name}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <form action={updateLead} className="flex items-center gap-1.5 pt-2 border-t border-line-soft">
-                              <input type="hidden" name="leadId" value={lead.id} />
-                              <input type="hidden" name="status" value={LeadStatus.NOT_INTERESTED} />
-                              <select
-                                name="assignedEmployeeId"
-                                defaultValue={lead.assignedEmployeeId ?? ""}
-                                className="h-8 flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink focus:outline-none"
-                              >
-                                <option value="">Unassigned</option>
-                                {employees.map((e) => (
-                                  <option key={e.id} value={e.id}>
-                                    {e.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="submit"
-                                className="h-8 shrink-0 rounded-lg bg-slate-200 hover:bg-slate-300 text-ink px-2.5 text-[11px] font-bold transition cursor-pointer"
-                              >
-                                Reassign
-                              </button>
-                            </form>
-                          </div>
-                        </details>
+                        <Link href={`/admin/lead-history/${lead.id}`} className="group block">
+                          <p className="font-extrabold text-ink text-sm group-hover:text-rose-700">
+                            {lead.name || "Unnamed Prospect"}
+                          </p>
+                          <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
+                            {lead.phoneNumber || "No phone"}
+                          </p>
+                          <span className="mt-1.5 inline-block rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1 text-[11px] font-bold text-sky-800 group-hover:bg-sky-100">
+                            Open full history →
+                          </span>
+                        </Link>
                       </td>
 
                       <td className="px-4 py-4">
