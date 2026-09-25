@@ -377,504 +377,429 @@ export function LeadsReassignView({
       {/* DIRECT REASSIGNMENT STUDIO                                                */}
       {/* ========================================================================= */}
       {activeTab === "direct" && (
-        <div className="space-y-6">
-          {/* THE 3-STEP DIRECT COMMAND CENTER */}
-          <div className="rounded-3xl p-5 neo-panel border-2 border-amber-400 bg-gradient-to-br from-amber-500/5 via-white to-amber-500/10 shadow-lg">
-            <div className="border-b border-line pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-amber-800">
-                  ⚡ Lead Reallocation
-                </span>
-                <h2 className="text-base font-black text-ink mt-0.5">
-                  Reassign Leads Between Representatives
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-900 border border-amber-300">
-                  {selectedLeadIds.length} of {filteredLeads.length} Leads Selected
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 lg:grid-cols-3 items-start">
-              {/* STEP 1: CURRENT ASSIGNED EMPLOYEE */}
-              <div className="flex flex-col rounded-2xl bg-white p-4 border border-line shadow-sm">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-white text-[10px]">
-                        1
-                      </span>
-                      Current Assigned Employee
-                    </span>
-                    {currentSourceRep && (
-                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                        {currentSourceRep.totalLeads} in Queue
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-2.5">
-                    <select
-                      value={sourceEmpId}
-                      onChange={(e) => {
-                        setSourceEmpId(e.target.value);
-                      }}
-                      className="w-full rounded-xl border border-line bg-amber-50/40 px-3.5 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <option value="ALL">-- All Representatives & Queues --</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name} ({emp.totalLeads} active leads • {emp.territory})
-                        </option>
-                      ))}
-                      <option value="UNASSIGNED">Unassigned Pool</option>
-                    </select>
-                  </div>
-
-                  {/* Comprehensive Dynamic Status Filter Options */}
-                  <div className="mt-3 pt-2.5 border-t border-line/60">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1.5">
-                      Filter Leads by Status:
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("ALL")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "ALL"
-                            ? "bg-ink text-white"
-                            : "bg-slate-100 text-ink-muted hover:bg-slate-200"
-                        }`}
-                      >
-                        All ({statusCounts.ALL})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("STAGNANT")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "STAGNANT"
-                            ? "bg-amber-600 text-white"
-                            : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
-                        }`}
-                      >
-                        ⏱️ Stagnant ({statusCounts.STAGNANT})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("NEW")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "NEW"
-                            ? "bg-sky-600 text-white"
-                            : "bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100"
-                        }`}
-                      >
-                        ✨ Fresh ({statusCounts.NEW})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("CONTACTED")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "CONTACTED"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100"
-                        }`}
-                      >
-                        📞 Contacted ({statusCounts.CONTACTED})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("INTERESTED")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "INTERESTED"
-                            ? "bg-purple-600 text-white"
-                            : "bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100"
-                        }`}
-                      >
-                        ★ Interested ({statusCounts.INTERESTED})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("DEAD")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "DEAD"
-                            ? "bg-rose-600 text-white"
-                            : "bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100"
-                        }`}
-                      >
-                        ✕ Dead Leads ({statusCounts.DEAD})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter("CONVERTED")}
-                        className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
-                          statusFilter === "CONVERTED"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
-                        }`}
-                      >
-                        ✓ Converted ({statusCounts.CONVERTED})
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between">
-                  <span className="text-xs text-ink-muted font-medium">
-                    Selected: <strong className="text-amber-800">{selectedLeadIds.length}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={toggleSelectAll}
-                    className="text-xs font-bold text-primary hover:underline"
-                  >
-                    {allFilteredSelected ? "Deselect All" : `Select All (${filteredLeads.length})`}
-                  </button>
-                </div>
-              </div>
-
-              {/* STEP 2: ASSIGN TO EMPLOYEE(S) - DROPDOWN WITH 1, 2, 3 OR ALL SELECTION */}
-              <div
-                ref={dropdownRef}
-                className="flex flex-col rounded-2xl bg-white p-4 border border-line shadow-sm relative"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-white text-[10px]">
-                        2
-                      </span>
-                      Assign To Employee(s)
-                    </span>
-                    <span className="text-[10px] text-ink-faint font-semibold">
-                      {targetEmpIds.length} Selected
-                    </span>
-                  </div>
-
-
-                  {/* Multi-Select Dropdown Trigger */}
-                  <div className="relative mt-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
-                      className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-left text-xs font-semibold text-ink flex items-center justify-between hover:border-amber-500 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <span className="truncate">
-                        {targetEmpIds.length === 0 ? (
-                          <span className="text-ink-faint font-normal">
-                            -- Click to Choose Target Employee(s) --
-                          </span>
-                        ) : targetEmpIds.length === availableTargetEmployees.length && availableTargetEmployees.length > 0 ? (
-                          <span className="text-emerald-800 font-bold">
-                            ✓ All {availableTargetEmployees.length} Available Employees Selected
-                          </span>
-                        ) : (
-                          <span className="text-emerald-800 font-bold">
-                            {targetEmpIds.length} Employee{targetEmpIds.length > 1 ? "s" : ""} Selected:{" "}
-                            {selectedTargetEmployees.map((e) => e.name).join(", ")}
-                          </span>
-                        )}
-                      </span>
-                      <svg
-                        className={`h-4 w-4 text-ink-faint transition-transform shrink-0 ml-2 ${
-                          isTargetDropdownOpen ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {/* Popover Dropdown Menu */}
-                    {isTargetDropdownOpen && (
-                      <div className="absolute z-30 mt-1.5 w-full rounded-2xl bg-white p-3 border border-line shadow-2xl space-y-2">
-                        {/* Quick Selection Helpers */}
-                        <div className="flex items-center justify-between border-b border-line/60 pb-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                            Select 1, 2, 3 or All:
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setTargetEmpIds(availableTargetEmployees.map((e) => e.id))
-                              }
-                              className="text-[11px] font-bold text-primary hover:underline"
-                            >
-                              Select All ({availableTargetEmployees.length})
-                            </button>
-                            <span className="text-ink-faint text-xs">|</span>
-                            <button
-                              type="button"
-                              onClick={() => setTargetEmpIds([])}
-                              className="text-[11px] font-bold text-ink-faint hover:text-rose-600"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* List of Employees with Checkboxes */}
-                        <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
-                          {availableTargetEmployees.map((emp) => {
-                            const isSelected = targetEmpIds.includes(emp.id);
-                            return (
-                              <div
-                                key={emp.id}
-                                onClick={() => toggleTargetEmployee(emp.id)}
-                                className={`cursor-pointer rounded-xl px-3 py-2 transition flex items-center justify-between border ${
-                                  isSelected
-                                    ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400"
-                                    : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => {}}
-                                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
-                                  />
-                                  <div>
-                                    <p className="text-xs font-bold text-ink leading-tight">{emp.name}</p>
-                                    <p className="text-[10px] text-ink-faint">
-                                      {emp.territory} • {emp.totalLeads} active leads
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                                  {emp.winRate}% Win Rate
-                                </span>
-                              </div>
-                            );
-                          })}
-
-                          {availableTargetEmployees.length === 0 && (
-                            <p className="text-xs text-ink-faint py-3 text-center">
-                              No other representatives available.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="border-t border-line/60 pt-2 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setIsTargetDropdownOpen(false)}
-                            className="rounded-lg bg-ink px-3 py-1 text-[11px] font-bold text-white hover:bg-slate-800"
-                          >
-                            Apply Selection
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Selected Employee Pills with Remove Button */}
-                  {targetEmpIds.length > 0 && (
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {selectedTargetEmployees.map((emp) => (
-                        <span
-                          key={emp.id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold text-emerald-800"
-                        >
-                          {emp.name}
-                          <button
-                            type="button"
-                            onClick={() => toggleTargetEmployee(emp.id)}
-                            className="hover:text-rose-600 font-black ml-0.5 text-xs"
-                            title="Remove"
-                          >
-                            ✕
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Dynamic Distribution Summary */}
-                <div className="mt-3 pt-2.5 border-t border-line/60">
-                  <p className="text-[11px] text-ink-muted leading-relaxed">
-                    {targetEmpIds.length === 0 ? (
-                      <span className="text-amber-700 font-medium">
-                        Click the dropdown above to choose 1, 2, 3, or all employees to receive the leads.
-                      </span>
-                    ) : targetEmpIds.length === 1 ? (
-                      <>
-                        All <strong className="text-ink">{selectedLeadIds.length}</strong> selected lead(s) will be assigned to{" "}
-                        <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
-                      </>
-                    ) : (
-                      <>
-                        <strong className="text-ink">{selectedLeadIds.length}</strong> selected lead(s) will be distributed evenly across{" "}
-                        <strong className="text-emerald-700">{targetEmpIds.length} employees</strong> (
-                        {selectedTargetEmployees.map((e) => e.name).join(", ")}) — approx.{" "}
-                        <strong className="text-emerald-700">
-                          {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
-                        </strong>{" "}
-                        leads each.
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* STEP 3: ACTION DECK & ASSIGN BUTTON */}
-              <div className="flex flex-col rounded-2xl bg-gradient-to-b from-white to-amber-50/50 p-4 border-2 border-amber-400/90 shadow-md">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-white text-[10px]">
-                        3
-                      </span>
-                      Transfer Confirmation
-                    </span>
-                    <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                      Instant Action
-                    </span>
-                  </div>
-
-                  {/* Visual Transfer summary */}
-                  <div className="mt-2.5 rounded-xl bg-white p-2.5 border border-line shadow-inner text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-ink-faint">Selected to Transfer:</span>
-                      <strong className="text-ink font-bold">{selectedLeadIds.length} Leads</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-ink-faint">Current Representative:</span>
-                      <strong className="text-amber-800 font-bold">{currentSourceRep?.name || "All / Filtered"}</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-ink-faint">Target Representative(s):</span>
-                      <strong className="text-emerald-800 font-bold truncate max-w-[150px]">
-                        {selectedTargetEmployees.length > 0
-                          ? selectedTargetEmployees.map((e) => e.name).join(", ")
-                          : "None Selected"}
-                      </strong>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-line/60 pt-1">
-                      <span className="text-ink-faint">Status Reset:</span>
-                      <strong className="text-indigo-700 font-bold">ASSIGNED (Fresh Action Queue)</strong>
-                    </div>
-                  </div>
-
-                  {/* Audit Reason */}
-                  <div className="mt-2.5">
-                    <label className="block text-[11px] font-bold text-ink uppercase tracking-wider mb-1">
-                      Audit Reason:
-                    </label>
-                    <input
-                      type="text"
-                      value={reassignReason}
-                      onChange={(e) => setReassignReason(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-white px-3 py-1 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {presetReasons.slice(0, 2).map((pr) => (
-                        <button
-                          key={pr}
-                          type="button"
-                          onClick={() => setReassignReason(pr)}
-                          className="rounded bg-slate-100 hover:bg-slate-200 px-2 py-0.5 text-[9px] text-ink-muted truncate max-w-xs"
-                        >
-                          {pr}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* THE ASSIGN BUTTON */}
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    disabled={isSubmitting || selectedLeadIds.length === 0 || targetEmpIds.length === 0}
-                    onClick={handleExecuteReassignment}
-                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 shadow-lg ${
-                      selectedLeadIds.length > 0 && targetEmpIds.length > 0 && !isSubmitting
-                        ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-amber-500/30 hover:scale-[1.01]"
-                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <span className="py-1">⚡ Assigning {selectedLeadIds.length} Leads...</span>
-                    ) : selectedLeadIds.length === 0 ? (
-                      <div className="py-1 text-slate-500">Select Leads in Step 1 to Assign</div>
-                    ) : targetEmpIds.length === 0 ? (
-                      <div className="py-1 text-slate-500">Choose Target Employee(s) in Step 2</div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>⚡</span>
-                          <span>
-                            {targetEmpIds.length === 1
-                              ? `ASSIGN ${selectedLeadIds.length} LEAD${selectedLeadIds.length === 1 ? "" : "S"} TO ${selectedTargetEmployees[0]?.name.toUpperCase()}`
-                              : `DISTRIBUTE ${selectedLeadIds.length} LEADS ACROSS ${targetEmpIds.length} EMPLOYEES`}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-normal text-white/80 truncate max-w-xs">
-                          {currentSourceRep?.name || "Current Rep"} ➔{" "}
-                          {selectedTargetEmployees.map((e) => e.name).join(", ")} • Zero Duplicates
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="rounded-3xl bg-white p-5 neo-panel">
+          {/* Sleek gradient header, matching the AI Calls cards */}
+          <div className="-mx-5 -mt-5 mb-1 flex flex-wrap items-center justify-between gap-3 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-5 py-3.5">
+            <h3 className="text-lg font-extrabold tracking-tight text-ink">
+              Reassign Leads Between <GradientText>Representatives</GradientText>
+            </h3>
+            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-extrabold text-ink border border-white shadow-xs">
+              {selectedLeadIds.length} of {filteredLeads.length} Selected
+            </span>
           </div>
 
-          {/* ===================================================================== */}
-          {/* DETAILED LEADS INSPECTION & SELECTION TABLE                            */}
-          {/* ===================================================================== */}
-          <div className="rounded-3xl p-6 neo-panel">
-            <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-ink text-base">
-                  Leads Allocated to {currentSourceRep?.name || "All Representatives"}
-                </h3>
+          {/* Compact 3-step control strip — one row, no nested boxes */}
+          <div className="mt-4 grid gap-5 lg:grid-cols-3 lg:divide-x lg:divide-line">
+            {/* STEP 1: FROM REPRESENTATIVE */}
+            <div className="lg:pr-5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
+                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
+                    1
+                  </span>
+                  From Representative
+                </span>
+                {currentSourceRep && (
+                  <span className="text-[10px] font-bold text-ink-faint">
+                    {currentSourceRep.totalLeads} in queue
+                  </span>
+                )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Search party, phone, city, notes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-primary w-56"
-                />
+              <select
+                value={sourceEmpId}
+                onChange={(e) => setSourceEmpId(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-line bg-slate-50/70 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="ALL">-- All Representatives & Queues --</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name} ({emp.totalLeads} active leads • {emp.territory})
+                  </option>
+                ))}
+                <option value="UNASSIGNED">Unassigned Pool</option>
+              </select>
 
-                <select
-                  value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e.target.value)}
-                  className="rounded-xl border border-line bg-white px-2.5 py-1.5 text-xs text-ink font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
+              <div className="mt-2.5 flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("ALL")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "ALL"
+                      ? "bg-ink text-white"
+                      : "bg-slate-100 text-ink-muted hover:bg-slate-200"
+                  }`}
                 >
-                  <option value="ALL">All Sources</option>
-                  <option value="META">Meta Ads Leads</option>
-                  <option value="INDIAMART">IndiaMART Leads</option>
-                  <option value="WEBSITE">Website Forms</option>
-                  <option value="MANUAL">Manual / Walk-in</option>
-                </select>
+                  All ({statusCounts.ALL})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("STAGNANT")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "STAGNANT"
+                      ? "bg-amber-600 text-white"
+                      : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                  }`}
+                >
+                  ⏱️ Stagnant ({statusCounts.STAGNANT})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("NEW")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "NEW"
+                      ? "bg-sky-600 text-white"
+                      : "bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100"
+                  }`}
+                >
+                  ✨ Fresh ({statusCounts.NEW})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("CONTACTED")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "CONTACTED"
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100"
+                  }`}
+                >
+                  📞 Contacted ({statusCounts.CONTACTED})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("INTERESTED")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "INTERESTED"
+                      ? "bg-purple-600 text-white"
+                      : "bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100"
+                  }`}
+                >
+                  ★ Interested ({statusCounts.INTERESTED})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("DEAD")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "DEAD"
+                      ? "bg-rose-600 text-white"
+                      : "bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100"
+                  }`}
+                >
+                  ✕ Dead ({statusCounts.DEAD})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("CONVERTED")}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                    statusFilter === "CONVERTED"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                  }`}
+                >
+                  ✓ Converted ({statusCounts.CONVERTED})
+                </button>
+              </div>
 
+              <div className="mt-2.5 flex items-center justify-between text-xs">
+                <span className="text-ink-muted font-medium">
+                  Selected: <strong className="text-ink">{selectedLeadIds.length}</strong>
+                </span>
                 <button
                   type="button"
                   onClick={toggleSelectAll}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition ${
-                    allFilteredSelected
-                      ? "bg-amber-100 text-amber-900 border-amber-300"
-                      : "bg-white text-ink border-line hover:bg-slate-50"
-                  }`}
+                  className="font-bold text-primary hover:underline"
                 >
-                  {allFilteredSelected ? "✓ Deselect All" : `Select All (${filteredLeads.length})`}
+                  {allFilteredSelected ? "Deselect All" : `Select All (${filteredLeads.length})`}
                 </button>
               </div>
             </div>
 
-            {/* Table */}
-            <div className="mt-5 overflow-x-auto">
+            {/* STEP 2: TO EMPLOYEE(S) */}
+            <div ref={dropdownRef} className="relative lg:px-5">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
+                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
+                    2
+                  </span>
+                  To Employee(s)
+                </span>
+                <span className="text-[10px] font-bold text-ink-faint">
+                  {targetEmpIds.length} selected
+                </span>
+              </div>
+
+              {/* Multi-Select Dropdown Trigger */}
+              <div className="relative mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
+                  className="w-full rounded-lg border border-line bg-slate-50/70 px-3 py-2 text-left text-xs font-semibold text-ink flex items-center justify-between hover:border-amber-500 transition focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <span className="truncate">
+                    {targetEmpIds.length === 0 ? (
+                      <span className="text-ink-faint font-normal">
+                        -- Click to choose target employee(s) --
+                      </span>
+                    ) : targetEmpIds.length === availableTargetEmployees.length && availableTargetEmployees.length > 0 ? (
+                      <span className="text-emerald-800 font-bold">
+                        ✓ All {availableTargetEmployees.length} available employees
+                      </span>
+                    ) : (
+                      <span className="text-emerald-800 font-bold">
+                        {targetEmpIds.length} selected: {selectedTargetEmployees.map((e) => e.name).join(", ")}
+                      </span>
+                    )}
+                  </span>
+                  <svg
+                    className={`h-4 w-4 text-ink-faint transition-transform shrink-0 ml-2 ${
+                      isTargetDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Popover Dropdown Menu */}
+                {isTargetDropdownOpen && (
+                  <div className="absolute z-30 mt-1.5 w-full rounded-2xl bg-white p-3 border border-line shadow-2xl space-y-2">
+                    {/* Quick Selection Helpers */}
+                    <div className="flex items-center justify-between border-b border-line/60 pb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                        Select 1, 2, 3 or All:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTargetEmpIds(availableTargetEmployees.map((e) => e.id))
+                          }
+                          className="text-[11px] font-bold text-primary hover:underline"
+                        >
+                          Select All ({availableTargetEmployees.length})
+                        </button>
+                        <span className="text-ink-faint text-xs">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setTargetEmpIds([])}
+                          className="text-[11px] font-bold text-ink-faint hover:text-rose-600"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* List of Employees with Checkboxes */}
+                    <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+                      {availableTargetEmployees.map((emp) => {
+                        const isSelected = targetEmpIds.includes(emp.id);
+                        return (
+                          <div
+                            key={emp.id}
+                            onClick={() => toggleTargetEmployee(emp.id)}
+                            className={`cursor-pointer rounded-xl px-3 py-2 transition flex items-center justify-between border ${
+                              isSelected
+                                ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400"
+                                : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}}
+                                className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
+                              />
+                              <div>
+                                <p className="text-xs font-bold text-ink leading-tight">{emp.name}</p>
+                                <p className="text-[10px] text-ink-faint">
+                                  {emp.territory} • {emp.totalLeads} active leads
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                              {emp.winRate}% Win Rate
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {availableTargetEmployees.length === 0 && (
+                        <p className="text-xs text-ink-faint py-3 text-center">
+                          No other representatives available.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="border-t border-line/60 pt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsTargetDropdownOpen(false)}
+                        className="rounded-lg bg-ink px-3 py-1 text-[11px] font-bold text-white hover:bg-slate-800"
+                      >
+                        Apply Selection
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Employee Pills with Remove Button */}
+              {targetEmpIds.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selectedTargetEmployees.map((emp) => (
+                    <span
+                      key={emp.id}
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-bold text-emerald-800"
+                    >
+                      {emp.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleTargetEmployee(emp.id)}
+                        className="hover:text-rose-600 font-black ml-0.5 text-xs"
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* STEP 3: CONFIRM & TRANSFER */}
+            <div className="lg:pl-5">
+              <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
+                <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
+                  3
+                </span>
+                Confirm & Transfer
+              </span>
+
+              {/* One-line dynamic summary, replaces the old multi-row box */}
+              <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+                {selectedLeadIds.length === 0 ? (
+                  "Select leads below, then a target rep, to preview the transfer here."
+                ) : targetEmpIds.length === 0 ? (
+                  <>
+                    <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) selected — choose target rep(s) in Step 2.
+                  </>
+                ) : targetEmpIds.length === 1 ? (
+                  <>
+                    Transferring <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) from{" "}
+                    <strong className="text-ink">{currentSourceRep?.name || "All / Filtered"}</strong> to{" "}
+                    <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
+                  </>
+                ) : (
+                  <>
+                    Distributing <strong className="text-ink">{selectedLeadIds.length}</strong> leads across{" "}
+                    <strong className="text-emerald-700">{targetEmpIds.length} reps</strong> — approx.{" "}
+                    <strong className="text-emerald-700">
+                      {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
+                    </strong>{" "}
+                    each.
+                  </>
+                )}
+              </p>
+
+              <input
+                type="text"
+                value={reassignReason}
+                onChange={(e) => setReassignReason(e.target.value)}
+                placeholder="Audit reason"
+                className="mt-2 w-full rounded-lg border border-line bg-slate-50/70 px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {presetReasons.slice(0, 2).map((pr) => (
+                  <button
+                    key={pr}
+                    type="button"
+                    onClick={() => setReassignReason(pr)}
+                    className="rounded bg-slate-100 hover:bg-slate-200 px-2 py-0.5 text-[9px] text-ink-muted truncate max-w-xs"
+                  >
+                    {pr}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                disabled={isSubmitting || selectedLeadIds.length === 0 || targetEmpIds.length === 0}
+                onClick={handleExecuteReassignment}
+                className={`mt-2.5 w-full py-2.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ${
+                  selectedLeadIds.length > 0 && targetEmpIds.length > 0 && !isSubmitting
+                    ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-md shadow-amber-500/25 hover:scale-[1.01]"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                {isSubmitting ? (
+                  <span className="py-1">⚡ Assigning {selectedLeadIds.length} Leads...</span>
+                ) : selectedLeadIds.length === 0 ? (
+                  <div className="py-1 text-slate-500">Select Leads Below to Assign</div>
+                ) : targetEmpIds.length === 0 ? (
+                  <div className="py-1 text-slate-500">Choose Target Employee(s) Above</div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span>⚡</span>
+                    <span>
+                      {targetEmpIds.length === 1
+                        ? `ASSIGN ${selectedLeadIds.length} LEAD${selectedLeadIds.length === 1 ? "" : "S"} TO ${selectedTargetEmployees[0]?.name.toUpperCase()}`
+                        : `DISTRIBUTE ${selectedLeadIds.length} LEADS ACROSS ${targetEmpIds.length} EMPLOYEES`}
+                    </span>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ===================================================================== */}
+          {/* MERGED: LEADS TABLE, SAME CARD, NO SEPARATE PANEL                      */}
+          {/* ===================================================================== */}
+          <div className="mt-5 pt-4 border-t border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h4 className="text-sm font-bold text-ink">
+              Leads Allocated to {currentSourceRep?.name || "All Representatives"}
+            </h4>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                placeholder="Search party, phone, city, notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-primary w-56"
+              />
+
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="rounded-xl border border-line bg-white px-2.5 py-1.5 text-xs text-ink font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="ALL">All Sources</option>
+                <option value="META">Meta Ads Leads</option>
+                <option value="INDIAMART">IndiaMART Leads</option>
+                <option value="WEBSITE">Website Forms</option>
+                <option value="MANUAL">Manual / Walk-in</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition ${
+                  allFilteredSelected
+                    ? "bg-amber-100 text-amber-900 border-amber-300"
+                    : "bg-white text-ink border-line hover:bg-slate-50"
+                }`}
+              >
+                {allFilteredSelected ? "✓ Deselect All" : `Select All (${filteredLeads.length})`}
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-line text-ink-faint uppercase font-bold text-[10px]">
                   <tr>
@@ -1036,10 +961,8 @@ export function LeadsReassignView({
               </div>
             )}
           </div>
-        </div>
       )}
 
-      {/* ========================================================================= */}
       {/* TAB 2: AUDIT HISTORY                                                      */}
       {/* ========================================================================= */}
       {activeTab === "audit" && (
