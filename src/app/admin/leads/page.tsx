@@ -544,13 +544,13 @@ export default async function AdminLeadsPage({
       </section>
       )}
 
-      {/* 4.5 Lead Sources & Auto-Assignment (compact, one card per channel) */}
-      <section className="order-7 rounded-3xl p-6 neo-panel bg-white">
-        <div className="-mx-6 -mt-6 mb-5 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-6 py-4">
-          <h2 className="text-xl font-extrabold tracking-tight text-ink">Lead Sources & Auto-Assignment</h2>
+      {/* 4.5 Lead Sources & Auto-Assignment (compact, all 5 channels in one single row) */}
+      <section className="order-7 rounded-3xl p-5 sm:p-6 neo-panel bg-white">
+        <div className="-mx-5 -mt-5 sm:-mx-6 sm:-mt-6 mb-4 rounded-t-3xl border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-5 sm:px-6 py-3.5">
+          <h2 className="text-lg font-extrabold tracking-tight text-ink">Lead Sources & Auto-Assignment</h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {visibleLeadSources.map((source) => {
             const connected = isSourceActive(source.value);
             const assigned = assignmentsBySource.get(source.value) || [];
@@ -561,88 +561,91 @@ export default async function AdminLeadsPage({
             return (
               <div
                 key={source.value}
-                className={`rounded-2xl border p-4 transition ${
-                  connected ? "bg-white border-line" : "bg-slate-50 border-line-soft opacity-60"
+                className={`rounded-2xl border p-3 sm:p-3.5 transition flex flex-col justify-between ${
+                  connected ? "bg-white border-line shadow-2xs hover:border-slate-300" : "bg-slate-50 border-line-soft opacity-60"
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <SourceIcon source={source.value} className="h-5 w-5 shrink-0" />
-                    <span className="text-sm font-bold text-ink">{source.shortLabel}</span>
+                <div>
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <SourceIcon source={source.value} className="h-4 w-4 shrink-0" />
+                      <span className="text-xs font-bold text-ink truncate">{source.shortLabel}</span>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${
+                        connected
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-200 text-ink-faint"
+                      }`}
+                    >
+                      {connected ? "● Connected" : "Not Connected"}
+                    </span>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                      connected
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-200 text-ink-faint"
-                    }`}
-                  >
-                    {connected ? "● Connected" : "Not Connected"}
-                  </span>
+
+                  {connected ? (
+                    <p className="text-[10px] text-ink-muted mb-2 font-medium">{count} inquiries</p>
+                  ) : (
+                    <Link
+                      href="/admin/settings"
+                      className="inline-block text-[10px] font-bold text-ink-faint hover:text-primary transition mt-1"
+                    >
+                      Connect in Settings →
+                    </Link>
+                  )}
                 </div>
 
-                {connected ? (
-                  <>
-                    <p className="text-[11px] text-ink-muted mb-2">{count} inquiries</p>
-                    <details className="group">
-                      <summary className="cursor-pointer text-[10px] font-bold text-primary underline decoration-dotted select-none">
-                        {assigned.length > 0
-                          ? `${assigned.length} rep${assigned.length > 1 ? "s" : ""} assigned — Edit`
-                          : "Assign reps"}
-                      </summary>
-                      <div className="mt-2 space-y-1.5">
-                        {assigned.map((a) => (
-                          <form
-                            key={a.id}
-                            action={removeSourceEmployeeMapping}
-                            className="flex items-center justify-between rounded-lg bg-slate-50 border border-line-soft px-2 py-1"
+                {connected && (
+                  <details className="group mt-1 pt-1.5 border-t border-line/60">
+                    <summary className="cursor-pointer text-[10px] font-bold text-primary underline decoration-dotted select-none truncate block">
+                      {assigned.length > 0
+                        ? `${assigned.length} rep${assigned.length > 1 ? "s" : ""} assigned — Edit`
+                        : "▶ Assign reps"}
+                    </summary>
+                    <div className="mt-2 space-y-1.5">
+                      {assigned.map((a) => (
+                        <form
+                          key={a.id}
+                          action={removeSourceEmployeeMapping}
+                          className="flex items-center justify-between rounded-lg bg-slate-50 border border-line-soft px-2 py-1"
+                        >
+                          <input type="hidden" name="mappingId" value={a.id} />
+                          <span className="text-[10px] font-semibold text-ink truncate mr-1">{a.employeeName}</span>
+                          <button
+                            type="submit"
+                            className="text-[9px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer shrink-0"
                           >
-                            <input type="hidden" name="mappingId" value={a.id} />
-                            <span className="text-[11px] font-semibold text-ink">{a.employeeName}</span>
-                            <button
-                              type="submit"
-                              className="text-[10px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </form>
-                        ))}
-                        {availableEmployees.length > 0 && (
-                          <form action={addSourceEmployeeMapping} className="flex items-center gap-1">
-                            <input type="hidden" name="source" value={source.value} />
-                            <select
-                              name="employeeId"
-                              required
-                              defaultValue=""
-                              className="h-7 flex-1 rounded-lg border border-line bg-white px-1.5 text-[10px] font-semibold text-ink focus:outline-none"
-                            >
-                              <option value="" disabled>
-                                Add rep...
+                            Remove
+                          </button>
+                        </form>
+                      ))}
+                      {availableEmployees.length > 0 && (
+                        <form action={addSourceEmployeeMapping} className="flex items-center gap-1">
+                          <input type="hidden" name="source" value={source.value} />
+                          <select
+                            name="employeeId"
+                            required
+                            defaultValue=""
+                            className="h-6 flex-1 rounded-md border border-line bg-white px-1 text-[9px] font-semibold text-ink focus:outline-none"
+                          >
+                            <option value="" disabled>
+                              Add rep...
+                            </option>
+                            {availableEmployees.map((e) => (
+                              <option key={e.id} value={e.id}>
+                                {e.name}
                               </option>
-                              {availableEmployees.map((e) => (
-                                <option key={e.id} value={e.id}>
-                                  {e.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="submit"
-                              className="h-7 shrink-0 rounded-lg bg-primary px-2 text-[10px] font-bold text-white hover:bg-primary-strong transition cursor-pointer"
-                            >
-                              Add
-                            </button>
-                          </form>
-                        )}
-                      </div>
-                    </details>
-                  </>
-                ) : (
-                  <Link
-                    href="/admin/settings"
-                    className="text-[10px] font-bold text-ink-faint hover:text-primary transition"
-                  >
-                    Connect in Settings →
-                  </Link>
+                            ))}
+                          </select>
+                          <button
+                            type="submit"
+                            className="h-6 shrink-0 rounded-md bg-primary px-1.5 text-[9px] font-bold text-white hover:bg-primary-strong transition cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </details>
                 )}
               </div>
             );
