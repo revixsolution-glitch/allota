@@ -377,15 +377,15 @@ export function LeadsReassignView({
       {/* DIRECT REASSIGNMENT STUDIO                                                */}
       {/* ========================================================================= */}
       {activeTab === "direct" && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* THE 3-STEP DIRECT COMMAND CENTER */}
-          <div className="rounded-3xl p-7 neo-panel border-2 border-amber-400 bg-gradient-to-br from-amber-500/5 via-white to-amber-500/10 shadow-lg">
-            <div className="border-b border-line pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div className="rounded-3xl p-5 neo-panel border-2 border-amber-400 bg-gradient-to-br from-amber-500/5 via-white to-amber-500/10 shadow-lg">
+            <div className="border-b border-line pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-amber-800">
                   ⚡ Lead Reallocation
                 </span>
-                <h2 className="text-lg font-black text-ink mt-0.5">
+                <h2 className="text-base font-black text-ink mt-0.5">
                   Reassign Leads Between Representatives
                 </h2>
               </div>
@@ -396,9 +396,9 @@ export function LeadsReassignView({
               </div>
             </div>
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="mt-4 grid gap-4 lg:grid-cols-3 items-start">
               {/* STEP 1: CURRENT ASSIGNED EMPLOYEE */}
-              <div className="flex flex-col justify-between rounded-2xl bg-white p-5 border border-line shadow-sm">
+              <div className="flex flex-col rounded-2xl bg-white p-4 border border-line shadow-sm">
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800">
@@ -414,14 +414,13 @@ export function LeadsReassignView({
                     )}
                   </div>
 
-
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <select
                       value={sourceEmpId}
                       onChange={(e) => {
                         setSourceEmpId(e.target.value);
                       }}
-                      className="w-full rounded-xl border border-line bg-amber-50/40 px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full rounded-xl border border-line bg-amber-50/40 px-3.5 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="ALL">-- All Representatives & Queues --</option>
                       {employees.map((emp) => (
@@ -434,8 +433,8 @@ export function LeadsReassignView({
                   </div>
 
                   {/* Comprehensive Dynamic Status Filter Options */}
-                  <div className="mt-4 pt-3 border-t border-line/60">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-2">
+                  <div className="mt-3 pt-2.5 border-t border-line/60">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1.5">
                       Filter Leads by Status:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -520,7 +519,7 @@ export function LeadsReassignView({
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between">
+                <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between">
                   <span className="text-xs text-ink-muted font-medium">
                     Selected: <strong className="text-amber-800">{selectedLeadIds.length}</strong>
                   </span>
@@ -537,7 +536,7 @@ export function LeadsReassignView({
               {/* STEP 2: ASSIGN TO EMPLOYEE(S) - DROPDOWN WITH 1, 2, 3 OR ALL SELECTION */}
               <div
                 ref={dropdownRef}
-                className="flex flex-col justify-between rounded-2xl bg-white p-5 border border-line shadow-sm relative"
+                className="flex flex-col rounded-2xl bg-white p-4 border border-line shadow-sm relative"
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -558,7 +557,7 @@ export function LeadsReassignView({
                     <button
                       type="button"
                       onClick={() => setIsTargetDropdownOpen(!isTargetDropdownOpen)}
-                      className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-left text-xs font-semibold text-ink flex items-center justify-between hover:border-amber-500 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-left text-xs font-semibold text-ink flex items-center justify-between hover:border-amber-500 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <span className="truncate">
                         {targetEmpIds.length === 0 ? (
@@ -675,7 +674,7 @@ export function LeadsReassignView({
 
                   {/* Selected Employee Pills with Remove Button */}
                   {targetEmpIds.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {selectedTargetEmployees.map((emp) => (
                         <span
                           key={emp.id}
@@ -697,7 +696,7 @@ export function LeadsReassignView({
                 </div>
 
                 {/* Dynamic Distribution Summary */}
-                <div className="mt-4 pt-3 border-t border-line/60">
+                <div className="mt-3 pt-2.5 border-t border-line/60">
                   <p className="text-[11px] text-ink-muted leading-relaxed">
                     {targetEmpIds.length === 0 ? (
                       <span className="text-amber-700 font-medium">
@@ -724,7 +723,7 @@ export function LeadsReassignView({
               </div>
 
               {/* STEP 3: ACTION DECK & ASSIGN BUTTON */}
-              <div className="flex flex-col justify-between rounded-2xl bg-gradient-to-b from-white to-amber-50/50 p-5 border-2 border-amber-400/90 shadow-md">
+              <div className="flex flex-col rounded-2xl bg-gradient-to-b from-white to-amber-50/50 p-4 border-2 border-amber-400/90 shadow-md">
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-800">
@@ -739,7 +738,7 @@ export function LeadsReassignView({
                   </div>
 
                   {/* Visual Transfer summary */}
-                  <div className="mt-3 rounded-xl bg-white p-3 border border-line shadow-inner text-xs space-y-1.5">
+                  <div className="mt-2.5 rounded-xl bg-white p-2.5 border border-line shadow-inner text-xs space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-ink-faint">Selected to Transfer:</span>
                       <strong className="text-ink font-bold">{selectedLeadIds.length} Leads</strong>
@@ -763,7 +762,7 @@ export function LeadsReassignView({
                   </div>
 
                   {/* Audit Reason */}
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <label className="block text-[11px] font-bold text-ink uppercase tracking-wider mb-1">
                       Audit Reason:
                     </label>
@@ -771,9 +770,9 @@ export function LeadsReassignView({
                       type="text"
                       value={reassignReason}
                       onChange={(e) => setReassignReason(e.target.value)}
-                      className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      className="w-full rounded-xl border border-line bg-white px-3 py-1 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
-                    <div className="mt-1.5 flex flex-wrap gap-1">
+                    <div className="mt-1 flex flex-wrap gap-1">
                       {presetReasons.slice(0, 2).map((pr) => (
                         <button
                           key={pr}
@@ -789,12 +788,12 @@ export function LeadsReassignView({
                 </div>
 
                 {/* THE ASSIGN BUTTON */}
-                <div className="mt-5">
+                <div className="mt-3">
                   <button
                     type="button"
                     disabled={isSubmitting || selectedLeadIds.length === 0 || targetEmpIds.length === 0}
                     onClick={handleExecuteReassignment}
-                    className={`w-full py-3.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 shadow-lg ${
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 shadow-lg ${
                       selectedLeadIds.length > 0 && targetEmpIds.length > 0 && !isSubmitting
                         ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-amber-500/30 hover:scale-[1.01]"
                         : "bg-slate-200 text-slate-400 cursor-not-allowed"
