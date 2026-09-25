@@ -225,14 +225,6 @@ export function LeadsReassignView({
   const currentSourceRep = employees.find((e) => e.id === sourceEmpId);
   const selectedTargetEmployees = employees.filter((e) => targetEmpIds.includes(e.id));
 
-  // Preset reasons without hardcoded days or counts
-  const presetReasons = [
-    "Reassigned for performance conversion testing",
-    "Pipeline reallocation to high-performing representative",
-    "Second-chance conversion test on dead leads",
-    "Workload rebalancing across team",
-  ];
-
   // Execute Reassignment
   const handleExecuteReassignment = async () => {
     if (selectedLeadIds.length === 0) {
@@ -388,16 +380,16 @@ export function LeadsReassignView({
             </span>
           </div>
 
-          {/* Compact 3-step control strip — one row, no nested boxes */}
-          <div className="mt-4 grid gap-5 lg:grid-cols-3 lg:divide-x lg:divide-line">
-            {/* STEP 1: FROM REPRESENTATIVE */}
+          {/* Compact 2-step control strip — one row, no nested boxes */}
+          <div className="mt-4 grid gap-5 lg:grid-cols-2 lg:divide-x lg:divide-line items-start">
+            {/* STEP 1: CURRENT EMPLOYEE */}
             <div className="lg:pr-5">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
                   <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
                     1
                   </span>
-                  From Representative
+                  Current Employee
                 </span>
                 {currentSourceRep && (
                   <span className="text-[10px] font-bold text-ink-faint">
@@ -514,14 +506,14 @@ export function LeadsReassignView({
               </div>
             </div>
 
-            {/* STEP 2: TO EMPLOYEE(S) */}
-            <div ref={dropdownRef} className="relative lg:px-5">
+            {/* STEP 2 + 3: NEW EMPLOYEE, MERGED WITH CONFIRM & TRANSFER */}
+            <div ref={dropdownRef} className="relative lg:pl-5">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
                   <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
                     2
                   </span>
-                  To Employee(s)
+                  New Employee
                 </span>
                 <span className="text-[10px] font-bold text-ink-faint">
                   {targetEmpIds.length} selected
@@ -668,90 +660,78 @@ export function LeadsReassignView({
                   ))}
                 </div>
               )}
-            </div>
 
-            {/* STEP 3: CONFIRM & TRANSFER */}
-            <div className="lg:pl-5">
-              <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
-                <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
-                  3
+              {/* STEP 3: CONFIRM & TRANSFER, merged into the same column */}
+              <div className="mt-3 pt-3 border-t border-line/60">
+                <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
+                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
+                    3
+                  </span>
+                  Confirm & Transfer
                 </span>
-                Confirm & Transfer
-              </span>
 
-              {/* One-line dynamic summary, replaces the old multi-row box */}
-              <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
-                {selectedLeadIds.length === 0 ? (
-                  "Select leads below, then a target rep, to preview the transfer here."
-                ) : targetEmpIds.length === 0 ? (
-                  <>
-                    <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) selected — choose target rep(s) in Step 2.
-                  </>
-                ) : targetEmpIds.length === 1 ? (
-                  <>
-                    Transferring <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) from{" "}
-                    <strong className="text-ink">{currentSourceRep?.name || "All / Filtered"}</strong> to{" "}
-                    <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
-                  </>
-                ) : (
-                  <>
-                    Distributing <strong className="text-ink">{selectedLeadIds.length}</strong> leads across{" "}
-                    <strong className="text-emerald-700">{targetEmpIds.length} reps</strong> — approx.{" "}
-                    <strong className="text-emerald-700">
-                      {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
-                    </strong>{" "}
-                    each.
-                  </>
-                )}
-              </p>
+                {/* One-line dynamic summary, replaces the old multi-row box */}
+                <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+                  {selectedLeadIds.length === 0 ? (
+                    "Select leads below, then a new employee, to preview the transfer here."
+                  ) : targetEmpIds.length === 0 ? (
+                    <>
+                      <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) selected — choose new employee(s) above.
+                    </>
+                  ) : targetEmpIds.length === 1 ? (
+                    <>
+                      Transferring <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) from{" "}
+                      <strong className="text-ink">{currentSourceRep?.name || "All / Filtered"}</strong> to{" "}
+                      <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Distributing <strong className="text-ink">{selectedLeadIds.length}</strong> leads across{" "}
+                      <strong className="text-emerald-700">{targetEmpIds.length} reps</strong> — approx.{" "}
+                      <strong className="text-emerald-700">
+                        {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
+                      </strong>{" "}
+                      each.
+                    </>
+                  )}
+                </p>
 
-              <input
-                type="text"
-                value={reassignReason}
-                onChange={(e) => setReassignReason(e.target.value)}
-                placeholder="Audit reason"
-                className="mt-2 w-full rounded-lg border border-line bg-slate-50/70 px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {presetReasons.slice(0, 2).map((pr) => (
-                  <button
-                    key={pr}
-                    type="button"
-                    onClick={() => setReassignReason(pr)}
-                    className="rounded bg-slate-100 hover:bg-slate-200 px-2 py-0.5 text-[9px] text-ink-muted truncate max-w-xs"
-                  >
-                    {pr}
-                  </button>
-                ))}
+                <input
+                  type="text"
+                  value={reassignReason}
+                  onChange={(e) => setReassignReason(e.target.value)}
+                  placeholder="Audit reason"
+                  className="mt-2 w-full rounded-lg border border-line bg-slate-50/70 px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+
+                <button
+                  type="button"
+                  disabled={isSubmitting || selectedLeadIds.length === 0 || targetEmpIds.length === 0}
+                  onClick={handleExecuteReassignment}
+                  className={`mt-2.5 w-full py-2.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ${
+                    selectedLeadIds.length > 0 && targetEmpIds.length > 0 && !isSubmitting
+                      ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-md shadow-amber-500/25 hover:scale-[1.01]"
+                      : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <span className="py-1">⚡ Assigning {selectedLeadIds.length} Leads...</span>
+                  ) : selectedLeadIds.length === 0 ? (
+                    <div className="py-1 text-slate-500">Select Leads Below to Assign</div>
+                  ) : targetEmpIds.length === 0 ? (
+                    <div className="py-1 text-slate-500">Choose New Employee(s) Above</div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span>⚡</span>
+                      <span>
+                        {targetEmpIds.length === 1
+                          ? `ASSIGN ${selectedLeadIds.length} LEAD${selectedLeadIds.length === 1 ? "" : "S"} TO ${selectedTargetEmployees[0]?.name.toUpperCase()}`
+                          : `DISTRIBUTE ${selectedLeadIds.length} LEADS ACROSS ${targetEmpIds.length} EMPLOYEES`}
+                      </span>
+                    </div>
+                  )}
+                </button>
               </div>
-
-              <button
-                type="button"
-                disabled={isSubmitting || selectedLeadIds.length === 0 || targetEmpIds.length === 0}
-                onClick={handleExecuteReassignment}
-                className={`mt-2.5 w-full py-2.5 px-4 rounded-xl text-xs font-black transition flex flex-col items-center justify-center gap-0.5 ${
-                  selectedLeadIds.length > 0 && targetEmpIds.length > 0 && !isSubmitting
-                    ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-md shadow-amber-500/25 hover:scale-[1.01]"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                {isSubmitting ? (
-                  <span className="py-1">⚡ Assigning {selectedLeadIds.length} Leads...</span>
-                ) : selectedLeadIds.length === 0 ? (
-                  <div className="py-1 text-slate-500">Select Leads Below to Assign</div>
-                ) : targetEmpIds.length === 0 ? (
-                  <div className="py-1 text-slate-500">Choose Target Employee(s) Above</div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span>⚡</span>
-                    <span>
-                      {targetEmpIds.length === 1
-                        ? `ASSIGN ${selectedLeadIds.length} LEAD${selectedLeadIds.length === 1 ? "" : "S"} TO ${selectedTargetEmployees[0]?.name.toUpperCase()}`
-                        : `DISTRIBUTE ${selectedLeadIds.length} LEADS ACROSS ${targetEmpIds.length} EMPLOYEES`}
-                    </span>
-                  </div>
-                )}
-              </button>
             </div>
           </div>
 
