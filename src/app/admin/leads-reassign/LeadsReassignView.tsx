@@ -39,6 +39,20 @@ function formatTime(iso: string | null): string {
   }
 }
 
+// Local (not UTC) YYYY-MM-DD, to match an <input type="date"> value
+function toLocalDayString(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  } catch {
+    return "";
+  }
+}
+
 const LEADS_PER_PAGE = 10;
 
 export function LeadsReassignView({
@@ -178,6 +192,7 @@ export function LeadsReassignView({
   const [auditSearch, setAuditSearch] = useState<string>("");
   const [auditRepFilter, setAuditRepFilter] = useState<string>("ALL");
   const [auditOutcomeFilter, setAuditOutcomeFilter] = useState<string>("ALL");
+  const [auditDateFilter, setAuditDateFilter] = useState<string>("");
 
   const auditRepOptions = useMemo(() => {
     const names = new Set<string>();
@@ -200,6 +215,11 @@ export function LeadsReassignView({
           return false;
         }
       }
+      if (auditDateFilter) {
+        if (toLocalDayString(log.reassignedAt) !== auditDateFilter) {
+          return false;
+        }
+      }
       if (auditSearch.trim()) {
         const q = auditSearch.toLowerCase();
         const matchLead = log.leadName?.toLowerCase().includes(q);
@@ -213,7 +233,7 @@ export function LeadsReassignView({
       }
       return true;
     });
-  }, [auditLogs, auditRepFilter, auditOutcomeFilter, auditSearch]);
+  }, [auditLogs, auditRepFilter, auditOutcomeFilter, auditDateFilter, auditSearch]);
 
   const totalAuditPages = Math.max(1, Math.ceil(filteredAuditLogs.length / AUDIT_PER_PAGE));
   const currentAuditPage = Math.min(auditPage, totalAuditPages);
@@ -224,7 +244,7 @@ export function LeadsReassignView({
 
   useEffect(() => {
     setAuditPage(1);
-  }, [auditSearch, auditRepFilter, auditOutcomeFilter]);
+  }, [auditSearch, auditRepFilter, auditOutcomeFilter, auditDateFilter]);
 
   // When source or filter changes, default to empty or keep valid selections
   useEffect(() => {
@@ -1146,15 +1166,27 @@ export function LeadsReassignView({
                     <option value="NOT_INTERESTED">✕ Not Interested / Dead</option>
                   </select>
                 </div>
+
+                {/* Date Filter — see reassignments from one specific day */}
+                <div className="w-full sm:w-44 shrink-0">
+                  <input
+                    type="date"
+                    value={auditDateFilter}
+                    onChange={(e) => setAuditDateFilter(e.target.value)}
+                    aria-label="Filter by date reassigned"
+                    className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
 
-              {(auditSearch || auditRepFilter !== "ALL" || auditOutcomeFilter !== "ALL") && (
+              {(auditSearch || auditRepFilter !== "ALL" || auditOutcomeFilter !== "ALL" || auditDateFilter) && (
                 <button
                   type="button"
                   onClick={() => {
                     setAuditSearch("");
                     setAuditRepFilter("ALL");
                     setAuditOutcomeFilter("ALL");
+                    setAuditDateFilter("");
                   }}
                   className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition whitespace-nowrap"
                 >
