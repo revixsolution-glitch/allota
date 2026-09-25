@@ -155,7 +155,6 @@ export default async function AdminLeadsPage({
       include: {
         assignedEmployee: true,
         client: { include: { territory: true } },
-        _count: { select: { calls: true } },
         remarks: {
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
@@ -953,7 +952,6 @@ export default async function AdminLeadsPage({
                 <th className="px-6 py-3.5">Category</th>
                 <th className="px-6 py-3.5">Platform</th>
                 <th className="px-6 py-3.5">Assigned Representative</th>
-                <th className="px-6 py-3.5">Calls</th>
                 <th className="px-6 py-3.5">Remarks</th>
                 <th className="px-6 py-3.5">Status</th>
               </tr>
@@ -1039,14 +1037,6 @@ export default async function AdminLeadsPage({
                       </form>
                     </td>
 
-                    {/* Calls */}
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-ink">
-                        <span>📞</span>
-                        <span>{lead._count.calls}</span>
-                      </span>
-                    </td>
-
                     {/* Remarks (opens the full history page) */}
                     <td className="px-6 py-4">
                       <Link
@@ -1086,7 +1076,7 @@ export default async function AdminLeadsPage({
 
               {!filteredLeads.length && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-ink-faint">
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-ink-faint">
                     No inquiries matched your criteria. Try changing the commercial filter or clearing search.
                   </td>
                 </tr>
