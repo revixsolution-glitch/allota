@@ -1350,9 +1350,11 @@ const leadRemarkSchema = z.object({
 
 export async function addLeadRemark(formData: FormData) {
   const session = await getSession();
-  if (!session || !session.employeeId) {
+  if (!session) {
     redirect("/login");
   }
+
+  const activeCompanyId = getActiveCompanyId(session);
 
   const input = leadRemarkSchema.parse({
     leadId: formData.get("leadId"),
@@ -1371,10 +1373,22 @@ export async function addLeadRemark(formData: FormData) {
     throw new Error("Unauthorized to add a remark to this lead");
   }
 
+  let employeeId: string | null = session.employeeId || lead.assignedEmployeeId;
+  if (!employeeId) {
+    const fallbackEmp = await prisma.employee.findFirst({
+      where: activeCompanyId ? { companyId: activeCompanyId } : {},
+    });
+    employeeId = fallbackEmp?.id || null;
+  }
+
+  if (!employeeId) {
+    throw new Error("No representative found to record remark under.");
+  }
+
   await prisma.leadRemark.create({
     data: {
       leadId: input.leadId,
-      employeeId: session.employeeId,
+      employeeId,
       remark: input.remark,
     },
   });

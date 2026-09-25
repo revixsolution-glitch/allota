@@ -1,4 +1,5 @@
 import { AssignLeadsModal } from "@/components/AssignLeadsModal";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
@@ -1037,16 +1038,23 @@ export default async function AdminLeadsPage({
                       </form>
                     </td>
 
-                    {/* Remarks (opens the full history page) */}
+                    {/* Remarks (interactive popup modal) */}
                     <td className="px-6 py-4">
-                      <Link
-                        href={`/admin/lead-history/${lead.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100"
-                        title={lead.remarks[0]?.remark ?? "No remarks yet"}
-                      >
-                        <span>📝 Remarks</span>
-                        <span className="text-[10px] text-amber-700">({lead.remarks.length})</span>
-                      </Link>
+                      <LeadRemarksModal
+                        leadId={lead.id}
+                        leadName={lead.name ?? "Unnamed Prospect"}
+                        leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                        leadStatus={lead.status}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        assignedRepName={lead.assignedEmployee?.name}
+                        assignedRepPhone={lead.assignedEmployee?.phoneNumber}
+                        remarks={lead.remarks.map((r) => ({
+                          id: r.id,
+                          remark: r.remark,
+                          createdAt: r.createdAt.toISOString(),
+                          employeeName: r.employee.name,
+                        }))}
+                      />
                     </td>
 
                     {/* Status: Active (green) / Dead (red), as chosen by the employee */}
@@ -1143,28 +1151,26 @@ export default async function AdminLeadsPage({
                 </p>
 
                 {/* Employee Remarks on Mobile */}
-                {lead.remarks.length > 0 && (
-                  <details className="group">
-                    <summary className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 cursor-pointer select-none">
-                      📝 Remarks ({lead.remarks.length})
-                    </summary>
-                    <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-xl border border-line-soft bg-slate-50 p-2">
-                      {lead.remarks.map((r) => (
-                        <div key={r.id} className="text-[11px] leading-relaxed">
-                          <p className="text-ink">{r.remark}</p>
-                          <p className="text-[10px] text-ink-faint font-semibold">
-                            — {r.employee.name}, {new Date(r.createdAt).toLocaleString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
+                <div className="flex items-center justify-between">
+                  <LeadRemarksModal
+                    leadId={lead.id}
+                    leadName={lead.name ?? "Unnamed Prospect"}
+                    leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                    leadStatus={lead.status}
+                    followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                    assignedRepName={lead.assignedEmployee?.name}
+                    assignedRepPhone={lead.assignedEmployee?.phoneNumber}
+                    remarks={lead.remarks.map((r) => ({
+                      id: r.id,
+                      remark: r.remark,
+                      createdAt: r.createdAt.toISOString(),
+                      employeeName: r.employee.name,
+                    }))}
+                  />
+                  <span className="text-[11px] font-bold text-ink-muted">
+                    {lead.status === LeadStatus.NOT_INTERESTED ? "🔴 Dead" : "🟢 Active"}
+                  </span>
+                </div>
 
                 {/* Rep Assignment & Stage Form on Mobile */}
                 <div className="space-y-2 pt-1 border-t border-line-soft">
