@@ -412,84 +412,101 @@ export function LeadsReassignView({
                 <option value="UNASSIGNED">Unassigned Pool</option>
               </select>
 
-              <div className="mt-2.5 flex flex-wrap gap-1">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("ALL")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "ALL"
-                      ? "bg-ink text-white"
-                      : "bg-slate-100 text-ink-muted hover:bg-slate-200"
-                  }`}
+              {/* Filter by Status: Dropdown (covers full width) & Quick Pills */}
+              <div className="mt-2.5 space-y-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="w-full rounded-lg border border-line bg-slate-50/70 px-3 py-1.5 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
-                  All ({statusCounts.ALL})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("STAGNANT")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "STAGNANT"
-                      ? "bg-amber-600 text-white"
-                      : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
-                  }`}
-                >
-                  ⏱️ Stagnant ({statusCounts.STAGNANT})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("NEW")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "NEW"
-                      ? "bg-sky-600 text-white"
-                      : "bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100"
-                  }`}
-                >
-                  ✨ Fresh ({statusCounts.NEW})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("CONTACTED")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "CONTACTED"
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100"
-                  }`}
-                >
-                  📞 Contacted ({statusCounts.CONTACTED})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("INTERESTED")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "INTERESTED"
-                      ? "bg-purple-600 text-white"
-                      : "bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100"
-                  }`}
-                >
-                  ★ Interested ({statusCounts.INTERESTED})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("DEAD")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "DEAD"
-                      ? "bg-rose-600 text-white"
-                      : "bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100"
-                  }`}
-                >
-                  ✕ Dead ({statusCounts.DEAD})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("CONVERTED")}
-                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
-                    statusFilter === "CONVERTED"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
-                  }`}
-                >
-                  ✓ Converted ({statusCounts.CONVERTED})
-                </button>
+                  <option value="ALL">All Statuses ({statusCounts.ALL})</option>
+                  <option value="STAGNANT">⏱️ Stagnant / Uncontacted ({statusCounts.STAGNANT})</option>
+                  <option value="NEW">✨ Fresh ({statusCounts.NEW})</option>
+                  <option value="CONTACTED">📞 Contacted ({statusCounts.CONTACTED})</option>
+                  <option value="INTERESTED">★ Interested ({statusCounts.INTERESTED})</option>
+                  <option value="DEAD">✕ Dead ({statusCounts.DEAD})</option>
+                  <option value="CONVERTED">✓ Converted ({statusCounts.CONVERTED})</option>
+                </select>
+
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("ALL")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "ALL"
+                        ? "bg-ink text-white"
+                        : "bg-slate-100 text-ink-muted hover:bg-slate-200"
+                    }`}
+                  >
+                    All ({statusCounts.ALL})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("STAGNANT")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "STAGNANT"
+                        ? "bg-amber-600 text-white"
+                        : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                    }`}
+                  >
+                    ⏱️ Stagnant ({statusCounts.STAGNANT})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("NEW")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "NEW"
+                        ? "bg-sky-600 text-white"
+                        : "bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100"
+                    }`}
+                  >
+                    ✨ Fresh ({statusCounts.NEW})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("CONTACTED")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "CONTACTED"
+                        ? "bg-blue-600 text-white"
+                        : "bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100"
+                    }`}
+                  >
+                    📞 Contacted ({statusCounts.CONTACTED})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("INTERESTED")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "INTERESTED"
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100"
+                    }`}
+                  >
+                    ★ Interested ({statusCounts.INTERESTED})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("DEAD")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "DEAD"
+                        ? "bg-rose-600 text-white"
+                        : "bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100"
+                    }`}
+                  >
+                    ✕ Dead ({statusCounts.DEAD})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("CONVERTED")}
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold transition ${
+                      statusFilter === "CONVERTED"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                    }`}
+                  >
+                    ✓ Converted ({statusCounts.CONVERTED})
+                  </button>
+                </div>
               </div>
 
               <div className="mt-2.5 flex items-center justify-between text-xs">
@@ -661,46 +678,46 @@ export function LeadsReassignView({
                 </div>
               )}
 
-              {/* STEP 3: CONFIRM & TRANSFER, merged into the same column */}
+              {/* STEP 3: REASON FOR REASSIGN */}
               <div className="mt-3 pt-3 border-t border-line/60">
                 <span className="flex items-center gap-1.5 text-[11px] font-black uppercase text-ink-faint">
                   <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-600 text-white text-[9px]">
                     3
                   </span>
-                  Confirm & Transfer
+                  Reason For Reassign
                 </span>
 
-                {/* One-line dynamic summary, replaces the old multi-row box */}
-                <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
-                  {selectedLeadIds.length === 0 ? (
-                    "Select leads below, then a new employee, to preview the transfer here."
-                  ) : targetEmpIds.length === 0 ? (
-                    <>
-                      <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) selected — choose new employee(s) above.
-                    </>
-                  ) : targetEmpIds.length === 1 ? (
-                    <>
-                      Transferring <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) from{" "}
-                      <strong className="text-ink">{currentSourceRep?.name || "All / Filtered"}</strong> to{" "}
-                      <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
-                    </>
-                  ) : (
-                    <>
-                      Distributing <strong className="text-ink">{selectedLeadIds.length}</strong> leads across{" "}
-                      <strong className="text-emerald-700">{targetEmpIds.length} reps</strong> — approx.{" "}
-                      <strong className="text-emerald-700">
-                        {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
-                      </strong>{" "}
-                      each.
-                    </>
-                  )}
-                </p>
+                {/* One-line dynamic summary, only shown when leads are selected */}
+                {selectedLeadIds.length > 0 && (
+                  <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+                    {targetEmpIds.length === 0 ? (
+                      <>
+                        <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) selected — choose new employee(s) above.
+                      </>
+                    ) : targetEmpIds.length === 1 ? (
+                      <>
+                        Transferring <strong className="text-ink">{selectedLeadIds.length}</strong> lead(s) from{" "}
+                        <strong className="text-ink">{currentSourceRep?.name || "All / Filtered"}</strong> to{" "}
+                        <strong className="text-emerald-700">{selectedTargetEmployees[0]?.name}</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Distributing <strong className="text-ink">{selectedLeadIds.length}</strong> leads across{" "}
+                        <strong className="text-emerald-700">{targetEmpIds.length} reps</strong> — approx.{" "}
+                        <strong className="text-emerald-700">
+                          {Math.ceil(selectedLeadIds.length / targetEmpIds.length)}
+                        </strong>{" "}
+                        each.
+                      </>
+                    )}
+                  </p>
+                )}
 
                 <input
                   type="text"
                   value={reassignReason}
                   onChange={(e) => setReassignReason(e.target.value)}
-                  placeholder="Audit reason"
+                  placeholder="Reason for reassigning leads..."
                   className="mt-2 w-full rounded-lg border border-line bg-slate-50/70 px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
 
