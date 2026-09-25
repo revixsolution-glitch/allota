@@ -285,6 +285,18 @@ Report generated via Allota AI Telephony Engine
     return filteredCalls.slice(start, start + CALLS_PAGE_SIZE);
   }, [filteredCalls, callsPage]);
 
+  // Windowed pagination: show at most 10 page buttons at a time, arrows shift windows
+  const PAGE_WINDOW = 10;
+  const currentCallsBlock = Math.floor((callsPage - 1) / PAGE_WINDOW);
+  const startCallsPage = currentCallsBlock * PAGE_WINDOW + 1;
+  const endCallsPage = Math.min(totalCallsPages, startCallsPage + PAGE_WINDOW - 1);
+  const visibleCallsPages = useMemo(() => {
+    return Array.from(
+      { length: endCallsPage - startCallsPage + 1 },
+      (_, i) => startCallsPage + i
+    );
+  }, [startCallsPage, endCallsPage]);
+
   // Every other Follow-Up-flagged call for the same lead as the active call, most recent first
   const followUpHistoryForActiveLead = useMemo(() => {
     if (!activeEmbeddedCall?.leadId) return [];
@@ -684,23 +696,30 @@ Report generated via Allota AI Telephony Engine
                 )}
               </div>
 
-              {/* Pagination */}
+              {/* Pagination: at most 10 buttons in a single line, arrows shift window */}
               {filteredCalls.length > CALLS_PAGE_SIZE && (
-                <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+                <div className="mt-3 flex items-center justify-center gap-1.5 flex-nowrap overflow-x-auto py-1">
                   <button
                     type="button"
-                    disabled={callsPage === 1}
-                    onClick={() => setCallsPage((p) => Math.max(1, p - 1))}
-                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                    disabled={callsPage === 1 && currentCallsBlock === 0}
+                    onClick={() => {
+                      if (currentCallsBlock > 0) {
+                        setCallsPage(Math.max(1, startCallsPage - 1));
+                      } else {
+                        setCallsPage((p) => Math.max(1, p - 1));
+                      }
+                    }}
+                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed shrink-0"
+                    title={currentCallsBlock > 0 ? "Shift to previous 10 pages" : "Previous page"}
                   >
                     ‹
                   </button>
-                  {Array.from({ length: totalCallsPages }, (_, i) => i + 1).map((pageNum) => (
+                  {visibleCallsPages.map((pageNum) => (
                     <button
                       key={pageNum}
                       type="button"
                       onClick={() => setCallsPage(pageNum)}
-                      className={`h-7 min-w-7 px-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      className={`h-7 min-w-7 px-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                         callsPage === pageNum
                           ? "bg-purple-600 text-white shadow-xs"
                           : "border border-line bg-white text-ink-muted hover:bg-slate-50"
@@ -711,9 +730,16 @@ Report generated via Allota AI Telephony Engine
                   ))}
                   <button
                     type="button"
-                    disabled={callsPage === totalCallsPages}
-                    onClick={() => setCallsPage((p) => Math.min(totalCallsPages, p + 1))}
-                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                    disabled={callsPage === totalCallsPages && endCallsPage >= totalCallsPages}
+                    onClick={() => {
+                      if (endCallsPage < totalCallsPages) {
+                        setCallsPage(endCallsPage + 1);
+                      } else {
+                        setCallsPage((p) => Math.min(totalCallsPages, p + 1));
+                      }
+                    }}
+                    className="h-7 w-7 rounded-lg border border-line bg-white text-xs font-bold text-ink-muted disabled:opacity-30 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed shrink-0"
+                    title={endCallsPage < totalCallsPages ? "Shift to next 10 pages" : "Next page"}
                   >
                     ›
                   </button>
