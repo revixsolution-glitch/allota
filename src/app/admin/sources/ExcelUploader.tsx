@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import {
   analyzeSheet,
   extractLead,
+  pickLeadSheet,
   type ColumnMapping,
   type LeadField,
   type SheetAnalysis,
@@ -57,11 +58,12 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
       const wb = XLSX.read(arrayBuffer, { type: "array" });
-      const firstSheetName = wb.SheetNames[0];
-      if (!firstSheetName) return;
+      if (!wb.SheetNames.length) return;
 
-      const aoa: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[firstSheetName], { header: 1, defval: "" });
-      const result = analyzeSheet(aoa);
+      // Pick whichever sheet actually has the leads — real exports often
+      // have a blank cover tab ahead of the real data.
+      const picked = pickLeadSheet(wb);
+      const result = analyzeSheet(picked.aoa, { name: picked.name, ofTotal: picked.ofTotal });
       setAnalysis(result);
       setMapping(result.mapping);
     } catch (e) {
@@ -406,14 +408,14 @@ function ColumnMappingPreview({
   onChange: (m: ColumnMapping) => void;
   defaultDivision: "PCD_FRANCHISE" | "THIRD_PARTY";
 }) {
-  const { rows, columnLabels, hasHeader } = analysis;
+  const { rows, columnLabels, hasHeader, pickedSheet } = analysis;
 
   const sampleOf = (col: number) => {
     const v = rows.map((r) => String(r[col] ?? "").trim()).find(Boolean) ?? "";
     return v.length > 28 ? `${v.slice(0, 28)}…` : v;
   };
 
-  const parsed = rows.map((r) => extractLead(r, mapping, defaultDivision));
+  const parsed = rows.map((r) => extractLead(r, mapping, defaultDivision, columnLabels));
   const validCount = parsed.filter(Boolean).length;
   const skippedCount = rows.length - validCount;
 
@@ -426,6 +428,11 @@ function ColumnMappingPreview({
             {hasHeader
               ? "We matched your column headings to lead fields. Change a dropdown if something looks wrong."
               : "This sheet has no heading row, so columns are named A, B, C… and matched by what they contain. Change a dropdown if something looks wrong."}
+            {pickedSheet && (
+              <span className="mt-0.5 block text-amber-700">
+                Your file had {pickedSheet.ofTotal} sheets — we used &quot;{pickedSheet.name}&quot;, the one with the most rows.
+              </span>
+            )}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-1.5 text-[10px] font-bold">
