@@ -12,7 +12,7 @@ import {
   Role,
 } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId, hashPassword } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, defaultPrisma } from "@/lib/prisma";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
 
@@ -1622,6 +1622,16 @@ export async function createCompanyEmployee(formData: FormData) {
 
     return { user, employee };
   });
+
+  // Login directory lives in the platform's own default database, so a new
+  // rep can be found by email even if this company has its own database.
+  if (activeCompanyId) {
+    await defaultPrisma.loginDirectory.upsert({
+      where: { email: result.user.email },
+      update: { companyId: activeCompanyId },
+      create: { email: result.user.email, companyId: activeCompanyId },
+    });
+  }
 
   revalidatePath("/admin/employees");
   revalidatePath("/admin/leads-reassign");
