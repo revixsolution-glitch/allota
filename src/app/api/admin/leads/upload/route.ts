@@ -5,7 +5,7 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import * as XLSX from "xlsx";
 
 import { normalizePhoneKey } from "@/lib/phone-utils";
-import { analyzeSheet, extractLead, LEAD_FIELDS, type ColumnMapping } from "@/lib/lead-sheet";
+import { analyzeSheet, extractLead, pickLeadSheet, LEAD_FIELDS, type ColumnMapping } from "@/lib/lead-sheet";
 
 function cleanString(val: any): string {
   if (val === null || val === undefined) return "";
@@ -51,14 +51,14 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const workbook = XLSX.read(buffer, { type: "buffer" });
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) {
+    if (!workbook.SheetNames.length) {
       return NextResponse.json({ error: "Uploaded spreadsheet contains no sheets" }, { status: 400 });
     }
 
-    const sheet = workbook.Sheets[firstSheetName];
-    // Read as 2D array to accurately detect headers, title cards, and positions
-    const aoa: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    // Pick whichever sheet actually has the leads — matches exactly what the
+    // browser preview showed, so what you saw is what gets imported.
+    const picked = pickLeadSheet(workbook);
+    const aoa = picked.aoa;
     const nonEmptyRows = aoa.filter((row) => Array.isArray(row) && row.some((cell) => cleanString(cell) !== ""));
 
     if (nonEmptyRows.length === 0) {
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
     const defaultDivision = divisionInput === "THIRD_PARTY" ? "THIRD_PARTY" : "PCD_FRANCHISE";
 
     for (const row of dataRows) {
-      const parsed = extractLead(row, mapping, defaultDivision);
+      const parsed = extractLead(row, mapping, defaultDivision, analysis.columnLabels);
       // No valid phone number anywhere in the row → invalid
       if (!parsed) {
         invalidCount++;
