@@ -760,15 +760,6 @@ Report generated via Allota AI Telephony Engine
                           EXECUTIVE CALL INTELLIGENCE BRIEF
                         </h1>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-slate-900 text-white px-2.5 py-1 text-[10px] font-black tracking-wider uppercase">
-                          CONFIDENTIAL
-                        </span>
-                        <span className="font-mono text-[11px] font-bold text-slate-500">
-                          REF: DOC-CALL-{activeEmbeddedCall.id.slice(-8).toUpperCase()}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Metadata Strip */}
