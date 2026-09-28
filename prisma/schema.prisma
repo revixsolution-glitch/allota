@@ -447,3 +447,32 @@ model CompanySettings {
 
 
 
+
+/// Always lives in the platform's own default database (never in a
+/// company's own database), so it can be looked up before we know which
+/// database a request belongs to: at login (from an email), and on an
+/// incoming webhook (from a Meta Page/WABA id).
+///
+/// A company with NO row here uses the default shared database, unchanged —
+/// this is the safety net that keeps every existing company working exactly
+/// as it does today.
+model TenantDatabase {
+  id               String   @id @default(cuid())
+  companyId        String   @unique
+  connectionString String   // Postgres URL for this company's own database
+  metaPageId       String?  @unique
+  metaWabaId       String?  @unique
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+/// Thin login index: which company's database holds this user's login.
+/// One row per user, kept in sync whenever a login is created anywhere
+/// (onboarding, "Add Representative"). Lets /api/auth/login find the right
+/// database from just an email, before any session exists.
+model LoginDirectory {
+  email     String   @id
+  companyId String
+  createdAt DateTime @default(now())
+}
