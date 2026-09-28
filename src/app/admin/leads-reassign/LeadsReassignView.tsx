@@ -187,31 +187,28 @@ export function LeadsReassignView({
   }, [sourceEmpId, statusFilter, sourceFilter, searchQuery]);
 
   // Audit Trail State & Filtering & Pagination
-  const AUDIT_PER_PAGE = 15;
+  const AUDIT_PER_PAGE = 10;
   const [auditPage, setAuditPage] = useState<number>(1);
   const [auditSearch, setAuditSearch] = useState<string>("");
   const [auditRepFilter, setAuditRepFilter] = useState<string>("ALL");
-  const [auditOutcomeFilter, setAuditOutcomeFilter] = useState<string>("ALL");
   const [auditDateFilter, setAuditDateFilter] = useState<string>("");
 
   const auditRepOptions = useMemo(() => {
     const names = new Set<string>();
+    employees.forEach((emp) => {
+      if (emp.name) names.add(emp.name);
+    });
     auditLogs.forEach((log) => {
       if (log.fromEmployeeName) names.add(log.fromEmployeeName);
       if (log.toEmployeeName) names.add(log.toEmployeeName);
     });
     return Array.from(names).sort();
-  }, [auditLogs]);
+  }, [employees, auditLogs]);
 
   const filteredAuditLogs = useMemo(() => {
     return auditLogs.filter((log) => {
       if (auditRepFilter !== "ALL") {
         if (log.fromEmployeeName !== auditRepFilter && log.toEmployeeName !== auditRepFilter) {
-          return false;
-        }
-      }
-      if (auditOutcomeFilter !== "ALL") {
-        if (log.currentStatus !== auditOutcomeFilter) {
           return false;
         }
       }
@@ -233,7 +230,7 @@ export function LeadsReassignView({
       }
       return true;
     });
-  }, [auditLogs, auditRepFilter, auditOutcomeFilter, auditDateFilter, auditSearch]);
+  }, [auditLogs, auditRepFilter, auditDateFilter, auditSearch]);
 
   const totalAuditPages = Math.max(1, Math.ceil(filteredAuditLogs.length / AUDIT_PER_PAGE));
   const currentAuditPage = Math.min(auditPage, totalAuditPages);
@@ -244,7 +241,7 @@ export function LeadsReassignView({
 
   useEffect(() => {
     setAuditPage(1);
-  }, [auditSearch, auditRepFilter, auditOutcomeFilter, auditDateFilter]);
+  }, [auditSearch, auditRepFilter, auditDateFilter]);
 
   // When source or filter changes, default to empty or keep valid selections
   useEffect(() => {
@@ -1037,363 +1034,268 @@ export function LeadsReassignView({
       {/* TAB 2: AUDIT HISTORY                                                      */}
       {/* ========================================================================= */}
       {activeTab === "audit" && (
-        <div className="space-y-6">
-          {/* Top Overview & Summary Metrics Card */}
-          <div className="relative overflow-hidden rounded-3xl p-6 sm:p-7 neo-panel border-t-2 border-t-indigo-500 bg-white shadow-xs">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
-                    Lead Handover Audit Trail
-                  </span>
-                </div>
-                <h3 className="font-black text-ink text-xl mt-2 tracking-tight">
-                  Permanent Lead Transfer <GradientText>Audit Logs</GradientText>
-                </h3>
-                <p className="text-xs text-ink-muted mt-1 max-w-2xl leading-relaxed">
-                  Every reassignment is recorded with full chain of custody: when leads were moved, who transferred them to whom, reason for transfer, and current conversion status.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-2 text-xs font-black text-indigo-800 shadow-2xs">
-                  📜 {auditLogs.length} Total Events
+        <div className="rounded-3xl p-6 sm:p-7 neo-panel border-t-2 border-t-indigo-500 bg-white shadow-xs space-y-6">
+          {/* Header Bar */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                  Lead Handover Audit Trail
                 </span>
               </div>
+              <h3 className="font-black text-ink text-xl mt-2 tracking-tight">
+                Permanent Lead Transfer <GradientText>Audit Logs</GradientText>
+              </h3>
+              <p className="text-xs text-ink-muted mt-1 max-w-2xl leading-relaxed">
+                Complete history of reassigned leads: when transferred, from whom, to whom, and reason.
+              </p>
             </div>
 
-            {/* Quick Audit Metrics Strip */}
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-2xl border border-line bg-slate-50/60 p-3.5">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-ink-faint">
-                  Total Reassignments
-                </p>
-                <p className="text-2xl font-black text-ink mt-0.5">{auditLogs.length}</p>
-                <p className="text-[10px] text-ink-faint mt-0.5">Historical handover events</p>
-              </div>
-
-              <div className="rounded-2xl border border-line bg-slate-50/60 p-3.5">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-ink-faint">
-                  Unique Leads Transferred
-                </p>
-                <p className="text-2xl font-black text-ink mt-0.5">
-                  {new Set(auditLogs.map((l) => l.leadId)).size}
-                </p>
-                <p className="text-[10px] text-ink-faint mt-0.5">Distinct accounts reassigned</p>
-              </div>
-
-              <div className="rounded-2xl border border-line bg-emerald-50/50 p-3.5 border-emerald-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
-                  Converted Post-Transfer
-                </p>
-                <p className="text-2xl font-black text-emerald-700 mt-0.5">
-                  {auditLogs.filter((l) => l.currentStatus === "CONVERTED").length}
-                </p>
-                <p className="text-[10px] text-emerald-700/80 mt-0.5">Won after reassignment</p>
-              </div>
-
-              <div className="rounded-2xl border border-line bg-purple-50/50 p-3.5 border-purple-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
-                  Active In Pipeline
-                </p>
-                <p className="text-2xl font-black text-purple-700 mt-0.5">
-                  {
-                    auditLogs.filter(
-                      (l) => l.currentStatus === "INTERESTED" || l.currentStatus === "CONTACTED"
-                    ).length
-                  }
-                </p>
-                <p className="text-[10px] text-purple-700/80 mt-0.5">Interested or contacted</p>
-              </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-2 text-xs font-black text-indigo-800 shadow-2xs">
+                📜 {filteredAuditLogs.length} Events Logged
+              </span>
             </div>
+          </div>
 
-            {/* Filter and Search Bar */}
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-line/70">
-              <div className="flex flex-1 flex-col sm:flex-row gap-2.5">
-                {/* Search */}
-                <div className="relative flex-1">
+          {/* Clean Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <div className="flex flex-1 flex-col sm:flex-row gap-2.5">
+              {/* Rep / Employee Filter */}
+              <div className="w-full sm:w-64 shrink-0">
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-faint mb-1">
+                  Filter by Employee
+                </label>
+                <select
+                  value={auditRepFilter}
+                  onChange={(e) => setAuditRepFilter(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="ALL">All Employees (Full History)</option>
+                  {auditRepOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div className="w-full sm:w-48 shrink-0">
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-faint mb-1">
+                  Reassigned Date
+                </label>
+                <input
+                  type="date"
+                  value={auditDateFilter}
+                  onChange={(e) => setAuditDateFilter(e.target.value)}
+                  aria-label="Filter by date reassigned"
+                  className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Search */}
+              <div className="relative flex-1">
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-ink-faint mb-1">
+                  Search Records
+                </label>
+                <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-ink-faint text-xs">
                     🔍
                   </span>
                   <input
                     type="text"
-                    placeholder="Search by lead name, phone, representative, or reason..."
+                    placeholder="Search by lead name, phone, or reason..."
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
-                    className="w-full rounded-xl border border-line bg-slate-50/80 pl-8 pr-3 py-2 text-xs font-medium text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full rounded-xl border border-line bg-slate-50/80 pl-8 pr-8 py-2 text-xs font-medium text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
                   />
                   {auditSearch && (
                     <button
                       type="button"
                       onClick={() => setAuditSearch("")}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs text-ink-faint hover:text-ink"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs text-ink-faint hover:text-ink cursor-pointer"
                     >
                       ✕
                     </button>
                   )}
                 </div>
-
-                {/* Rep Filter */}
-                <div className="w-full sm:w-56 shrink-0">
-                  <select
-                    value={auditRepFilter}
-                    onChange={(e) => setAuditRepFilter(e.target.value)}
-                    className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="ALL">All Representatives (Any)</option>
-                    {auditRepOptions.map((name) => (
-                      <option key={name} value={name}>
-                        Rep: {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Outcome Filter */}
-                <div className="w-full sm:w-44 shrink-0">
-                  <select
-                    value={auditOutcomeFilter}
-                    onChange={(e) => setAuditOutcomeFilter(e.target.value)}
-                    className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="ALL">All Outcomes</option>
-                    <option value="CONVERTED">✓ Converted</option>
-                    <option value="INTERESTED">★ Interested</option>
-                    <option value="CONTACTED">📞 Contacted</option>
-                    <option value="NEW">✨ New</option>
-                    <option value="ASSIGNED">📌 Assigned</option>
-                    <option value="NOT_INTERESTED">✕ Not Interested / Dead</option>
-                  </select>
-                </div>
-
-                {/* Date Filter — see reassignments from one specific day */}
-                <div className="w-full sm:w-44 shrink-0">
-                  <input
-                    type="date"
-                    value={auditDateFilter}
-                    onChange={(e) => setAuditDateFilter(e.target.value)}
-                    aria-label="Filter by date reassigned"
-                    className="w-full rounded-xl border border-line bg-slate-50/80 px-3 py-2 text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
               </div>
+            </div>
 
-              {(auditSearch || auditRepFilter !== "ALL" || auditOutcomeFilter !== "ALL" || auditDateFilter) && (
+            {(auditSearch || auditRepFilter !== "ALL" || auditDateFilter) && (
+              <div className="self-end sm:self-auto sm:pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setAuditSearch("");
                     setAuditRepFilter("ALL");
-                    setAuditOutcomeFilter("ALL");
                     setAuditDateFilter("");
                   }}
-                  className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition whitespace-nowrap"
+                  className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition whitespace-nowrap cursor-pointer"
                 >
                   Clear Filters
                 </button>
-              )}
-            </div>
-          </div>
-
-          {/* Table Container */}
-          <div className="rounded-3xl bg-white p-6 neo-panel border border-line">
-            <div className="flex items-center justify-between pb-4 border-b border-line">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-ink text-sm">Detailed Transfer Events</span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-ink-muted">
-                  {filteredAuditLogs.length} events found
-                </span>
-              </div>
-
-              {filteredAuditLogs.length > 0 && (
-                <span className="text-xs font-medium text-ink-muted">
-                  Page {currentAuditPage} of {totalAuditPages}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-4 overflow-x-auto rounded-2xl border border-line/70">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50/80 border-b border-line text-ink-faint uppercase font-bold text-[10px] tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Date &amp; Time</th>
-                    <th className="px-5 py-3.5 min-w-[220px]">Lead / Party</th>
-                    <th className="px-5 py-3.5 min-w-[280px]">Handover Route</th>
-                    <th className="px-5 py-3.5 min-w-[220px]">Reason for Reassign</th>
-                    <th className="px-5 py-3.5 whitespace-nowrap min-w-[180px]">Status Pipeline</th>
-                    <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[110px]">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/60 bg-white">
-                  {paginatedAuditLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/60 transition group">
-                      {/* 1. Date & Time */}
-                      <td className="px-5 py-4 whitespace-nowrap align-middle">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-ink text-xs">
-                            {formatDate(log.reassignedAt)}
-                          </span>
-                          <span className="text-[11px] text-ink-faint flex items-center gap-1 mt-0.5">
-                            <span>⏰</span> {formatTime(log.reassignedAt)}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 2. Lead Details */}
-                      <td className="px-5 py-4 align-middle">
-                        <div className="flex flex-col gap-0.5">
-                          <Link
-                            href={`/admin/lead-history/${log.leadId}`}
-                            className="font-bold text-ink hover:text-primary hover:underline text-xs inline-flex items-center gap-1 group-hover:text-indigo-600 transition"
-                          >
-                            <span>{log.leadName}</span>
-                            <span className="text-[10px] text-indigo-500 opacity-60">↗</span>
-                          </Link>
-                          <span className="text-[11px] text-ink-muted font-mono">
-                            {log.leadPhone ? `📞 ${log.leadPhone}` : "—"}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 3. Handover Route (From -> To) */}
-                      <td className="px-5 py-4 align-middle">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50/90 border border-rose-200/80 px-2.5 py-1 text-xs shadow-2xs">
-                            <span className="text-[9px] font-black uppercase text-rose-500 tracking-wider">
-                              FROM
-                            </span>
-                            <span className="font-bold text-rose-800">
-                              {log.fromEmployeeName || "Unassigned"}
-                            </span>
-                          </div>
-                          <span className="text-ink-faint font-black text-sm">➔</span>
-                          <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/90 border border-emerald-200/80 px-2.5 py-1 text-xs shadow-2xs">
-                            <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">
-                              TO
-                            </span>
-                            <span className="font-bold text-emerald-800">
-                              {log.toEmployeeName || "Unassigned"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 4. Reason for Transfer */}
-                      <td className="px-5 py-4 align-middle">
-                        <div className="rounded-xl bg-slate-50/90 border border-line/80 px-3 py-2 text-[11px] text-ink-muted leading-relaxed max-w-xs shadow-2xs">
-                          <p className="line-clamp-2" title={log.reason || "Reassigned for performance conversion testing"}>
-                            {log.reason || "Reassigned for performance conversion testing"}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* 5. Status Pipeline Evolution */}
-                      <td className="px-5 py-4 whitespace-nowrap align-middle">
-                        <div className="flex items-center gap-1.5">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
-                            {log.previousStatus || "NEW"}
-                          </span>
-                          <span className="text-ink-faint text-[10px]">➔</span>
-                          <span
-                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold border ${
-                              log.currentStatus === "CONVERTED"
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                : log.currentStatus === "INTERESTED"
-                                ? "bg-purple-50 text-purple-800 border-purple-200"
-                                : log.currentStatus === "CONTACTED"
-                                ? "bg-blue-50 text-blue-800 border-blue-200"
-                                : log.currentStatus === "NOT_INTERESTED"
-                                ? "bg-rose-50 text-rose-800 border-rose-200"
-                                : "bg-slate-100 text-slate-700 border-slate-200"
-                            }`}
-                          >
-                            {log.currentStatus}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 6. Action */}
-                      <td className="px-5 py-4 text-right whitespace-nowrap align-middle">
-                        <Link
-                          href={`/admin/lead-history/${log.leadId}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line bg-white hover:bg-slate-50 text-[11px] font-bold text-ink-muted hover:text-ink transition shadow-2xs"
-                        >
-                          <span>History</span>
-                          <span>↗</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {paginatedAuditLogs.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-ink-faint">
-                        {auditLogs.length === 0 ? (
-                          <div className="space-y-1">
-                            <p className="font-bold text-ink">No reassignment records found yet</p>
-                            <p className="text-xs text-ink-muted">
-                              Use the Direct Reassignment Studio to transfer leads between representatives.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="font-bold text-ink">No audit logs match your filter</p>
-                            <p className="text-xs text-ink-muted">
-                              Try clearing the search query or representative filter.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAuditSearch("");
-                                setAuditRepFilter("ALL");
-                                setAuditOutcomeFilter("ALL");
-                              }}
-                              className="inline-block mt-2 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition"
-                            >
-                              Reset All Filters
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {filteredAuditLogs.length > 0 && (
-              <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs font-semibold text-ink-muted">
-                  Showing {(currentAuditPage - 1) * AUDIT_PER_PAGE + 1}–
-                  {Math.min(currentAuditPage * AUDIT_PER_PAGE, filteredAuditLogs.length)} of{" "}
-                  {filteredAuditLogs.length} transfer events
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={currentAuditPage <= 1}
-                    onClick={() => setAuditPage(currentAuditPage - 1)}
-                    className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-indigo-400 hover:text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint shadow-2xs"
-                  >
-                    ← Previous
-                  </button>
-                  <span className="px-2 text-xs font-bold text-ink">
-                    Page {currentAuditPage} of {totalAuditPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={currentAuditPage >= totalAuditPages}
-                    onClick={() => setAuditPage(currentAuditPage + 1)}
-                    className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-indigo-400 hover:text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint shadow-2xs"
-                  >
-                    Next →
-                  </button>
-                </div>
               </div>
             )}
           </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto rounded-2xl border border-line/70">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-50/80 border-b border-line text-ink-faint uppercase font-bold text-[10px] tracking-wider">
+                <tr>
+                  <th className="px-5 py-3.5 whitespace-nowrap min-w-[150px]">Date &amp; Time</th>
+                  <th className="px-5 py-3.5 min-w-[220px]">Lead / Party</th>
+                  <th className="px-5 py-3.5 min-w-[280px]">Handover Route</th>
+                  <th className="px-5 py-3.5 min-w-[240px]">Reason for Reassign</th>
+                  <th className="px-5 py-3.5 text-right whitespace-nowrap min-w-[100px]">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line/60 bg-white">
+                {paginatedAuditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50/60 transition group">
+                    {/* 1. Date & Time */}
+                    <td className="px-5 py-4 whitespace-nowrap align-middle">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-ink text-xs">
+                          {formatDate(log.reassignedAt)}
+                        </span>
+                        <span className="text-[11px] text-ink-faint flex items-center gap-1 mt-0.5">
+                          <span>⏰</span> {formatTime(log.reassignedAt)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 2. Lead Details */}
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex flex-col gap-0.5">
+                        <Link
+                          href={`/admin/lead-history/${log.leadId}`}
+                          className="font-bold text-ink hover:text-primary hover:underline text-xs inline-flex items-center gap-1 group-hover:text-indigo-600 transition"
+                        >
+                          <span>{log.leadName}</span>
+                          <span className="text-[10px] text-indigo-500 opacity-60">↗</span>
+                        </Link>
+                        <span className="text-[11px] text-ink-muted font-mono">
+                          {log.leadPhone ? `📞 ${log.leadPhone}` : "—"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 3. Handover Route (From -> To) */}
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50/90 border border-rose-200/80 px-2.5 py-1 text-xs shadow-2xs">
+                          <span className="text-[9px] font-black uppercase text-rose-500 tracking-wider">
+                            FROM
+                          </span>
+                          <span className="font-bold text-rose-800">
+                            {log.fromEmployeeName || "Unassigned"}
+                          </span>
+                        </div>
+                        <span className="text-ink-faint font-black text-sm">➔</span>
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/90 border border-emerald-200/80 px-2.5 py-1 text-xs shadow-2xs">
+                          <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">
+                            TO
+                          </span>
+                          <span className="font-bold text-emerald-800">
+                            {log.toEmployeeName || "Unassigned"}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 4. Reason for Transfer */}
+                    <td className="px-5 py-4 align-middle">
+                      <div className="rounded-xl bg-slate-50/90 border border-line/80 px-3 py-2 text-[11px] text-ink-muted leading-relaxed max-w-sm shadow-2xs">
+                        <p className="line-clamp-2" title={log.reason || "Reassigned for performance conversion testing"}>
+                          {log.reason || "Reassigned for performance conversion testing"}
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* 5. Action */}
+                    <td className="px-5 py-4 text-right whitespace-nowrap align-middle">
+                      <Link
+                        href={`/admin/lead-history/${log.leadId}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line bg-white hover:bg-slate-50 text-[11px] font-bold text-ink-muted hover:text-ink transition shadow-2xs"
+                      >
+                        <span>History</span>
+                        <span>↗</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+
+                {paginatedAuditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-ink-faint">
+                      {auditLogs.length === 0 ? (
+                        <div className="space-y-1">
+                          <p className="font-bold text-ink">No reassignment records found yet</p>
+                          <p className="text-xs text-ink-muted">
+                            Use the Direct Reassignment Studio to transfer leads between representatives.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="font-bold text-ink">No audit logs match your filter</p>
+                          <p className="text-xs text-ink-muted">
+                            Try selecting another employee or clearing your search filter.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuditSearch("");
+                              setAuditRepFilter("ALL");
+                              setAuditDateFilter("");
+                            }}
+                            className="inline-block mt-2 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
+                          >
+                            Reset Filters
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredAuditLogs.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-semibold text-ink-muted">
+                Showing {(currentAuditPage - 1) * AUDIT_PER_PAGE + 1}–
+                {Math.min(currentAuditPage * AUDIT_PER_PAGE, filteredAuditLogs.length)} of{" "}
+                {filteredAuditLogs.length} transfer events
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentAuditPage <= 1}
+                  onClick={() => setAuditPage(currentAuditPage - 1)}
+                  className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-indigo-400 hover:text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint shadow-2xs cursor-pointer"
+                >
+                  ← Previous
+                </button>
+                <span className="px-2 text-xs font-bold text-ink">
+                  Page {currentAuditPage} of {totalAuditPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentAuditPage >= totalAuditPages}
+                  onClick={() => setAuditPage(currentAuditPage + 1)}
+                  className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition hover:border-indigo-400 hover:text-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-faint disabled:hover:border-line disabled:hover:text-ink-faint shadow-2xs cursor-pointer"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
