@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { SESSION_COOKIE, signSession, verifyPassword } from "@/lib/auth";
 
 const loginSchema = z.object({
@@ -34,7 +34,19 @@ export async function POST(request: Request) {
   }
 
   const targetEmail = email.toLowerCase().trim();
-  const user = await prisma.user.findUnique({
+
+  // There is no session yet, so we don't know which database to look in.
+  // The login directory (always in the shared default database) tells us
+  // which company this email belongs to; a company with no dedicated
+  // database entry uses the same default database, so this is a no-op for
+  // every account created before this system existed.
+  const directoryEntry = await defaultPrisma.loginDirectory
+    .findUnique({ where: { email: targetEmail }, select: { companyId: true } })
+    .catch(() => null);
+
+  const db = directoryEntry ? await getPrismaForCompany(directoryEntry.companyId) : defaultPrisma;
+
+  const user = await db.user.findUnique({
     where: { email: targetEmail },
     include: { employee: true, company: { select: { status: true } } },
   });
@@ -61,7 +73,7 @@ export async function POST(request: Request) {
   });
 
   if (user.employee?.id) {
-    await prisma.employeeSession.create({
+    await db.employeeSession.create({
       data: {
         employeeId: user.employee.id,
         loginTime: new Date(),

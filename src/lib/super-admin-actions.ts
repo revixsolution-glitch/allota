@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { prisma, defaultPrisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import type { PlanTier, CompanyStatus } from "@/types/company";
@@ -122,6 +122,16 @@ export async function onboardCompany(formData: FormData) {
     });
 
     return { company, adminUser };
+  });
+
+  // Login directory lives in the platform's own default database (always
+  // reachable, so /api/auth/login can find the right company from just an
+  // email). Written after the transaction commits, since it may end up
+  // pointing at a different physical database than the company's own data.
+  await defaultPrisma.loginDirectory.upsert({
+    where: { email: result.adminUser.email },
+    update: { companyId: result.company.id },
+    create: { email: result.adminUser.email, companyId: result.company.id },
   });
 
   revalidatePath("/super-admin");

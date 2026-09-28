@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, defaultPrisma, warmTenantClient } from "@/lib/prisma";
+import { setTenantContext } from "@/lib/tenant-context";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
@@ -27,6 +28,45 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * Finds which company owns a Meta Page id, and points every `prisma.*` call
+ * for the rest of this event at that company's own database (via the
+ * TenantDatabase routing table). A company with no TenantDatabase row uses
+ * the shared default database, matched there by an EXACT pageId — never a
+ * loose fallback to "any company with a token set", which would silently
+ * misattribute a lead to the wrong company.
+ *
+ * Returns null if no company owns this pageId — the caller must skip the
+ * lead rather than guess.
+ */
+async function routeToCompanyForPage(
+  pageId: string
+): Promise<{ companyId: string; accessToken: string | null } | null> {
+  const routed = await defaultPrisma.tenantDatabase
+    .findUnique({ where: { metaPageId: pageId }, select: { companyId: true } })
+    .catch(() => null);
+
+  if (routed) {
+    setTenantContext(routed.companyId);
+    await warmTenantClient(routed.companyId);
+    const settings = await prisma.companySettings.findFirst({
+      where: { companyId: routed.companyId },
+      select: { metaAccessToken: true, metaApiKey: true },
+    });
+    return { companyId: routed.companyId, accessToken: settings?.metaAccessToken || settings?.metaApiKey || null };
+  }
+
+  const settings = await defaultPrisma.companySettings.findFirst({
+    where: { metaPageId: pageId },
+    select: { companyId: true, metaAccessToken: true, metaApiKey: true },
+  });
+  if (!settings?.companyId) return null;
+
+  setTenantContext(settings.companyId);
+  await warmTenantClient(settings.companyId);
+  return { companyId: settings.companyId, accessToken: settings.metaAccessToken || settings.metaApiKey || null };
+}
+
+/**
  * Meta Real-Time Lead Event Receiver (POST)
  * Triggered automatically by Meta when a prospect submits a Facebook or Instagram Lead Ad.
  */
@@ -48,22 +88,14 @@ export async function POST(req: NextRequest) {
 
           if (!leadgenId) continue;
 
-          // 1. Look up company settings by pageId or fallback to active settings
-          const settings = await prisma.companySettings.findFirst({
-            where: {
-              OR: [
-                { metaPageId: pageId },
-                { metaAccessToken: { not: null } },
-                { metaApiKey: { not: null } },
-              ],
-            },
-            include: { company: true },
-          });
-
-          const accessToken =
-            settings?.metaAccessToken ||
-            settings?.metaApiKey ||
-            process.env.META_ACCESS_TOKEN;
+          // 1. Find which company this Page belongs to, and point every
+          // `prisma.*` call below at that company's own database.
+          const routed = await routeToCompanyForPage(pageId);
+          if (!routed) {
+            console.warn(`[Meta Webhook] No company is configured for Page ${pageId} — lead ${leadgenId} skipped, not attributed to anyone.`);
+            continue;
+          }
+          const accessToken = routed.accessToken || process.env.META_ACCESS_TOKEN;
 
           if (!accessToken) {
             console.warn(`[Meta Webhook] No access token available for page ${pageId}`);
@@ -113,7 +145,7 @@ export async function POST(req: NextRequest) {
             const companyLeads = await prisma.lead.findMany({
               where: {
                 phoneNumber: { not: null },
-                ...(settings?.companyId ? { companyId: settings.companyId } : {}),
+                companyId: routed.companyId,
               },
               select: { id: true, phoneNumber: true, inquiryDetails: true },
             });
@@ -139,14 +171,14 @@ export async function POST(req: NextRequest) {
 
           // 3. Round-robin the lead to whichever employees the admin dedicated to Meta
           const autoAssignedEmployeeId = await pickNextEmployeeForSource(
-            settings?.companyId || null,
+            routed.companyId,
             LeadSource.META
           );
 
           // 4. Ingest new verified lead into CRM Lead Center
           const newLead = await prisma.lead.create({
             data: {
-              companyId: settings?.companyId || null,
+              companyId: routed.companyId,
               name: fullName,
               phoneNumber: formattedPhone,
               city,
