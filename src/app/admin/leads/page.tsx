@@ -252,7 +252,9 @@ export default async function AdminLeadsPage({
       case LeadSource.SOCIAL:
         return count > 0;
       case LeadSource.MANUAL:
-        return count > 0;
+        // Manual entry is a rep typing a lead in by hand — it needs no API
+        // key or setup, so it's always available, even with zero leads yet.
+        return true;
       default:
         return count > 0;
     }
