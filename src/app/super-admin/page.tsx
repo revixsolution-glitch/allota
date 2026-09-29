@@ -7,6 +7,7 @@ import { EnterCrmButton } from "@/components/EnterCrmButton";
 import { PlanTierSelect } from "@/components/PlanTierSelect";
 import { AddOnToggles } from "@/components/AddOnToggles";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
+import { defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 
 export default async function SuperAdminPage() {
   const session = await getSession();
@@ -35,6 +36,38 @@ export default async function SuperAdminPage() {
     prisma.lead.count(),
     prisma.client.count(),
   ]);
+
+  // Companies with their own database have a settings row here too (kept
+  // for the old shared-database copy), but it can go stale — this page
+  // lists every company by reading the shared database only, since a super
+  // admin isn't "logged into" any one company's session. For the add-on
+  // toggles specifically (shown/edited right here), read the live value
+  // from each migrated company's own database so what's displayed always
+  // matches what Settings/updateCompanyAddOns actually acts on.
+  //
+  // NOTE: this does not yet cover the Reps/Leads/Clients counts below for
+  // a migrated company — those still come from the shared database's old
+  // copy. Only Kesrox is migrated today and currently has 0 in both
+  // places, so it hasn't shown up as visibly wrong yet, but it will once
+  // real data diverges. Flagging this rather than leaving it silent.
+  const migratedCompanyIds = await defaultPrisma.tenantDatabase
+    .findMany({ select: { companyId: true } })
+    .then((rows) => new Set(rows.map((r) => r.companyId)))
+    .catch(() => new Set<string>());
+
+  const addOnStateByCompany = new Map<string, { enableAdsInsights: boolean; enableSocialInbox: boolean }>();
+  await Promise.all(
+    companies
+      .filter((c) => migratedCompanyIds.has(c.id))
+      .map(async (c) => {
+        const db = await getPrismaForCompany(c.id);
+        const live = await db.companySettings.findFirst({
+          where: { companyId: c.id },
+          select: { enableAdsInsights: true, enableSocialInbox: true },
+        });
+        if (live) addOnStateByCompany.set(c.id, live);
+      })
+  );
 
   const coreCount = companies.filter((c) => c.planTier === "CORE_LEAD_SUITE").length;
   const premiumCount = companies.filter((c) => c.planTier === "PREMIUM_ERP").length;
@@ -259,8 +292,8 @@ export default async function SuperAdminPage() {
                     <td className="px-4 py-3.5">
                       <AddOnToggles
                         companyId={company.id}
-                        initialAdsInsights={Boolean(company.settings?.[0]?.enableAdsInsights)}
-                        initialSocialInbox={Boolean(company.settings?.[0]?.enableSocialInbox)}
+                        initialAdsInsights={Boolean(addOnStateByCompany.get(company.id)?.enableAdsInsights ?? company.settings?.[0]?.enableAdsInsights)}
+                        initialSocialInbox={Boolean(addOnStateByCompany.get(company.id)?.enableSocialInbox ?? company.settings?.[0]?.enableSocialInbox)}
                       />
                     </td>
 
@@ -395,8 +428,8 @@ export default async function SuperAdminPage() {
                     <span className="text-[11px] text-slate-400 font-bold uppercase">Add-ons:</span>
                     <AddOnToggles
                       companyId={company.id}
-                      initialAdsInsights={Boolean(company.settings?.[0]?.enableAdsInsights)}
-                      initialSocialInbox={Boolean(company.settings?.[0]?.enableSocialInbox)}
+                      initialAdsInsights={Boolean(addOnStateByCompany.get(company.id)?.enableAdsInsights ?? company.settings?.[0]?.enableAdsInsights)}
+                      initialSocialInbox={Boolean(addOnStateByCompany.get(company.id)?.enableSocialInbox ?? company.settings?.[0]?.enableSocialInbox)}
                     />
                   </div>
 
