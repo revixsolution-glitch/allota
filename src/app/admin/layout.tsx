@@ -4,7 +4,6 @@ import { SupportModeBanner } from "@/components/SupportModeBanner";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
-import { getTenantCompanyId } from "@/lib/tenant-context";
 
 export default async function AdminLayout({
   children,
@@ -15,6 +14,11 @@ export default async function AdminLayout({
   const activeCompanyId = getActiveCompanyId(session);
 
   await ensureCompanySettingsColumns();
+  // Re-assert routing right before it's actually used: on a cold instance,
+  // ensureCompanySettingsColumns() alone runs ~18 sequential raw SQL calls
+  // and can take several seconds, long enough for the tenant-routing
+  // context to go stale (see getActiveCompanyId's comment for why).
+  getActiveCompanyId(session);
 
   const company = activeCompanyId
     ? await prisma.company.findUnique({
@@ -24,15 +28,6 @@ export default async function AdminLayout({
     : null;
 
   const settings = company?.settings?.[0] ?? (await prisma.companySettings.findFirst());
-
-  console.log("[tenant-debug2] layout", {
-    activeCompanyId,
-    ctxNow: getTenantCompanyId(),
-    companyName: company?.name,
-    settingsCompanyId: settings?.companyId,
-    enableAdsInsights: settings?.enableAdsInsights,
-    enableSocialInbox: settings?.enableSocialInbox,
-  });
 
   const isImpersonating = session?.role === "SUPER_ADMIN" && Boolean(session.impersonatedCompanyId);
 
