@@ -40,10 +40,12 @@ async function lookupConnectionString(companyId: string): Promise<string | null>
       where: { companyId },
       select: { connectionString: true },
     });
+    console.log("[tenant-debug2] lookupConnectionString", { companyId, found: Boolean(row?.connectionString) });
     return row?.connectionString ?? null;
-  } catch {
+  } catch (err) {
     // Control table not migrated yet, or lookup failed — fall back to the
     // default database rather than break the request.
+    console.log("[tenant-debug2] lookupConnectionString ERROR", { companyId, err: String(err) });
     return null;
   }
 }
@@ -86,6 +88,14 @@ export async function warmTenantClient(companyId: string | null): Promise<void> 
 export const prisma: PrismaClient = new Proxy(defaultPrisma, {
   get(defaultTarget, prop, receiver) {
     const companyId = getTenantCompanyId();
+    if (prop === "company" || prop === "companySettings") {
+      console.log("[tenant-debug2] proxy get", {
+        prop: String(prop),
+        companyId,
+        isCached: companyId ? tenantClients.has(companyId) : false,
+        cacheSize: tenantClients.size,
+      });
+    }
     if (!companyId) return Reflect.get(defaultTarget, prop, receiver);
 
     const cached = tenantClients.get(companyId);
