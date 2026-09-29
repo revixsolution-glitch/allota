@@ -4,6 +4,7 @@ import { SupportModeBanner } from "@/components/SupportModeBanner";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
+import { getTenantCompanyId } from "@/lib/tenant-context";
 
 export default async function AdminLayout({
   children,
@@ -23,6 +24,15 @@ export default async function AdminLayout({
     : null;
 
   const settings = company?.settings?.[0] ?? (await prisma.companySettings.findFirst());
+
+  console.log("[tenant-debug2] layout", {
+    activeCompanyId,
+    ctxNow: getTenantCompanyId(),
+    companyName: company?.name,
+    settingsCompanyId: settings?.companyId,
+    enableAdsInsights: settings?.enableAdsInsights,
+    enableSocialInbox: settings?.enableSocialInbox,
+  });
 
   const isImpersonating = session?.role === "SUPER_ADMIN" && Boolean(session.impersonatedCompanyId);
 
