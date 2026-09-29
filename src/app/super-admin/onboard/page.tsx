@@ -13,6 +13,8 @@ export default function OnboardCompanyPage() {
   // Custom toggles
   const [enableStockIq, setEnableStockIq] = useState(false);
   const [enableTerritories, setEnableTerritories] = useState(false);
+  const [enableAdsInsights, setEnableAdsInsights] = useState(false);
+  const [enableSocialInbox, setEnableSocialInbox] = useState(false);
   const [enableClients, setEnableClients] = useState(false);
 
   // Success result
@@ -49,6 +51,8 @@ export default function OnboardCompanyPage() {
     formData.set("enableClientsManagement", String(enableClients));
     formData.set("enableReorders", String(planTier === "PREMIUM_ERP"));
     formData.set("enableCreditManagement", String(planTier === "PREMIUM_ERP"));
+    formData.set("enableAdsInsights", String(enableAdsInsights));
+    formData.set("enableSocialInbox", String(enableSocialInbox));
 
     const passwordVal = formData.get("adminPassword") as string;
 
@@ -310,6 +314,35 @@ export default function OnboardCompanyPage() {
                       className="rounded border-slate-700 bg-slate-800 text-teal-500 focus:ring-teal-400"
                     />
                     <span className="text-xs text-slate-300">Clients / Distributors</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Paid Add-ons — independent of plan tier */}
+              <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Paid Add-ons
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableAdsInsights}
+                      onChange={(e) => setEnableAdsInsights(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-400"
+                    />
+                    <span className="text-xs text-slate-300">📊 Ads Insights</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableSocialInbox}
+                      onChange={(e) => setEnableSocialInbox(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-400"
+                    />
+                    <span className="text-xs text-slate-300">💬 Social Inbox</span>
                   </label>
                 </div>
               </div>

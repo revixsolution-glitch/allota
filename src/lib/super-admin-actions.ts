@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma, defaultPrisma } from "@/lib/prisma";
+import { prisma, defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import type { PlanTier, CompanyStatus } from "@/types/company";
@@ -72,6 +72,10 @@ export async function onboardCompany(formData: FormData) {
   const pharmaHopperApiKey = (formData.get("pharmaHopperApiKey") as string)?.trim() || null;
   const pharmaVentApiKey = (formData.get("pharmaVentApiKey") as string)?.trim() || null;
 
+  // Paid add-ons — independent of plan tier, switched on per company.
+  const enableAdsInsights = formData.get("enableAdsInsights") === "true";
+  const enableSocialInbox = formData.get("enableSocialInbox") === "true";
+
   // Transaction to create Company, CompanySettings, and initial Admin User
   const result = await prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
@@ -108,6 +112,8 @@ export async function onboardCompany(formData: FormData) {
         metaApiKey,
         pharmaHopperApiKey,
         pharmaVentApiKey,
+        enableAdsInsights,
+        enableSocialInbox,
       },
     });
 
@@ -149,7 +155,12 @@ export async function updateCompanyStatus(companyId: string, status: CompanyStat
     throw new Error("Unauthorized.");
   }
 
-  await prisma.company.update({
+  // Super admin isn't "logged into" the target company's own session, so the
+  // ambient prisma routing (keyed off the session) doesn't apply here — the
+  // right database has to be resolved explicitly, or a company with its own
+  // database would silently get edited in the old shared one instead.
+  const db = await getPrismaForCompany(companyId);
+  await db.company.update({
     where: { id: companyId },
     data: { status },
   });
@@ -165,8 +176,9 @@ export async function updateCompanyPlanTier(companyId: string, planTier: PlanTie
   }
 
   const isPremium = planTier === "PREMIUM_ERP";
+  const db = await getPrismaForCompany(companyId);
 
-  await prisma.$transaction(async (tx) => {
+  await db.$transaction(async (tx) => {
     await tx.company.update({
       where: { id: companyId },
       data: { planTier },
@@ -184,6 +196,27 @@ export async function updateCompanyPlanTier(companyId: string, planTier: PlanTie
         enableCreditManagement: isPremium,
       },
     });
+  });
+
+  revalidatePath("/super-admin");
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+/** Paid add-ons — independent of plan tier, switched on/off per company. */
+export async function updateCompanyAddOns(
+  companyId: string,
+  addOns: { enableAdsInsights?: boolean; enableSocialInbox?: boolean }
+) {
+  const session = await getSession();
+  if (!session || session.role !== "SUPER_ADMIN") {
+    throw new Error("Unauthorized.");
+  }
+
+  const db = await getPrismaForCompany(companyId);
+  await db.companySettings.updateMany({
+    where: { companyId },
+    data: addOns,
   });
 
   revalidatePath("/super-admin");

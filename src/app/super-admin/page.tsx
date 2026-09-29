@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EnterCrmButton } from "@/components/EnterCrmButton";
 import { PlanTierSelect } from "@/components/PlanTierSelect";
+import { AddOnToggles } from "@/components/AddOnToggles";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 
 export default async function SuperAdminPage() {
@@ -180,6 +181,7 @@ export default async function SuperAdminPage() {
                 <tr>
                   <th className="px-4 py-3 font-semibold">Business Name</th>
                   <th className="px-4 py-3 font-semibold">Plan Tier</th>
+                  <th className="px-4 py-3 font-semibold">Add-ons</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-center">Reps</th>
                   <th className="px-4 py-3 font-semibold text-center">Leads</th>
@@ -252,6 +254,14 @@ export default async function SuperAdminPage() {
 
                     <td className="px-4 py-3.5">
                       <PlanTierSelect companyId={company.id} initialPlanTier={company.planTier} />
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <AddOnToggles
+                        companyId={company.id}
+                        initialAdsInsights={Boolean(company.settings?.[0]?.enableAdsInsights)}
+                        initialSocialInbox={Boolean(company.settings?.[0]?.enableSocialInbox)}
+                      />
                     </td>
 
                     <td className="px-4 py-3.5">
@@ -379,6 +389,15 @@ export default async function SuperAdminPage() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] text-slate-400 font-bold uppercase">Plan Tier:</span>
                     <PlanTierSelect companyId={company.id} initialPlanTier={company.planTier} />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-slate-400 font-bold uppercase">Add-ons:</span>
+                    <AddOnToggles
+                      companyId={company.id}
+                      initialAdsInsights={Boolean(company.settings?.[0]?.enableAdsInsights)}
+                      initialSocialInbox={Boolean(company.settings?.[0]?.enableSocialInbox)}
+                    />
                   </div>
 
                   <div className="pt-2">
