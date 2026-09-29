@@ -22,7 +22,19 @@ export interface SessionPayload {
 
 export function getActiveCompanyId(session: SessionPayload | null): string | null {
   if (!session) return null;
-  return session.impersonatedCompanyId || session.companyId || null;
+  const companyId = session.impersonatedCompanyId || session.companyId || null;
+  // Re-assert the tenant-routing context every time this runs (it's already
+  // called right before prisma usage throughout the app). AsyncLocalStorage's
+  // `enterWith` context was empirically observed to go stale after several
+  // seconds and many sequential awaits within one request on this platform
+  // (confirmed live: correct right after getSession(), null again a few
+  // seconds later in the same request, after ensureCompanySettingsColumns()'s
+  // ~18 sequential raw SQL calls) — this call site is cheap, synchronous, and
+  // already universally present immediately before the prisma calls that
+  // actually need routing, so re-setting it here closes that window without
+  // touching any call site.
+  setTenantContext(companyId);
+  return companyId;
 }
 
 export async function hashPassword(password: string): Promise<string> {
