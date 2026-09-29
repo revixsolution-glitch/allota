@@ -68,6 +68,14 @@ export default async function AdminLayout({
     }
   }
 
+  // Paid add-ons — independent of plan tier, on or off per company.
+  if (settings?.enableAdsInsights) {
+    navItems.push({ href: "/admin/ads-insights", label: "Ads Insights" });
+  }
+  if (settings?.enableSocialInbox) {
+    navItems.push({ href: "/admin/social-inbox", label: "Social Inbox" });
+  }
+
   // Organization Settings & Integrations
   navItems.push({ href: "/admin/settings", label: "Settings" });
 

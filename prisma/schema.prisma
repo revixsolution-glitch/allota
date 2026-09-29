@@ -440,6 +440,11 @@ model CompanySettings {
   pharmaHopperApiKey      String?
   pharmaVentApiKey        String?
 
+  // Paid add-ons (default: off). Independent of planTier — a Core or
+  // Premium company can each buy these separately.
+  enableAdsInsights       Boolean  @default(false)
+  enableSocialInbox       Boolean  @default(false)
+
   updatedAt               DateTime @updatedAt
   createdAt               DateTime @default(now())
 }
@@ -475,4 +480,47 @@ model LoginDirectory {
   email     String   @id
   companyId String
   createdAt DateTime @default(now())
+}
+
+/// Add-on: Meta Ads Insights. One cached snapshot per company, refreshed
+/// on demand (a page-load sync, not a background job for v1). Deliberately
+/// a single JSON blob, not one row per campaign/day — this feature's whole
+/// point is a simple, at-a-glance summary a non-technical admin can read,
+/// not a relational analytics warehouse.
+model AdsInsightsSync {
+  id        String   @id @default(cuid())
+  companyId String   @unique
+  /// { totalSpend, totalClicks, totalImpressions, totalReach, avgCtr,
+  ///   currency, campaigns: [{ id, name, status, spend, clicks,
+  ///   impressions, reach, ctr, startDate }],
+  ///   locations: [{ region, spend, clicks, impressions }] }
+  summary   Json
+  syncedAt  DateTime @default(now())
+  /// Set when the last sync attempt failed (e.g. missing Ad Account id, or
+  /// Meta declined the request) — shown to the admin instead of stale data.
+  lastError String?
+}
+
+/// Add-on: Social Inbox. One row per Facebook/Instagram comment or message,
+/// captured via the Meta webhook. AI drafts a reply; a human (for now)
+/// clicks Send. `externalId` is Meta's own comment/message id, so the same
+/// webhook delivery retried by Meta never creates a duplicate row.
+model SocialInboxItem {
+  id              String    @id @default(cuid())
+  companyId       String?
+  platform        String    // "FACEBOOK" | "INSTAGRAM"
+  kind            String    // "COMMENT" | "MESSAGE"
+  externalId      String    @unique
+  fromName        String?
+  fromId          String?
+  text            String?
+  postOrThreadId  String?
+  permalink       String?
+  status          String    @default("NEW") // NEW | REPLIED | IGNORED
+  aiDraftReply    String?
+  repliedText     String?
+  repliedAt       DateTime?
+  repliedByUserId String?
+  receivedAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
 }

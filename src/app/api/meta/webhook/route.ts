@@ -41,8 +41,11 @@ export async function GET(req: NextRequest) {
 async function routeToCompanyForPage(
   pageId: string
 ): Promise<{ companyId: string; accessToken: string | null } | null> {
+  // Matches by Page id OR WhatsApp Business Account id — Meta sends
+  // whichever one identifies the object the event happened on (a Facebook
+  // Page for leads/comments, sometimes the WABA id for WhatsApp events).
   const routed = await defaultPrisma.tenantDatabase
-    .findUnique({ where: { metaPageId: pageId }, select: { companyId: true } })
+    .findFirst({ where: { OR: [{ metaPageId: pageId }, { metaWabaId: pageId }] }, select: { companyId: true } })
     .catch(() => null);
 
   if (routed) {
@@ -56,7 +59,7 @@ async function routeToCompanyForPage(
   }
 
   const settings = await defaultPrisma.companySettings.findFirst({
-    where: { metaPageId: pageId },
+    where: { OR: [{ metaPageId: pageId }, { metaWabaId: pageId }] },
     select: { companyId: true, metaAccessToken: true, metaApiKey: true },
   });
   if (!settings?.companyId) return null;
@@ -64,6 +67,31 @@ async function routeToCompanyForPage(
   setTenantContext(settings.companyId);
   await warmTenantClient(settings.companyId);
   return { companyId: settings.companyId, accessToken: settings.metaAccessToken || settings.metaApiKey || null };
+}
+
+/** Save a comment or message into the Social Inbox, only if the company has the add-on enabled. Ignores an event already captured (Meta retries webhook deliveries). */
+async function captureSocialInboxItem(companyId: string, item: {
+  platform: "FACEBOOK" | "INSTAGRAM";
+  kind: "COMMENT" | "MESSAGE";
+  externalId: string;
+  fromName?: string | null;
+  fromId?: string | null;
+  text?: string | null;
+  postOrThreadId?: string | null;
+  permalink?: string | null;
+}) {
+  const settings = await prisma.companySettings.findFirst({
+    where: { companyId },
+    select: { enableSocialInbox: true },
+  });
+  if (!settings?.enableSocialInbox) return;
+
+  const existing = await prisma.socialInboxItem.findUnique({ where: { externalId: item.externalId } });
+  if (existing) return;
+
+  await prisma.socialInboxItem.create({
+    data: { companyId, ...item },
+  });
 }
 
 /**
@@ -77,11 +105,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "ignored" }, { status: 200 });
     }
 
-    // Process each leadgen event
+    // Process each leadgen / comment / message event
     for (const entry of body.entry || []) {
       const pageId = entry.id;
 
       for (const change of entry.changes || []) {
+        // Facebook Page comment (a comment on a post or an ad).
+        if (change.field === "feed" && change.value?.item === "comment" && change.value?.verb === "add") {
+          const routed = await routeToCompanyForPage(pageId);
+          if (routed) {
+            await captureSocialInboxItem(routed.companyId, {
+              platform: "FACEBOOK",
+              kind: "COMMENT",
+              externalId: change.value.comment_id,
+              fromName: change.value.from?.name || null,
+              fromId: change.value.from?.id || null,
+              text: change.value.message || null,
+              postOrThreadId: change.value.post_id || null,
+              permalink: null,
+            });
+          }
+          continue;
+        }
+
+        // Instagram comment (same "add a comment" idea, different field name).
+        if (change.field === "comments") {
+          const routed = await routeToCompanyForPage(pageId);
+          if (routed) {
+            await captureSocialInboxItem(routed.companyId, {
+              platform: "INSTAGRAM",
+              kind: "COMMENT",
+              externalId: change.value?.id,
+              fromName: change.value?.from?.username || null,
+              fromId: change.value?.from?.id || null,
+              text: change.value?.text || null,
+              postOrThreadId: change.value?.media?.id || null,
+              permalink: null,
+            });
+          }
+          continue;
+        }
+
         if (change.field === "leadgen") {
           const leadgenId = change.value?.leadgen_id;
           const formId = change.value?.form_id;
@@ -208,6 +272,24 @@ export async function POST(req: NextRequest) {
 
           console.log(`[Meta Webhook] Successfully ingested new lead: ${fullName} (${formattedPhone})`);
         }
+      }
+
+      // Messenger / Instagram DM messages arrive as their own array on the
+      // entry, not inside `changes`.
+      for (const msg of entry.messaging || []) {
+        if (!msg.message?.text || msg.message?.is_echo) continue; // skip attachments-only and our own sent messages
+        const routed = await routeToCompanyForPage(pageId);
+        if (!routed) continue;
+        await captureSocialInboxItem(routed.companyId, {
+          platform: "FACEBOOK",
+          kind: "MESSAGE",
+          externalId: msg.message.mid || `${msg.sender?.id}-${msg.timestamp}`,
+          fromName: null,
+          fromId: msg.sender?.id || null,
+          text: msg.message.text,
+          postOrThreadId: msg.sender?.id || null,
+          permalink: null,
+        });
       }
     }
 
