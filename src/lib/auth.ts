@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import type { Role } from "@/generated/prisma/enums";
-import { setTenantContext } from "@/lib/tenant-context";
+import { setTenantContext, getTenantCompanyId } from "@/lib/tenant-context";
 import { warmTenantClient } from "@/lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -61,6 +61,9 @@ export async function getSession(): Promise<SessionPayload | null> {
     const activeCompanyId = getActiveCompanyId(session);
     await warmTenantClient(activeCompanyId);
     setTenantContext(activeCompanyId);
+    if (true) {
+      console.log("[tenant-debug] getSession routed", { activeCompanyId, ctxAfter: getTenantCompanyId() });
+    }
   }
   return session;
 }
