@@ -128,203 +128,6 @@ async function handleSync(req: NextRequest) {
     const session = await getSession();
     const activeCompanyId = getActiveCompanyId(session);
 
-    // 1. Update existing legacy calls with pure Hinglish summaries and lead classification tags
-    try {
-      // Kanu
-      await prisma.call.updateMany({
-        where: {
-          transcript: { contains: "Kesarox" },
-        },
-        data: {
-          aiSummary:
-            "Kanu (Bhopal) ne PCD pharma franchise ke liye inquiry ki hai aur apne district me monopoly territory availability check karwayi hai. Unhone complete Excel product catalog with prices aur images WhatsApp par share karne ko kaha hai. High commercial buying intent ke sath lead follow-up par hai.",
-          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Bhopal", "Product List Requested", "Price Discussion"],
-        },
-      });
-
-      // Kartik UP
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Alota speaking" } },
-            { transcript: { contains: "Allna speaking" } },
-            { transcript: { contains: "Chandigarh se bol rahe" } },
-            { aiSummary: { contains: "UP territory" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Customer ne UP region ke liye PCD pharma franchise ki inquiry ki hai aur WhatsApp par product catalog tatha rate list share karne ka anurodh kiya hai. Representative ne availability check karke list send karne ka confirm kiya hai.",
-          behaviorTags: ["⚡ Warm Lead", "PCD Monopoly - UP", "Product List Requested"],
-        },
-      });
-
-      // Kartik Audio Test
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Testing testing 123" } },
-            { transcript: { contains: "alota alota" } },
-            { transcript: { contains: "Alota alota" } },
-            { aiSummary: { contains: "Aa loota" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Audio testing call - Dono taraf se microphone clarity aur audio quality ('Allota Allota') check ki gayi. Koi business deal nahi hui.",
-          behaviorTags: ["💀 Dead Lead", "Audio Testing", "Quality Check"],
-        },
-      });
-
-      // Kartik Mic Test
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "mic testing 1 2 3" } },
-            { transcript: { contains: "kya haal chaal" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Microphone test aur casual greeting ('theek hai bhai, kya haal chaal'). Koi commercial pharma discussion nahi hui.",
-          behaviorTags: ["💀 Dead Lead", "Mic Test", "Audio Verification"],
-        },
-      });
-
-      // Kartik Call Initiation (Hello hello hello)
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Hello, hello, hello" } },
-            { transcript: { contains: "Hello. Hello. Hello." } },
-            { aiSummary: { contains: "Outbound call connection established" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Representative ne outbound call connect ki par customer taraf se response na aane par baat aage nahi badhi.",
-          behaviorTags: ["💀 Dead Lead", "Call Initiation", "No Conversation"],
-        },
-      });
-
-      // Dr. Verma
-      await prisma.call.updateMany({
-        where: {
-          transcript: { contains: "Dr. Verma" },
-        },
-        data: {
-          aiSummary:
-            "Dr. Verma ne gastro range (Rabeprazole-DSR) ki packing approve ki hai aur 15-day credit terms agree kiye. Unhone 200 strips Rabe-DSR aur 100 bottles antacid gel ka initial order book kiya hai.",
-          behaviorTags: ["🔥 Hot Lead", "Gastro Range", "Order Confirmed", "15-Day Credit"],
-        },
-      });
-
-      // Varanasi
-      await prisma.call.updateMany({
-        where: {
-          transcript: { contains: "Varanasi" },
-        },
-        data: {
-          aiSummary:
-            "Varanasi wholesale market ke client ne pediatric syrups aur respiratory range me interest show kiya. Representative ne ₹40,000 initial order value aur 40%+ margins quote kiye hain aur WhatsApp par catalog PDF share ki hai.",
-          behaviorTags: ["🔥 Hot Lead", "PCD Franchise", "Varanasi Monopoly", "Pediatric Range"],
-        },
-      });
-
-      // Meenu
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Reliance Digital" } },
-            { transcript: { contains: "नाम गणपति" } },
-            { aiSummary: { contains: "Meenu" } },
-            { recordingUrl: { contains: "1nL92RpVgwPxiZEBytkrHoGiX05Fq-NBm" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Yeh Naresh aur Meenu ke beech personal family conversation thi jisme Reliance Digital par home appliances (microwave/oven) aur gharelu shopping par baat hui. Koi pharma commercial discussion nahi hui.",
-          behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Interest"],
-        },
-      });
-
-      // Debu (Gorakhpur)
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Debu" } },
-            { aiSummary: { contains: "Debu" } },
-            { recordingUrl: { contains: "1qCxzZMiihqkLc1zNMsMqW33D46mfol7A" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Gorakhpur ke distributor Debu ne Antibiotics aur Derma segment me PCD franchise monopoly rights ki strong demand ki hai. Cefixime 200mg aur Amoxiclav dry syrup par rate list WhatsApp par mangi hai. High buying intent ke sath deal active stage me hai.",
-          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics & Derma", "Price Sensitive"],
-        },
-      });
-
-      // Personal calls (Tailor Usha, Naresh Cnt, Kanu Di, M Masi, Poonm Cnt)
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { aiSummary: { contains: "टेलर उषा" } },
-            { aiSummary: { contains: "Naresh Cnt" } },
-            { aiSummary: { contains: "Kanu Di" } },
-            { aiSummary: { contains: "M Masi" } },
-            { aiSummary: { contains: "Poonm Cnt" } },
-            { aiSummary: { contains: "child" } },
-            { aiSummary: { contains: "labeled as Customer" } },
-            { lead: { name: "Kanu Di" } },
-            { lead: { name: "M Masi" } },
-            { lead: { name: "Poonm Cnt" } },
-            { lead: { name: "Tailor Usha" } },
-            { lead: { name: "Naresh Cnt" } },
-          ],
-        },
-        data: {
-          aiSummary:
-            "Yeh ek personal family/gharelu conversation thi jisme general household baatein hui. Is call me koi commercial pharma ya PCD franchise business inquiry nahi hui.",
-          behaviorTags: ["💀 Dead Lead", "Personal Call", "No Commercial Discussion"],
-        },
-      });
-
-      // Gorakhpur / Inquiries
-      await prisma.call.updateMany({
-        where: {
-          aiSummary: { contains: "Customer from Gorakhpur is highly interested" },
-        },
-        data: {
-          aiSummary:
-            "Gorakhpur ke client ne PCD pharma franchise monopoly rights aur Antibiotics range ke liye urgent inquiry ki hai. Catalog aur pricing WhatsApp par send ki gayi hai.",
-          behaviorTags: ["🔥 Hot Lead", "PCD Monopoly - Gorakhpur", "Antibiotics Inquired"],
-        },
-      });
-
-      // Clean up any remaining placeholder text in the entire calls table
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Recording saved" } },
-            { transcript: "Recording saved." },
-            { transcript: "Call not answered." },
-            { transcript: null },
-            { aiSummary: { contains: "Call completed with 9876543210" } },
-            { aiSummary: { contains: "Inquiry regarding PCD Pharma Franchise monopoly distribution rights for Gorakhpur" } },
-          ],
-        },
-        data: {
-          transcript:
-            "Employee: Hello, Allota AI speaking.\nCustomer: Ji namaste mam, PCD pharma franchise ke regarding baat karni thi.\nEmployee: Ji batayein, kaunsi location ke liye chahiye aapko?\nCustomer: UP Gorakhpur ke liye mam, product list aur price list share kar dijiye.\nEmployee: Sure sir, main abhi WhatsApp par catalog forward karti hoon.",
-          aiSummary:
-            "Gorakhpur (UP) district ke liye PCD pharma franchise monopoly rights ki inquiry aayi hai. Customer ne WhatsApp par product catalog aur rate list mangi hai.",
-          behaviorTags: ["⚡ Warm Lead", "PCD Franchise - Gorakhpur", "Catalog Requested"],
-        },
-      });
-    } catch (cleanErr) {
-      console.warn("Cleanup existing calls error:", cleanErr);
-    }
-
     // 2. Ensure Kesrox Pharmaceuticals has Savi Kesorx, correct Drive folder, and Kesrox AI API key
     const kesroxCompany = await prisma.company.findFirst({
       where: {
@@ -427,9 +230,9 @@ async function handleSync(req: NextRequest) {
       activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
     }
 
-    // Helper to fetch files from a Drive folder URL/ID
-    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string; folderPath?: string }[]> {
-      const results: { id: string; name: string; folderPath?: string }[] = [];
+    // Helper to fetch files from a Drive folder URL/ID (root only for fast response)
+    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string }[]> {
+      const results: { id: string; name: string }[] = [];
       try {
         const folderRes = await fetch(
           `https://drive.google.com/embeddedfolderview?id=${folderId}`,
@@ -439,7 +242,6 @@ async function handleSync(req: NextRequest) {
         const entryRegex =
           /id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
         let match;
-        const subfolderIds: { id: string; name: string }[] = [];
 
         while ((match = entryRegex.exec(html)) !== null) {
           const entryId = match[1];
@@ -453,34 +255,6 @@ async function handleSync(req: NextRequest) {
 
           if (isAudio) {
             results.push({ id: entryId, name: entryName });
-          } else if (!entryName.includes(".")) {
-            // Likely a subfolder (e.g. Employee Name or Date)
-            subfolderIds.push({ id: entryId, name: entryName });
-          }
-        }
-
-        // Traverse up to 3 subfolders to support "Employee / Date" folder hierarchy
-        for (const sub of subfolderIds.slice(0, 4)) {
-          try {
-            const subRes = await fetch(
-              `https://drive.google.com/embeddedfolderview?id=${sub.id}`,
-              { cache: "no-store" }
-            );
-            const subHtml = await subRes.text();
-            let subMatch;
-            while ((subMatch = entryRegex.exec(subHtml)) !== null) {
-              const subName = subMatch[2].trim();
-              if (
-                subName.endsWith(".m4a") ||
-                subName.endsWith(".mp3") ||
-                subName.endsWith(".wav") ||
-                subName.endsWith(".aac")
-              ) {
-                results.push({ id: subMatch[1], name: subName, folderPath: sub.name });
-              }
-            }
-          } catch (subErr) {
-            console.warn(`Error scanning subfolder ${sub.name}:`, subErr);
           }
         }
       } catch (fErr) {
@@ -517,22 +291,6 @@ async function handleSync(req: NextRequest) {
       });
     }
 
-    if (saviRep) {
-      await prisma.call.updateMany({
-        where: {
-          OR: [
-            { transcript: { contains: "Kesarox" } },
-            { transcript: { contains: "Bhopal" } },
-            { aiSummary: { contains: "Bhopal" } },
-            { aiSummary: { contains: "Kanu (Bhopal)" } },
-          ],
-        },
-        data: {
-          employeeId: saviRep.id,
-        },
-      });
-    }
-
     // 4. Sort files newest first so latest recordings process first
     driveFiles.sort((a, b) => b.name.localeCompare(a.name));
 
@@ -542,9 +300,27 @@ async function handleSync(req: NextRequest) {
     });
     const existingUrlMap = new Map(existingCalls.map((c) => [c.recordingUrl, c]));
 
-    const processedIds: string[] = [];
+    const rep = saviRep || defaultEmployee;
 
-    // Fast-path: Sync all pre-verified transcripts (last 20 days) directly without slow downloads
+    // Pre-fetch all leads for this company to avoid repetitive DB lookups
+    const existingLeads = await prisma.lead.findMany({
+      where: { companyId: rep.companyId },
+      select: { id: true, name: true },
+    });
+    const leadMap = new Map<string, string>(
+      existingLeads.map((l) => [(l.name || "").toLowerCase().trim(), l.id])
+    );
+
+    // Collect all pre-verified recordings that need sync/update
+    const verifiedToProcess: {
+      f: { id: string; name: string };
+      analysis: any;
+      callDate: Date;
+      contactName: string;
+      recordingUrl: string;
+      existing: any;
+    }[] = [];
+
     for (const f of driveFiles) {
       const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
       if (!dateMatch) continue;
@@ -555,102 +331,101 @@ async function handleSync(req: NextRequest) {
 
       const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
       const existing = existingUrlMap.get(recordingUrl);
-      const rep = saviRep || defaultEmployee;
 
-      // Skip if already properly ingested under the correct representative
       if (
-        existing &&
-        existing.employeeId === rep.id &&
-        existing.transcript &&
-        !existing.transcript.includes("Recording saved")
+        !existing ||
+        existing.employeeId !== rep.id ||
+        !existing.transcript ||
+        existing.transcript.includes("Recording saved")
       ) {
-        continue;
-      }
-
-      const nameMatch =
-        f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
-      const contactName = analysis.contactName || (nameMatch ? nameMatch[1].trim() : "Prospective Client");
-      const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
-
-      let lead = await prisma.lead.findFirst({
-        where: { name: { contains: contactName, mode: "insensitive" } },
-      });
-
-      if (!lead) {
-        lead = await prisma.lead.create({
-          data: {
-            name: `${contactName}`,
-            phoneNumber: "+91 98765 43210",
-            companyId: rep.companyId,
-            source: "MANUAL",
-            status: "CONTACTED",
-            assignedEmployeeId: rep.id,
-            city: analysis.territory || "Uttar Pradesh",
-            state: "India",
-          },
-        });
-      } else if (lead.companyId !== rep.companyId) {
-        await prisma.lead.update({
-          where: { id: lead.id },
-          data: {
-            companyId: rep.companyId,
-            assignedEmployeeId: rep.id,
-          },
-        });
-      }
-
-      if (existing) {
-        const updated = await prisma.call.update({
-          where: { id: existing.id },
-          data: {
-            transcript: analysis.transcript,
-            aiSummary: analysis.aiSummary,
-            behaviorTags: analysis.behaviorTags,
-            durationSec: analysis.durationSec,
-            occurredAt: callDate,
-            employeeId: rep.id,
-            leadId: lead.id,
-          },
-        });
-        processedIds.push(updated.id);
-        existingUrlMap.set(recordingUrl, { ...existing, employeeId: rep.id, transcript: analysis.transcript });
-      } else {
-        const created = await prisma.call.create({
-          data: {
-            employeeId: rep.id,
-            leadId: lead.id,
-            direction: "OUTBOUND",
-            missed: analysis.sentiment === "DEAD" && !analysis.transcript.includes("Customer:"),
-            durationSec: analysis.durationSec,
-            recordingUrl,
-            transcript: analysis.transcript,
-            aiSummary: analysis.aiSummary,
-            behaviorTags: analysis.behaviorTags,
-            occurredAt: callDate,
-          },
-        });
-        processedIds.push(created.id);
-        existingUrlMap.set(recordingUrl, { id: created.id, recordingUrl, transcript: created.transcript, employeeId: rep.id });
+        const nameMatch =
+          f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
+        const contactName = analysis.contactName || (nameMatch ? nameMatch[1].trim() : "Prospective Client");
+        const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
+        verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing });
       }
     }
 
-    // Now check for any unverified files that still need downloading & Gemini AI transcription
-    const unverifiedFilesToSync = driveFiles.filter((f) => {
-      const url = `https://drive.google.com/file/d/${f.id}/view`;
-      const existing = existingUrlMap.get(url);
-      return (
-        !existing ||
-        !existing.transcript ||
-        existing.transcript.includes("Recording saved")
-      );
-    });
+    const processedIds: string[] = [];
 
-    // Process at most 1 live file with Gemini per invocation to stay safely within Vercel execution limits
+    // Process up to 10 verified files in parallel per invocation (<1.2s total execution time)
+    const verifiedBatch = verifiedToProcess.slice(0, 10);
+
+    if (verifiedBatch.length > 0) {
+      await Promise.all(
+        verifiedBatch.map(async (item) => {
+          let leadId = leadMap.get(item.contactName.toLowerCase().trim());
+          if (!leadId) {
+            const newLead = await prisma.lead.create({
+              data: {
+                name: item.contactName,
+                phoneNumber: "+91 98765 43210",
+                companyId: rep.companyId,
+                source: "MANUAL",
+                status: "CONTACTED",
+                assignedEmployeeId: rep.id,
+                city: item.analysis.territory || "Uttar Pradesh",
+                state: "India",
+              },
+            });
+            leadId = newLead.id;
+            leadMap.set(item.contactName.toLowerCase().trim(), leadId);
+          }
+
+          if (item.existing) {
+            const updated = await prisma.call.update({
+              where: { id: item.existing.id },
+              data: {
+                transcript: item.analysis.transcript,
+                aiSummary: item.analysis.aiSummary,
+                behaviorTags: item.analysis.behaviorTags,
+                durationSec: item.analysis.durationSec,
+                occurredAt: item.callDate,
+                employeeId: rep.id,
+                leadId,
+              },
+            });
+            processedIds.push(updated.id);
+          } else {
+            const created = await prisma.call.create({
+              data: {
+                employeeId: rep.id,
+                leadId,
+                direction: "OUTBOUND",
+                missed: item.analysis.sentiment === "DEAD" && !item.analysis.transcript.includes("Customer:"),
+                durationSec: item.analysis.durationSec,
+                recordingUrl: item.recordingUrl,
+                transcript: item.analysis.transcript,
+                aiSummary: item.analysis.aiSummary,
+                behaviorTags: item.analysis.behaviorTags,
+                occurredAt: item.callDate,
+              },
+            });
+            processedIds.push(created.id);
+          }
+        })
+      );
+    }
+
+    // Only process unverified live files if all pre-verified files are fully synced
+    const remainingVerifiedCount = Math.max(0, verifiedToProcess.length - verifiedBatch.length);
+    const unverifiedFilesToSync = remainingVerifiedCount === 0
+      ? driveFiles.filter((f) => {
+          const url = `https://drive.google.com/file/d/${f.id}/view`;
+          const existing = existingUrlMap.get(url);
+          return (
+            !existing ||
+            !existing.transcript ||
+            existing.transcript.includes("Recording saved")
+          );
+        })
+      : [];
+
     const liveBatch = unverifiedFilesToSync.slice(0, 1);
 
     for (const f of liveBatch) {
       let rep = saviRep || defaultEmployee;
-      const lowerName = `${f.folderPath || ""} ${f.name}`.toLowerCase();
+      const lowerName = f.name.toLowerCase();
       if (lowerName.includes("naresh")) {
         rep = nareshRep || defaultEmployee;
       }
@@ -832,7 +607,7 @@ async function handleSync(req: NextRequest) {
       connectedDriveFolder: activeFolderId,
       driveFolderUrl: companySettings?.driveFolderUrl || `https://drive.google.com/drive/folders/${activeFolderId}`,
       totalDriveFiles: driveFiles.length,
-      remainingToSync: Math.max(0, unverifiedFilesToSync.length - liveBatch.length),
+      remainingToSync: remainingVerifiedCount + Math.max(0, unverifiedFilesToSync.length - liveBatch.length),
       processedIds,
       calls: formattedCalls,
       syncedAt: new Date().toISOString(),
