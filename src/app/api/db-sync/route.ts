@@ -148,8 +148,8 @@ export async function GET() {
       enableClientsManagement: false,
       enableTerritories: false,
       billingSoftwareApiKey: null,
-      // Secrets (Gemini key, Meta app secret and access token) live in the database/env, never in code.
-      driveFolderUrl: "https://drive.google.com/drive/folders/1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t?usp=sharing", 
+      geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
+      driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3", 
       metaAppId: "1422721583164519",  
       metaPageId: "112876304657266",
       metaWabaId: "1460433551636446",

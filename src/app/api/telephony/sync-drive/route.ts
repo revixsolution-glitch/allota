@@ -338,22 +338,26 @@ async function handleSync(req: NextRequest) {
 
     if (kesroxCompany) {
       try {
-        await prisma.companySettings.upsert({
-          where: { id: "settings_kesrox" },
-          update: {
-            companyId: kesroxCompany.id,
-            companyName: "Kesrox Pharmaceuticals",
-            driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
-            geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
-          },
-          create: {
-            id: "settings_kesrox",
-            companyId: kesroxCompany.id,
+        const updateResult = await prisma.companySettings.updateMany({
+          where: { companyId: kesroxCompany.id },
+          data: {
             companyName: "Kesrox Pharmaceuticals",
             driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
             geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
           },
         });
+
+        if (updateResult.count === 0) {
+          await prisma.companySettings.create({
+            data: {
+              id: "settings_kesrox",
+              companyId: kesroxCompany.id,
+              companyName: "Kesrox Pharmaceuticals",
+              driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
+              geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
+            },
+          });
+        }
 
         let saviEmp = await prisma.employee.findFirst({
           where: { name: { contains: "Savi", mode: "insensitive" } },
@@ -401,15 +405,11 @@ async function handleSync(req: NextRequest) {
     }
 
     // 2b. Resolve Active Google Drive Folder ID from Company Settings or Default
+    const effectiveCompanyId = activeCompanyId || kesroxCompany?.id;
     const companySettings = await prisma.companySettings.findFirst({
-      where: activeCompanyId
-        ? { companyId: activeCompanyId, driveFolderUrl: { not: null } }
-        : {
-            OR: [
-              ...(kesroxCompany ? [{ companyId: kesroxCompany.id }] : []),
-              { driveFolderUrl: { not: null } },
-            ],
-          },
+      where: effectiveCompanyId
+        ? { companyId: effectiveCompanyId, driveFolderUrl: { not: null } }
+        : { driveFolderUrl: { not: null } },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -421,6 +421,10 @@ async function handleSync(req: NextRequest) {
       if (match) {
         activeFolderId = match[1];
       }
+    }
+
+    if (activeFolderId === "1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t") {
+      activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
     }
 
     // Helper to fetch files from a Drive folder URL/ID
@@ -753,12 +757,13 @@ async function handleSync(req: NextRequest) {
     }
 
     // 5. Query latest calls to return immediately to the frontend (scoped to active company)
-    const callsWhere = activeCompanyId
+    const returnCompanyId = activeCompanyId || kesroxCompany?.id;
+    const callsWhere = returnCompanyId
       ? {
           OR: [
-            { employee: { companyId: activeCompanyId } },
-            { lead: { companyId: activeCompanyId } },
-            { client: { companyId: activeCompanyId } },
+            { employee: { companyId: returnCompanyId } },
+            { lead: { companyId: returnCompanyId } },
+            { client: { companyId: returnCompanyId } },
           ],
         }
       : {};
