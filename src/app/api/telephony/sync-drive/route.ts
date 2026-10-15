@@ -323,7 +323,9 @@ async function handleSync(req: NextRequest) {
 
     // 2. Resolve Active Google Drive Folder ID from Company Settings or Default
     const companySettings = await prisma.companySettings.findFirst({
-      where: { driveFolderUrl: { not: null } },
+      where: activeCompanyId
+        ? { companyId: activeCompanyId, driveFolderUrl: { not: null } }
+        : { driveFolderUrl: { not: null } },
       orderBy: { updatedAt: "desc" },
     });
 
