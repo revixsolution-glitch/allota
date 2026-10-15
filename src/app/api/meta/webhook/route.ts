@@ -101,10 +101,131 @@ async function captureSocialInboxItem(companyId: string, item: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
-    if (!body || body.object !== "page") {
+    if (!body || (body.object !== "page" && body.object !== "whatsapp_business_account")) {
       return NextResponse.json({ status: "ignored" }, { status: 200 });
     }
 
+    // =========================================================================
+    // 1. WhatsApp Cloud API (Click-to-WhatsApp Ads & Direct WhatsApp Inquiries)
+    // =========================================================================
+    if (body.object === "whatsapp_business_account") {
+      for (const entry of body.entry || []) {
+        const wabaId = entry.id;
+
+        for (const change of entry.changes || []) {
+          if (change.field === "messages" && change.value?.messages) {
+            const routed = await routeToCompanyForPage(wabaId);
+            if (!routed) {
+              console.warn(`[WhatsApp Webhook] No company configured for WABA ID ${wabaId}`);
+              continue;
+            }
+
+            const contacts = change.value.contacts || [];
+            const contactMap = new Map<string, string>();
+            for (const c of contacts) {
+              if (c.wa_id && c.profile?.name) {
+                contactMap.set(c.wa_id, c.profile.name);
+              }
+            }
+
+            for (const msg of change.value.messages) {
+              if (msg.type === "system") continue;
+
+              const rawPhone = msg.from ? `+${msg.from}` : null;
+              const parsedPhone = extractPhoneNumber(rawPhone);
+              const formattedPhone = parsedPhone ? parsedPhone.formatted : rawPhone;
+              const phoneKey = normalizePhoneKey(rawPhone);
+
+              const senderName = contactMap.get(msg.from) || "WhatsApp Prospect";
+              const messageText = msg.text?.body || `[${msg.type || "Inquiry"} received on WhatsApp]`;
+
+              // Check if message originated from a Click-to-WhatsApp Ad
+              const referral = msg.referral;
+              const isAd = Boolean(referral);
+              const sourceTag = isAd
+                ? `Meta WhatsApp Ad (${referral.headline || referral.source_id || "Direct"})`
+                : "Direct WhatsApp Message";
+
+              // Check if prospect already exists (Zero-Duplicate Guarantee)
+              let existingLead: { id: string; inquiryDetails: string | null } | null = null;
+              if (phoneKey) {
+                const companyLeads = await prisma.lead.findMany({
+                  where: {
+                    phoneNumber: { not: null },
+                    companyId: routed.companyId,
+                  },
+                  select: { id: true, phoneNumber: true, inquiryDetails: true },
+                });
+
+                existingLead =
+                  companyLeads.find((l) => normalizePhoneKey(l.phoneNumber) === phoneKey) || null;
+              }
+
+              if (existingLead) {
+                const inquiryUpdate = `${existingLead.inquiryDetails || ""}\n[WhatsApp Message ${new Date().toLocaleDateString()}] ${
+                  isAd ? `Ad Referral: "${referral?.headline || referral?.source_id}". ` : ""
+                }"${messageText}"`.trim();
+                await prisma.lead.update({
+                  where: { id: existingLead.id },
+                  data: {
+                    inquiryDetails: inquiryUpdate,
+                    rawPayload: msg,
+                  },
+                });
+                console.log(`[WhatsApp Webhook] Existing lead updated: ${senderName} (${formattedPhone})`);
+                continue;
+              }
+
+              // Round-robin assign to sales representatives
+              const autoAssignedEmployeeId = await pickNextEmployeeForSource(
+                routed.companyId,
+                LeadSource.WHATSAPP
+              );
+
+              const inquiryDetails = isAd
+                ? `Inquiry via Click-to-WhatsApp Ad.\nAd Headline: ${referral.headline || "N/A"}\nMessage: "${messageText}"`
+                : `WhatsApp Direct Inquiry:\n"${messageText}"`;
+
+              const newLead = await prisma.lead.create({
+                data: {
+                  companyId: routed.companyId,
+                  name: senderName,
+                  phoneNumber: formattedPhone,
+                  source: LeadSource.WHATSAPP,
+                  sourceTag,
+                  division: "PCD_FRANCHISE",
+                  status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
+                  assignedEmployeeId: autoAssignedEmployeeId,
+                  inquiryDetails,
+                  rawPayload: msg,
+                },
+              });
+
+              if (autoAssignedEmployeeId) {
+                await prisma.leadReassignmentLog.create({
+                  data: {
+                    leadId: newLead.id,
+                    fromEmployeeId: null,
+                    toEmployeeId: autoAssignedEmployeeId,
+                    reason: "Auto-assigned via round-robin (WhatsApp Ads source)",
+                    previousStatus: "NEW",
+                    newStatus: "ASSIGNED",
+                  },
+                });
+              }
+
+              console.log(`[WhatsApp Webhook] Ingested new WhatsApp lead: ${senderName} (${formattedPhone})`);
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    // =========================================================================
+    // 2. Facebook / Instagram Page (Lead Ads, Comments & Messenger DMs)
+    // =========================================================================
     // Process each leadgen / comment / message event
     for (const entry of body.entry || []) {
       const pageId = entry.id;
