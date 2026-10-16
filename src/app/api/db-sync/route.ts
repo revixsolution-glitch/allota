@@ -444,6 +444,91 @@ export async function GET() {
       });
     }
 
+    // 8. Provision Ekonmed Remedies Private Limited with Official Meta Suite API
+    const ekonmedCompany = await prisma.company.upsert({
+      where: { slug: "ekonmed-remedies" },
+      update: {
+        name: "Ekonmed Remedies Private Limited",
+        contactEmail: "admin.ekonmed@allota.internal",
+        contactPhone: "+91 98000 00000",
+        planTier: "CORE_LEAD_SUITE",
+        status: "ACTIVE",
+      },
+      create: {
+        name: "Ekonmed Remedies Private Limited",
+        slug: "ekonmed-remedies",
+        contactEmail: "admin.ekonmed@allota.internal",
+        contactPhone: "+91 98000 00000",
+        planTier: "CORE_LEAD_SUITE",
+        status: "ACTIVE",
+      },
+    });
+
+    const ekonmedSettingsData = {
+      companyName: "Ekonmed Remedies Private Limited",
+      companyId: ekonmedCompany.id,
+      metaAppId: "4226729374283881",
+      metaAppSecret: "00000000000000000000000000000000",
+      metaAccessToken: "REDACTED_ACCESS_TOKEN",
+      metaApiKey: "REDACTED_ACCESS_TOKEN",
+      metaPageId: "1342042688984003",
+      metaAdAccountId: "act_1090397703391043",
+      metaWabaId: "1580714120422358",
+      enableAdsInsights: true,
+      enableSocialInbox: true,
+      enableLeadCenter: true,
+      enableLeadsAllotment: true,
+      enableLeadsIq: true,
+      enableSourcesHub: true,
+      enableBillingErp: false,
+      enableStockIq: false,
+      enableReorders: false,
+      enableCreditManagement: false,
+      enableClientsManagement: false,
+      enableTerritories: false,
+    };
+
+    const existingEkonmedSettings = await prisma.companySettings.findFirst({
+      where: { companyId: ekonmedCompany.id },
+    });
+
+    if (existingEkonmedSettings) {
+      await prisma.companySettings.update({
+        where: { id: existingEkonmedSettings.id },
+        data: ekonmedSettingsData,
+      });
+    } else {
+      await prisma.companySettings.create({
+        data: {
+          id: `settings_${ekonmedCompany.id}`,
+          ...ekonmedSettingsData,
+        },
+      });
+    }
+
+    const ekonmedAdminEmail = "admin.ekonmed@allota.internal";
+    const ekonmedAdminPass = await bcrypt.hash("Ekonmed@2026", 10);
+    await prisma.user.upsert({
+      where: { email: ekonmedAdminEmail },
+      update: {
+        passwordHash: ekonmedAdminPass,
+        companyId: ekonmedCompany.id,
+        role: Role.ADMIN,
+      },
+      create: {
+        email: ekonmedAdminEmail,
+        passwordHash: ekonmedAdminPass,
+        role: Role.ADMIN,
+        companyId: ekonmedCompany.id,
+      },
+    });
+
+    await prisma.loginDirectory.upsert({
+      where: { email: ekonmedAdminEmail },
+      update: { companyId: ekonmedCompany.id },
+      create: { email: ekonmedAdminEmail, companyId: ekonmedCompany.id },
+    });
+
     return NextResponse.json({
       success: true,
       message: "Kesrox Pharmaceuticals, Kesrox Admin, Savi Kesorx, and Call Logs provisioned successfully!",
