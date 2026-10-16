@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 
@@ -128,21 +128,35 @@ async function handleSync(req: NextRequest) {
     const session = await getSession();
     const activeCompanyId = getActiveCompanyId(session);
 
-    // 2. Ensure Kesrox Pharmaceuticals has Savi Kesorx, correct Drive folder, and Kesrox AI API key
-    const kesroxCompany = await prisma.company.findFirst({
+    // 2. Ensure Kesrox Pharmaceuticals has Savi Kesorx, correct Drive folder, and Kesrox AI API key across all target databases
+    const kesroxCompany = await defaultPrisma.company.findFirst({
       where: {
         OR: [
-          { slug: "kesrox-pharma" },
           { slug: "Kesrox-Pharmaceuticals" },
+          { slug: "kesrox-pharma" },
           { name: { contains: "Kesrox", mode: "insensitive" } },
         ],
       },
     });
 
-    if (kesroxCompany) {
+    const targetDbs: { db: any; name: string }[] = [{ db: defaultPrisma, name: "default" }];
+    const effectiveCompanyId = activeCompanyId || kesroxCompany?.id;
+
+    if (effectiveCompanyId) {
       try {
-        const updateResult = await prisma.companySettings.updateMany({
-          where: { companyId: kesroxCompany.id },
+        const tenantDb = await getPrismaForCompany(effectiveCompanyId);
+        if (tenantDb && tenantDb !== defaultPrisma) {
+          targetDbs.push({ db: tenantDb, name: "tenant" });
+        }
+      } catch (err) {
+        console.warn("Could not load tenant DB for company:", err);
+      }
+    }
+
+    for (const { db } of targetDbs) {
+      try {
+        await db.companySettings.updateMany({
+          where: effectiveCompanyId ? { companyId: effectiveCompanyId } : {},
           data: {
             companyName: "Kesrox Pharmaceuticals",
             driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
@@ -150,11 +164,15 @@ async function handleSync(req: NextRequest) {
           },
         });
 
-        if (updateResult.count === 0) {
-          await prisma.companySettings.create({
+        const existingSettings = await db.companySettings.findFirst({
+          where: effectiveCompanyId ? { companyId: effectiveCompanyId } : {},
+        });
+
+        if (!existingSettings) {
+          await db.companySettings.create({
             data: {
               id: "settings_kesrox",
-              companyId: kesroxCompany.id,
+              companyId: effectiveCompanyId || "cmub4ssdx00000u8oqlqc62e0",
               companyName: "Kesrox Pharmaceuticals",
               driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
               geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
@@ -162,28 +180,28 @@ async function handleSync(req: NextRequest) {
           });
         }
 
-        let saviEmp = await prisma.employee.findFirst({
+        let saviEmp = await db.employee.findFirst({
           where: { name: { contains: "Savi", mode: "insensitive" } },
         });
 
         if (!saviEmp) {
-          saviEmp = await prisma.employee.create({
+          saviEmp = await db.employee.create({
             data: {
               name: "Savi Kesorx",
               phoneNumber: "+91 98722 44331",
-              companyId: kesroxCompany.id,
+              companyId: effectiveCompanyId,
               userId: "user_savi_" + Date.now(),
             },
           });
-        } else if (saviEmp.companyId !== kesroxCompany.id) {
-          await prisma.employee.update({
+        } else if (effectiveCompanyId && saviEmp.companyId !== effectiveCompanyId) {
+          await db.employee.update({
             where: { id: saviEmp.id },
-            data: { companyId: kesroxCompany.id },
+            data: { companyId: effectiveCompanyId },
           });
         }
 
         // Shift calls from drive to Savi Kesorx
-        await prisma.call.updateMany({
+        await db.call.updateMany({
           where: {
             recordingUrl: { contains: "drive.google.com" },
           },
@@ -193,22 +211,23 @@ async function handleSync(req: NextRequest) {
         });
 
         // Ensure leads for Savi belong to Kesrox
-        await prisma.lead.updateMany({
-          where: {
-            calls: { some: { employeeId: saviEmp.id } },
-          },
-          data: {
-            companyId: kesroxCompany.id,
-            assignedEmployeeId: saviEmp.id,
-          },
-        });
+        if (effectiveCompanyId) {
+          await db.lead.updateMany({
+            where: {
+              calls: { some: { employeeId: saviEmp.id } },
+            },
+            data: {
+              companyId: effectiveCompanyId,
+              assignedEmployeeId: saviEmp.id,
+            },
+          });
+        }
       } catch (setupErr) {
-        console.warn("Kesrox self-healing setup error:", setupErr);
+        console.warn("Kesrox self-healing setup error on DB:", setupErr);
       }
     }
 
     // 2b. Resolve Active Google Drive Folder ID from Company Settings or Default
-    const effectiveCompanyId = activeCompanyId || kesroxCompany?.id;
     const companySettings = await prisma.companySettings.findFirst({
       where: effectiveCompanyId
         ? { companyId: effectiveCompanyId, driveFolderUrl: { not: null } }
@@ -354,54 +373,76 @@ async function handleSync(req: NextRequest) {
     if (verifiedBatch.length > 0) {
       await Promise.all(
         verifiedBatch.map(async (item) => {
-          let leadId = leadMap.get(item.contactName.toLowerCase().trim());
-          if (!leadId) {
-            const newLead = await prisma.lead.create({
-              data: {
-                name: item.contactName,
-                phoneNumber: "+91 98765 43210",
-                companyId: rep.companyId,
-                source: "MANUAL",
-                status: "CONTACTED",
-                assignedEmployeeId: rep.id,
-                city: item.analysis.territory || "Uttar Pradesh",
-                state: "India",
-              },
-            });
-            leadId = newLead.id;
-            leadMap.set(item.contactName.toLowerCase().trim(), leadId);
-          }
+          for (const { db } of targetDbs) {
+            try {
+              const targetRep =
+                (await db.employee.findFirst({
+                  where: { name: { contains: "Savi", mode: "insensitive" } },
+                })) || rep;
+              if (!targetRep) continue;
 
-          if (item.existing) {
-            const updated = await prisma.call.update({
-              where: { id: item.existing.id },
-              data: {
-                transcript: item.analysis.transcript,
-                aiSummary: item.analysis.aiSummary,
-                behaviorTags: item.analysis.behaviorTags,
-                durationSec: item.analysis.durationSec,
-                occurredAt: item.callDate,
-                employeeId: rep.id,
-                leadId,
-              },
-            });
-            processedIds.push(updated.id);
-          } else {
-            const created = await prisma.call.create({
-              data: {
-                employeeId: rep.id,
-                leadId,
-                direction: "OUTBOUND",
-                missed: item.analysis.sentiment === "DEAD" && !item.analysis.transcript.includes("Customer:"),
-                durationSec: item.analysis.durationSec,
-                recordingUrl: item.recordingUrl,
-                transcript: item.analysis.transcript,
-                aiSummary: item.analysis.aiSummary,
-                behaviorTags: item.analysis.behaviorTags,
-                occurredAt: item.callDate,
-              },
-            });
-            processedIds.push(created.id);
+              let leadId = (
+                await db.lead.findFirst({
+                  where: { name: { contains: item.contactName, mode: "insensitive" } },
+                  select: { id: true },
+                })
+              )?.id;
+
+              if (!leadId) {
+                const newLead = await db.lead.create({
+                  data: {
+                    name: item.contactName,
+                    phoneNumber: "+91 98765 43210",
+                    companyId: targetRep.companyId,
+                    source: "MANUAL",
+                    status: "CONTACTED",
+                    assignedEmployeeId: targetRep.id,
+                    city: item.analysis.territory || "Uttar Pradesh",
+                    state: "India",
+                  },
+                });
+                leadId = newLead.id;
+              }
+
+              const targetExisting = await db.call.findFirst({
+                where: { recordingUrl: item.recordingUrl },
+                select: { id: true },
+              });
+
+              if (targetExisting) {
+                const updated = await db.call.update({
+                  where: { id: targetExisting.id },
+                  data: {
+                    transcript: item.analysis.transcript,
+                    aiSummary: item.analysis.aiSummary,
+                    behaviorTags: item.analysis.behaviorTags,
+                    durationSec: item.analysis.durationSec,
+                    occurredAt: item.callDate,
+                    employeeId: targetRep.id,
+                    leadId,
+                  },
+                });
+                processedIds.push(updated.id);
+              } else {
+                const created = await db.call.create({
+                  data: {
+                    employeeId: targetRep.id,
+                    leadId,
+                    direction: "OUTBOUND",
+                    missed: item.analysis.sentiment === "DEAD" && !item.analysis.transcript.includes("Customer:"),
+                    durationSec: item.analysis.durationSec,
+                    recordingUrl: item.recordingUrl,
+                    transcript: item.analysis.transcript,
+                    aiSummary: item.analysis.aiSummary,
+                    behaviorTags: item.analysis.behaviorTags,
+                    occurredAt: item.callDate,
+                  },
+                });
+                processedIds.push(created.id);
+              }
+            } catch (err) {
+              console.warn("DB call write error:", err);
+            }
           }
         })
       );
@@ -533,17 +574,18 @@ async function handleSync(req: NextRequest) {
 
     // 5. Query latest calls to return immediately to the frontend (scoped to active company)
     const returnCompanyId = activeCompanyId || kesroxCompany?.id;
-    const callsWhere = returnCompanyId
+    const callsWhere: any = returnCompanyId
       ? {
           OR: [
             { employee: { companyId: returnCompanyId } },
             { lead: { companyId: returnCompanyId } },
             { client: { companyId: returnCompanyId } },
+            { employee: { name: { contains: "Savi", mode: "insensitive" } } },
           ],
         }
       : {};
 
-    const updatedCalls = await prisma.call.findMany({
+    let updatedCalls: any[] = await prisma.call.findMany({
       where: callsWhere,
       include: {
         employee: true,
@@ -554,7 +596,20 @@ async function handleSync(req: NextRequest) {
       take: 60,
     });
 
-    const formattedCalls = updatedCalls.map((c) => {
+    if (updatedCalls.length === 0) {
+      updatedCalls = await defaultPrisma.call.findMany({
+        where: callsWhere,
+        include: {
+          employee: true,
+          client: { include: { territory: true } },
+          lead: { include: { client: { include: { territory: true } } } },
+        },
+        orderBy: { occurredAt: "desc" },
+        take: 60,
+      });
+    }
+
+    const formattedCalls = updatedCalls.map((c: any) => {
       const territoryStr = c.client?.territory
         ? `${c.client.territory.city}, ${c.client.territory.state}`
         : c.lead?.client?.territory
