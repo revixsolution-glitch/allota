@@ -15,6 +15,7 @@ interface SimpleCampaign {
   impressions: number;
   reach: number;
   ctr: number;
+  leads?: number;
   startDate: string | null;
 }
 interface SimpleLocation {
@@ -28,6 +29,7 @@ interface AdsSummary {
   totalClicks: number;
   totalImpressions: number;
   totalReach: number;
+  totalLeads?: number;
   avgCtr: number;
   currency: string;
   campaigns: SimpleCampaign[];
@@ -100,16 +102,32 @@ export default async function AdsInsightsPage() {
 
       {hasData && summary && (
         <>
-          <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Stat label="Total spent" value={money(summary.totalSpend)} tone="text-ink" />
+            <Stat
+              label="Leads / Inquiries"
+              value={summary.totalLeads ? num(summary.totalLeads) : "0"}
+              tone="text-emerald-700"
+            />
+            <Stat
+              label="Cost / Inquiry"
+              value={
+                summary.totalLeads && summary.totalLeads > 0
+                  ? money(summary.totalSpend / summary.totalLeads)
+                  : "—"
+              }
+              tone="text-teal-700"
+            />
             <Stat label="Total clicks" value={num(summary.totalClicks)} tone="text-sky-700" />
             <Stat label="People reached" value={num(summary.totalReach)} tone="text-violet-700" />
-            <Stat label="Click rate" value={`${summary.avgCtr.toFixed(1)}%`} tone="text-emerald-700" />
           </section>
 
           <section className="rounded-3xl neo-panel bg-white overflow-hidden">
-            <div className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-6 py-4">
+            <div className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-extrabold tracking-tight text-ink">Ads running now</h2>
+              <span className="text-xs font-semibold text-ink-muted">
+                Direct WhatsApp Inquiries &amp; Meta Lead Gen
+              </span>
             </div>
             <div className="divide-y divide-line-soft">
               {summary.campaigns.length === 0 && (
@@ -135,6 +153,12 @@ export default async function AdsInsightsPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-5 text-right text-sm">
+                    <div>
+                      <p className="font-extrabold text-emerald-700">
+                        {c.leads !== undefined && c.leads > 0 ? `💬 ${num(c.leads)}` : "—"}
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-800">Inquiries</p>
+                    </div>
                     <div>
                       <p className="font-extrabold text-ink">{money(c.spend)}</p>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Spent</p>
