@@ -145,12 +145,18 @@ async function handleOnboard() {
     });
 
     if (!employee) {
+      const basePhone = "+91 98111 22334";
+      const existingPhone = await defaultPrisma.employee.findUnique({ where: { phoneNumber: basePhone } });
+      const finalPhone = existingPhone
+        ? `+91 98111 ${Math.floor(10000 + Math.random() * 90000)}`
+        : basePhone;
+
       employee = await defaultPrisma.employee.create({
         data: {
           userId: repUser.id,
           companyId: company.id,
           name: "Ekonmed Telecaller Desk",
-          phoneNumber: "+91 98111 22334",
+          phoneNumber: finalPhone,
         },
       });
     }
