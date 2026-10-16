@@ -13,6 +13,7 @@ interface SimpleCampaign {
   impressions: number;
   reach: number;
   ctr: number;
+  leads: number;
   startDate: string | null;
 }
 
@@ -28,6 +29,7 @@ interface AdsSummary {
   totalClicks: number;
   totalImpressions: number;
   totalReach: number;
+  totalLeads: number;
   avgCtr: number;
   currency: string;
   campaigns: SimpleCampaign[];
@@ -82,8 +84,8 @@ export async function POST() {
   const act = adAccountId.startsWith("act_") ? adAccountId : `act_${adAccountId}`;
 
   try {
-    // 1. Campaigns with their own insight totals (spend/clicks/impressions/reach/ctr, all time to date).
-    const campaignsUrl = `https://graph.facebook.com/v19.0/${act}/campaigns?fields=id,name,status,insights.date_preset(maximum){spend,clicks,impressions,reach,ctr,date_start}&limit=100&access_token=${accessToken}`;
+    // 1. Campaigns with their own insight totals (spend/clicks/impressions/reach/ctr/actions, all time to date).
+    const campaignsUrl = `https://graph.facebook.com/v19.0/${act}/campaigns?fields=id,name,status,insights.date_preset(maximum)%7Bspend,clicks,impressions,reach,ctr,date_start,actions%7D&limit=100&access_token=${accessToken}`;
     const campaignsRes = await fetch(campaignsUrl);
     const campaignsJson = await campaignsRes.json();
 
@@ -95,6 +97,15 @@ export async function POST() {
 
     const campaigns: SimpleCampaign[] = (campaignsJson.data || []).map((c: any) => {
       const insight = c.insights?.data?.[0] || {};
+      const actions: any[] = insight.actions || [];
+      const leadAction = actions.find(
+        (a: any) =>
+          a.action_type === "onsite_conversion.total_messaging_connection" ||
+          a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
+          a.action_type === "lead"
+      );
+      const leads = leadAction ? num(leadAction.value) : 0;
+
       return {
         id: c.id,
         name: c.name || "Untitled campaign",
@@ -104,6 +115,7 @@ export async function POST() {
         impressions: num(insight.impressions),
         reach: num(insight.reach),
         ctr: num(insight.ctr),
+        leads,
         startDate: insight.date_start || null,
       };
     });
@@ -125,12 +137,14 @@ export async function POST() {
     const totalClicks = campaigns.reduce((s, c) => s + c.clicks, 0);
     const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0);
     const totalReach = campaigns.reduce((s, c) => s + c.reach, 0);
+    const totalLeads = campaigns.reduce((s, c) => s + c.leads, 0);
 
     const summary: AdsSummary = {
       totalSpend,
       totalClicks,
       totalImpressions,
       totalReach,
+      totalLeads,
       avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
       currency: "INR",
       campaigns: campaigns.sort((a, b) => b.spend - a.spend),

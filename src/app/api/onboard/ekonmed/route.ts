@@ -179,12 +179,21 @@ async function handleOnboard() {
     let liveCampaignsCount = 0;
     try {
       const act = metaAdAccountId.startsWith("act_") ? metaAdAccountId : `act_${metaAdAccountId}`;
-      const campaignsUrl = `https://graph.facebook.com/v19.0/${act}/campaigns?fields=id,name,status,insights.date_preset(maximum){spend,clicks,impressions,reach,ctr,date_start}&limit=50&access_token=${metaAccessToken}`;
+      const campaignsUrl = `https://graph.facebook.com/v19.0/${act}/campaigns?fields=id,name,status,insights.date_preset(maximum)%7Bspend,clicks,impressions,reach,ctr,date_start,actions%7D&limit=50&access_token=${metaAccessToken}`;
       const campaignsRes = await fetch(campaignsUrl);
       if (campaignsRes.ok) {
         const campaignsJson = await campaignsRes.json();
         const campaigns = (campaignsJson.data || []).map((c: any) => {
           const insight = c.insights?.data?.[0] || {};
+          const actions: any[] = insight.actions || [];
+          const leadAction = actions.find(
+            (a: any) =>
+              a.action_type === "onsite_conversion.total_messaging_connection" ||
+              a.action_type === "onsite_conversion.messaging_conversation_started_7d" ||
+              a.action_type === "lead"
+          );
+          const leads = leadAction ? parseInt(leadAction.value, 10) : 0;
+
           return {
             id: c.id,
             name: c.name || "Untitled Campaign",
@@ -194,6 +203,7 @@ async function handleOnboard() {
             impressions: parseInt(insight.impressions || "0", 10),
             reach: parseInt(insight.reach || "0", 10),
             ctr: parseFloat(insight.ctr || "0"),
+            leads,
             startDate: insight.date_start || null,
           };
         });
@@ -203,12 +213,14 @@ async function handleOnboard() {
         const totalClicks = campaigns.reduce((s: number, c: any) => s + c.clicks, 0);
         const totalImpressions = campaigns.reduce((s: number, c: any) => s + c.impressions, 0);
         const totalReach = campaigns.reduce((s: number, c: any) => s + c.reach, 0);
+        const totalLeads = campaigns.reduce((s: number, c: any) => s + (c.leads || 0), 0);
 
         const summary = {
           totalSpend,
           totalClicks,
           totalImpressions,
           totalReach,
+          totalLeads,
           avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
           currency: "INR",
           campaigns: campaigns.sort((a: any, b: any) => b.spend - a.spend),
