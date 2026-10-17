@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ClientStatus } from "@/generated/prisma/enums";
 import { createClient, updateClientAssignment } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
@@ -19,7 +19,7 @@ export default async function AdminClientsPage({
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const params = searchParams ? await searchParams : {};
   const dateFilter = parseDashboardDateFilter(

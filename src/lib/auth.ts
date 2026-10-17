@@ -37,6 +37,30 @@ export function getActiveCompanyId(session: SessionPayload | null): string | nul
   return companyId;
 }
 
+/**
+ * Company filter for a query. Throws instead of returning an empty filter when
+ * no company is selected — an empty filter would silently return EVERY
+ * company's rows. Use this (never an inline `companyId ? {...} : {}`) anywhere
+ * data is read, updated or deleted on behalf of one company.
+ */
+export function scopeToCompany(companyId: string | null | undefined): { companyId: string } {
+  if (!companyId) {
+    throw new Error("No company selected — refusing to read or write across companies.");
+  }
+  return { companyId };
+}
+
+/** Same, for rows that belong to a company through a relation, e.g. a call's `employee`. */
+export function scopeViaRelation<K extends string>(
+  companyId: string | null | undefined,
+  relation: K
+): { [P in K]: { companyId: string } } {
+  if (!companyId) {
+    throw new Error("No company selected — refusing to read or write across companies.");
+  }
+  return { [relation]: { companyId } } as { [P in K]: { companyId: string } };
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }

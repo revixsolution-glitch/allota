@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const search = searchParams.get("search")?.trim().toLowerCase();
 
     const where: Record<string, any> = {
-      ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      ...scopeToCompany(activeCompanyId),
     };
 
     if (division && (division === "PCD_FRANCHISE" || division === "THIRD_PARTY")) {

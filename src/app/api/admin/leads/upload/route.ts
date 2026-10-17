@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import * as XLSX from "xlsx";
@@ -103,14 +103,14 @@ export async function POST(request: Request) {
         select: { phoneNumber: true },
         where: {
           phoneNumber: { not: null },
-          ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+          ...scopeToCompany(activeCompanyId),
         },
       }),
       prisma.client.findMany({
         select: { phoneNumber: true },
         where: {
           phoneNumber: { not: null },
-          ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+          ...scopeToCompany(activeCompanyId),
         },
       }),
     ]);
@@ -242,7 +242,7 @@ export async function POST(request: Request) {
           source: LeadSource.EXCEL_IMPORT,
           sourceTag: batchTag,
           assignedEmployeeId: targetEmployee.id,
-          ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+          ...scopeToCompany(activeCompanyId),
         },
         select: { id: true },
       });

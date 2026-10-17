@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 interface LeadsIqPageProps {
@@ -15,7 +15,7 @@ interface LeadsIqPageProps {
 export default async function LeadsIqPage(props: LeadsIqPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const dateFilter = parseDashboardDateFilter(
@@ -87,7 +87,7 @@ export default async function LeadsIqPage(props: LeadsIqPageProps) {
     }),
     prisma.call.findMany({
       where: {
-        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...scopeViaRelation(activeCompanyId, "employee"),
         ...callDateFilter,
       },
       select: {

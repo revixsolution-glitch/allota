@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeViaRelation } from "@/lib/auth";
 import { GradientText } from "@/components/GradientText";
 
 function dayBounds(d: Date) {
@@ -20,7 +20,7 @@ export default async function FollowUpsPage({
 
   const logs = await prisma.leadFollowUpLog.findMany({
     where: {
-      ...(activeCompanyId ? { lead: { companyId: activeCompanyId } } : {}),
+      ...scopeViaRelation(activeCompanyId, "lead"),
       ...(employeeId ? { employeeId } : {}),
     },
     include: {

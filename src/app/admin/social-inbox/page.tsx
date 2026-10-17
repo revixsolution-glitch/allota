@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { GradientText } from "@/components/GradientText";
 import { SocialInboxCard } from "@/components/SocialInboxCard";
 
@@ -25,7 +25,7 @@ export default async function SocialInboxPage() {
   }
 
   const items = await prisma.socialInboxItem.findMany({
-    where: { ...(activeCompanyId ? { companyId: activeCompanyId } : {}) },
+    where: { ...scopeToCompany(activeCompanyId) },
     orderBy: { receivedAt: "desc" },
     take: 100,
   });
