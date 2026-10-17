@@ -178,7 +178,6 @@ async function handleSync(req: NextRequest) {
           data: {
             companyName: "Kesrox Pharmaceuticals",
             driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
-            geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
           },
         });
 
@@ -193,7 +192,6 @@ async function handleSync(req: NextRequest) {
               companyId: kesroxId,
               companyName: "Kesrox Pharmaceuticals",
               driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
-              geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
             },
           });
         }
@@ -518,7 +516,7 @@ async function handleSync(req: NextRequest) {
               mimeType: "audio/m4a",
               employeeName: rep.name,
               customerName: contactName,
-              customApiKey: companySettings?.geminiApiKey || "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
+              customApiKey: companySettings?.geminiApiKey || undefined,
             });
           }
         }
