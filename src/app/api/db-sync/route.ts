@@ -151,6 +151,9 @@ export async function GET() {
       geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
       driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3", 
       metaAppId: "1422721583164519",  
+      metaAppSecret: "3a0df9721f48a8c820073b5dbcfbdc39",
+      metaAccessToken: "EAAUN9S6ULGcBS32Ql39xwBPMqRL7XZCVwhOkAqr7Tg0WZCKoNhkhp9Ku1kmCC4LmxBUL83hWcdGHbOA3TmPqmQYW7U2TbDfr4OT1RWjY6wqQtnhHWd9R4FjoxZAh2r7eO9a4VHkJvBf44smHAI9ZBL1CkrkfiR0J1mcxlGMZALkY7wjMMFk0p6SG5ZCczzWgZDZD",
+      metaApiKey: "EAAUN9S6ULGcBS32Ql39xwBPMqRL7XZCVwhOkAqr7Tg0WZCKoNhkhp9Ku1kmCC4LmxBUL83hWcdGHbOA3TmPqmQYW7U2TbDfr4OT1RWjY6wqQtnhHWd9R4FjoxZAh2r7eO9a4VHkJvBf44smHAI9ZBL1CkrkfiR0J1mcxlGMZALkY7wjMMFk0p6SG5ZCczzWgZDZD",
       metaPageId: "112876304657266",
       metaWabaId: "1460433551636446",
       metaPhoneNumberId: "739027919285346",
@@ -189,6 +192,20 @@ export async function GET() {
           },
         });
       }
+
+      await prisma.tenantDatabase.upsert({
+        where: { companyId: manualKesrox.id },
+        update: {
+          metaPageId: "112876304657266",
+          metaWabaId: "1460433551636446",
+        },
+        create: {
+          companyId: manualKesrox.id,
+          connectionString: process.env.DATABASE_URL || "",
+          metaPageId: "112876304657266",
+          metaWabaId: "1460433551636446",
+        },
+      }).catch((e) => console.warn("TenantDatabase upsert notice:", e?.message));
 
       // If an old demo company "kesrox-pharma" exists separately, migrate and cleanup to keep single Kesrox
       const demoKesrox = await prisma.company.findUnique({
