@@ -2,55 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 
-// Health check & diagnostic endpoint (returns recent calls)
+// Health check only. This URL is public (the phone recorder calls it), so it
+// must never return calls, employees or companies — that leaked every
+// company's data to anyone who opened it.
 export async function GET() {
-  try {
-    const naresh = await prisma.employee.findFirst({
-      where: { name: "Naresh" },
-    });
-    if (naresh) {
-      await prisma.call.updateMany({
-        where: { employeeId: "dev_employee_profile" },
-        data: { employeeId: naresh.id },
-      });
-    }
-
-    const [recentCalls, allEmployees, allCompanies] = await Promise.all([
-      prisma.call.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          employee: { select: { id: true, name: true, phoneNumber: true, companyId: true } },
-          lead: { select: { name: true, phoneNumber: true } },
-          client: { select: { name: true, phoneNumber: true } },
-        },
-      }),
-      prisma.employee.findMany({
-        select: { id: true, name: true, phoneNumber: true, companyId: true },
-        orderBy: { name: "asc" },
-      }),
-      prisma.company.findMany({
-        select: { id: true, name: true },
-      }),
-    ]);
-
-    return NextResponse.json({
-      status: "online",
-      service: "Allota AI - Telephony Recording Webhook",
-      timestamp: new Date().toISOString(),
-      totalRecentCalls: recentCalls.length,
-      allCompanies,
-      totalEmployees: allEmployees.length,
-      allEmployees,
-      recentCalls,
-    });
-  } catch (err: any) {
-    return NextResponse.json({
-      status: "online",
-      error: err?.message,
-      timestamp: new Date().toISOString(),
-    });
-  }
+  return NextResponse.json({
+    status: "online",
+    service: "Allota AI - Telephony Recording Webhook",
+    timestamp: new Date().toISOString(),
+  });
 }
 
 function extractLast10Digits(phone: string): string {
