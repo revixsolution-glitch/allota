@@ -154,6 +154,11 @@ export async function GET() {
       metaPageId: "112876304657266",
       metaWabaId: "1460433551636446",
       metaPhoneNumberId: "739027919285346",
+      metaAdAccountId: "act_1307420369741671",
+      enableAdsInsights: true,
+      enableSocialInbox: true,
+      enableLeadCenter: true,
+      enableLeadsAllotment: true,
     };
 
     let company;
