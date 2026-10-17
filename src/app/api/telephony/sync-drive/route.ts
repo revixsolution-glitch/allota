@@ -140,11 +140,12 @@ async function handleSync(req: NextRequest) {
     });
 
     const targetDbs: { db: any; name: string }[] = [{ db: defaultPrisma, name: "default" }];
-    const effectiveCompanyId = activeCompanyId || kesroxCompany?.id;
+    const kesroxId = kesroxCompany?.id || "cmub4ssdx00000u8oqlqc62e0";
+    const effectiveCompanyId = activeCompanyId || kesroxId;
 
-    if (effectiveCompanyId) {
+    if (kesroxId) {
       try {
-        const tenantDb = await getPrismaForCompany(effectiveCompanyId);
+        const tenantDb = await getPrismaForCompany(kesroxId);
         if (tenantDb && tenantDb !== defaultPrisma) {
           targetDbs.push({ db: tenantDb, name: "tenant" });
         }
@@ -156,7 +157,7 @@ async function handleSync(req: NextRequest) {
     for (const { db } of targetDbs) {
       try {
         await db.companySettings.updateMany({
-          where: effectiveCompanyId ? { companyId: effectiveCompanyId } : {},
+          where: { companyId: kesroxId },
           data: {
             companyName: "Kesrox Pharmaceuticals",
             driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
@@ -165,14 +166,14 @@ async function handleSync(req: NextRequest) {
         });
 
         const existingSettings = await db.companySettings.findFirst({
-          where: effectiveCompanyId ? { companyId: effectiveCompanyId } : {},
+          where: { companyId: kesroxId },
         });
 
         if (!existingSettings) {
           await db.companySettings.create({
             data: {
               id: "settings_kesrox",
-              companyId: effectiveCompanyId || "cmub4ssdx00000u8oqlqc62e0",
+              companyId: kesroxId,
               companyName: "Kesrox Pharmaceuticals",
               driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
               geminiApiKey: "AQ.Ab8RN6LjR_QZhJOu4_ZUAqm5omZCrzUAaeG86PatGpdyAmE2Rg",
