@@ -141,7 +141,24 @@ async function handleSync(req: NextRequest) {
 
     const targetDbs: { db: any; name: string }[] = [{ db: defaultPrisma, name: "default" }];
     const kesroxId = kesroxCompany?.id || "cmub4ssdx00000u8oqlqc62e0";
-    const effectiveCompanyId = activeCompanyId || kesroxId;
+
+    // This sync is wired to Kesrox's Drive folder, rep and recordings only.
+    // For any other company, or no company selected, it must do nothing —
+    // otherwise it re-homes Kesrox's rep, calls and leads into whichever
+    // company happens to be open (this is what mixed Ekonmed with Kesrox).
+    if (activeCompanyId !== kesroxId) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: "Drive sync is not configured for this company.",
+        totalDriveFiles: 0,
+        remainingToSync: 0,
+        processedIds: [],
+        calls: [],
+        syncedAt: new Date().toISOString(),
+      });
+    }
+    const effectiveCompanyId = kesroxId;
 
     if (kesroxId) {
       try {
