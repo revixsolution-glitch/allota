@@ -59,6 +59,7 @@ async function handleOnboard() {
       metaPageId,
       metaAdAccountId,
       metaWabaId,
+      metaPhoneNumberId: "1419772201212771",
       enableAdsInsights: true,
       enableSocialInbox: true,
       enableLeadCenter: true,
@@ -161,18 +162,20 @@ async function handleOnboard() {
       });
     }
 
-    // Map META source leads to this rep
-    const existingMapping = await defaultPrisma.leadSourceAssignment.findFirst({
-      where: { companyId: company.id, source: LeadSource.META },
-    });
-    if (!existingMapping) {
-      await defaultPrisma.leadSourceAssignment.create({
-        data: {
-          companyId: company.id,
-          source: LeadSource.META,
-          employeeId: employee.id,
-        },
+    // Map META and WHATSAPP source leads to this rep
+    for (const src of [LeadSource.META, LeadSource.WHATSAPP]) {
+      const existingMapping = await defaultPrisma.leadSourceAssignment.findFirst({
+        where: { companyId: company.id, source: src },
       });
+      if (!existingMapping) {
+        await defaultPrisma.leadSourceAssignment.create({
+          data: {
+            companyId: company.id,
+            source: src,
+            employeeId: employee.id,
+          },
+        });
+      }
     }
 
     // 5. Fetch & cache live Meta Ads Insights from Marketing API

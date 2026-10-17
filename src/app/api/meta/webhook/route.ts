@@ -59,7 +59,7 @@ async function routeToCompanyForPage(
   }
 
   const settings = await defaultPrisma.companySettings.findFirst({
-    where: { OR: [{ metaPageId: pageId }, { metaWabaId: pageId }] },
+    where: { OR: [{ metaPageId: pageId }, { metaWabaId: pageId }, { metaPhoneNumberId: pageId }] },
     select: { companyId: true, metaAccessToken: true, metaApiKey: true },
   });
   if (!settings?.companyId) return null;
@@ -114,9 +114,14 @@ export async function POST(req: NextRequest) {
 
         for (const change of entry.changes || []) {
           if (change.field === "messages" && change.value?.messages) {
-            const routed = await routeToCompanyForPage(wabaId);
+            const phoneId = change.value.metadata?.phone_number_id;
+            const routed =
+              (await routeToCompanyForPage(wabaId)) ||
+              (phoneId ? await routeToCompanyForPage(phoneId) : null);
             if (!routed) {
-              console.warn(`[WhatsApp Webhook] No company configured for WABA ID ${wabaId}`);
+              console.warn(
+                `[WhatsApp Webhook] No company configured for WABA ID ${wabaId} or Phone Number ID ${phoneId}`
+              );
               continue;
             }
 
@@ -177,10 +182,9 @@ export async function POST(req: NextRequest) {
               }
 
               // Round-robin assign to sales representatives
-              const autoAssignedEmployeeId = await pickNextEmployeeForSource(
-                routed.companyId,
-                LeadSource.WHATSAPP
-              );
+              const autoAssignedEmployeeId =
+                (await pickNextEmployeeForSource(routed.companyId, LeadSource.WHATSAPP)) ||
+                (await pickNextEmployeeForSource(routed.companyId, LeadSource.META));
 
               const inquiryDetails = isAd
                 ? `Inquiry via Click-to-WhatsApp Ad.\nAd Headline: ${referral.headline || "N/A"}\nMessage: "${messageText}"`
