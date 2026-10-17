@@ -12,6 +12,13 @@ const SKIP = new Set(["generated", "node_modules"]);
 //    a per-company Drive/rep configuration, then remove this exception.
 const ALLOW_NAME_LOOKUPS = new Set(["src/app/api/telephony/sync-drive/route.ts"]);
 
+// rawPrisma skips secret encryption/decryption, so it is only for these files.
+const ALLOW_RAW_PRISMA = new Set([
+  "src/lib/prisma.ts",
+  "src/app/api/super-admin/encrypt-secrets/route.ts",
+  "src/lib/secret-migration.ts",
+]);
+
 const RULES = [
   {
     name: "fail-open company filter (empty filter returns EVERY company's rows) — use scopeToCompany()/scopeViaRelation() from @/lib/auth",
@@ -25,6 +32,11 @@ const RULES = [
     name: "query special-cases one customer by name (e.g. contains \"Savi\"/\"Kesrox\") — every company would see that customer's data",
     test: /contains:\s*["'](Savi|Kesrox)/i,
     allow: ALLOW_NAME_LOOKUPS,
+  },
+  {
+    name: "rawPrisma used outside the secrets migration — it bypasses encryption of company API keys; use prisma",
+    test: /\brawPrisma\b/,
+    allow: ALLOW_RAW_PRISMA,
   },
   { name: "hardcoded Meta access token", test: /EAA[A-Za-z0-9]{40,}/ },
   { name: "hardcoded Google/Gemini API key", test: /\bAQ\.[A-Za-z0-9_-]{30,}|\bAIza[A-Za-z0-9_-]{30,}/ },
