@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { LeadSource } from "@/generated/prisma/enums";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { ExcelUploader } from "./ExcelUploader";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { SELECTABLE_SOURCES } from "@/lib/lead-sources";
@@ -19,7 +19,7 @@ interface SourcesHubPageProps {
 export default async function SourcesHubPage(props: SourcesHubPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const dateFilter = parseDashboardDateFilter(

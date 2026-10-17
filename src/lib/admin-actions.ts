@@ -11,7 +11,7 @@ import {
   LeadStatus,
   Role,
 } from "@/generated/prisma/enums";
-import { getSession, getActiveCompanyId, hashPassword } from "@/lib/auth";
+import { getSession, getActiveCompanyId, hashPassword, scopeToCompany } from "@/lib/auth";
 import { prisma, defaultPrisma } from "@/lib/prisma";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
@@ -52,7 +52,7 @@ export async function createTerritory(formData: FormData) {
       },
     },
     update: {
-      ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      ...scopeToCompany(activeCompanyId),
     },
     create: {
       ...input,
@@ -154,7 +154,7 @@ export async function createLead(formData: FormData) {
     const existingLeads = await prisma.lead.findMany({
       where: {
         phoneNumber: { not: null },
-        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        ...scopeToCompany(activeCompanyId),
       },
       select: {
         id: true,
@@ -180,7 +180,7 @@ export async function createLead(formData: FormData) {
     const existingClients = await prisma.client.findMany({
       where: {
         phoneNumber: { not: null },
-        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        ...scopeToCompany(activeCompanyId),
       },
       select: { phoneNumber: true, name: true },
     });
@@ -264,7 +264,7 @@ export async function allotLeadsBatch(formData: FormData) {
 
   const where: Record<string, any> = {
     assignedEmployeeId: null,
-    ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+    ...scopeToCompany(activeCompanyId),
   };
 
   if (input.division && input.division !== "ALL") {
@@ -298,14 +298,14 @@ export async function allotLeadsBatch(formData: FormData) {
       where: {
         assignedEmployeeId: { not: null },
         phoneNumber: { not: null },
-        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        ...scopeToCompany(activeCompanyId),
       },
       select: { phoneNumber: true },
     }),
     prisma.client.findMany({
       where: {
         phoneNumber: { not: null },
-        ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+        ...scopeToCompany(activeCompanyId),
       },
       select: { phoneNumber: true },
     }),
@@ -434,7 +434,7 @@ export async function removeSourceEmployeeMapping(formData: FormData) {
   await prisma.leadSourceAssignment.deleteMany({
     where: {
       id: mappingId,
-      ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+      ...scopeToCompany(activeCompanyId),
     },
   });
 
@@ -485,7 +485,8 @@ const creditSchema = z.object({
 });
 
 export async function createCreditRecord(formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
+  const activeCompanyId = getActiveCompanyId(session);
 
   const raw = {
     clientId: formData.get("clientId"),
@@ -512,7 +513,13 @@ export async function createCreditRecord(formData: FormData) {
     status = CreditStatus.NEARBY_DUE;
   }
 
-  const client = await prisma.client.findUnique({ where: { id: input.clientId } });
+  // The client must belong to the active company — never attach a credit record to another company's client.
+  const client = await prisma.client.findFirst({
+    where: { id: input.clientId, ...scopeToCompany(activeCompanyId) },
+  });
+  if (!client) {
+    throw new Error("Client not found in this company");
+  }
 
   const aiMessagePreview = `Reminder for ${client?.name || "Client"}: Invoice #${input.invoiceNumber} (₹${balanceAmount.toLocaleString("en-IN")}) under ${input.daysAsked}-day credit is scheduled for maturity on ${dueDate.toLocaleDateString("en-IN")}.`;
 
@@ -543,6 +550,7 @@ export async function createCreditRecord(formData: FormData) {
       clientId: input.clientId,
       amount: input.totalAmount,
       orderDate: invoiceDate,
+      companyId: activeCompanyId,
     },
   });
 
@@ -1376,7 +1384,7 @@ export async function addLeadRemark(formData: FormData) {
   let employeeId: string | null = session.employeeId || lead.assignedEmployeeId;
   if (!employeeId) {
     const fallbackEmp = await prisma.employee.findFirst({
-      where: activeCompanyId ? { companyId: activeCompanyId } : {},
+      where: scopeToCompany(activeCompanyId),
     });
     employeeId = fallbackEmp?.id || null;
   }
@@ -1648,9 +1656,11 @@ export async function deleteLead(input: string | FormData) {
     throw new Error("leadId is required");
   }
 
-  const where: Record<string, any> = { id: leadId };
-  if (activeCompanyId) {
-    where.companyId = activeCompanyId;
+  // Only ever touch a lead that belongs to the active company.
+  const where = { id: leadId, ...scopeToCompany(activeCompanyId) };
+  const lead = await prisma.lead.findFirst({ where, select: { id: true } });
+  if (!lead) {
+    throw new Error("Lead not found");
   }
 
   await prisma.call.updateMany({
@@ -1689,7 +1699,7 @@ export async function purgeCorruptedLeads() {
         ],
       },
     ],
-    ...(activeCompanyId ? { companyId: activeCompanyId } : {}),
+    ...scopeToCompany(activeCompanyId),
   };
 
   const result = await prisma.lead.deleteMany({ where });
@@ -1724,7 +1734,7 @@ export async function updateEmployeePhone(formData: FormData) {
   const formatted = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
 
   const employee = await prisma.employee.findFirst({
-    where: { id: input.employeeId, ...(activeCompanyId ? { companyId: activeCompanyId } : {}) },
+    where: { id: input.employeeId, ...scopeToCompany(activeCompanyId) },
     select: { id: true },
   });
   if (!employee) throw new Error("Representative not found.");

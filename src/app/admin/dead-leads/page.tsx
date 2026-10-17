@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLeadActiveStatus } from "@/lib/admin-actions";
 import { GradientText } from "@/components/GradientText";
@@ -39,7 +39,7 @@ export default async function DeadLeadsPage({
   const employeeId = (await searchParams)?.employeeId || "";
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const [deadLeads] = await Promise.all([
     prisma.lead.findMany({

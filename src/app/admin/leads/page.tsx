@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { SourceIcon } from "@/components/SourceIcon";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 
@@ -85,7 +85,7 @@ export default async function AdminLeadsPage({
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const params = await searchParams;
   const selectedSource =

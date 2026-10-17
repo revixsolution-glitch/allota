@@ -7,7 +7,7 @@ import {
   triggerBillingReorderSync,
 } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
@@ -26,7 +26,7 @@ export default async function AdminReordersPage(props: {
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const settings = activeCompanyId
     ? await prisma.companySettings.findFirst({

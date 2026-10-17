@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { AddEmployeeModal } from "@/components/AddEmployeeModal";
 import { SOURCE_META, SELECTABLE_SOURCES, HIDDEN_SOURCES } from "@/lib/lead-sources";
 import { LeadSource } from "@/generated/prisma/enums";
@@ -64,7 +64,7 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
       ? (searchParams.source as LeadSource)
       : null;
 
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const settings = activeCompanyId
     ? await prisma.companySettings.findFirst({ where: { companyId: activeCompanyId } })

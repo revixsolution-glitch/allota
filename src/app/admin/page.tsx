@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasDashboard } from "@/types/company";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 interface AdminDashboardPageProps {
@@ -37,7 +37,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
   );
 
   const now = new Date();
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   // Build Prisma date filters
   const callDateFilter = dateFilter.start && dateFilter.end
@@ -120,7 +120,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     prisma.purchaseOrderAlert.count({
       where: {
         status: "PENDING",
-        ...(activeCompanyId ? { product: { companyId: activeCompanyId } } : {}),
+        ...scopeViaRelation(activeCompanyId, "product"),
       },
     }),
     prisma.lead.findMany({
@@ -177,7 +177,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
     prisma.creditRecord.findMany({
       where: {
         status: { not: "SETTLED" },
-        ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+        ...scopeViaRelation(activeCompanyId, "client"),
       },
       include: { client: true },
     }),

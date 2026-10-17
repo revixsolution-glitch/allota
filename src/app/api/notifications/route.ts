@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { CLOSED_LEAD_STATUSES, endOfDay, getFollowUpState } from "@/lib/follow-up";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,11 @@ export async function GET() {
     }
     const isEmployee = session.role === "EMPLOYEE";
     const activeCompanyId = getActiveCompanyId(session);
-    const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+    // A Super Admin who hasn't entered a company has no company's notifications to show.
+    if (!isEmployee && !activeCompanyId) {
+      return NextResponse.json({ notifications: [], unreadCount: 0, home: "/super-admin" });
+    }
+    const companyScope = scopeToCompany(activeCompanyId);
 
     const now = new Date();
 
@@ -75,7 +79,7 @@ export async function GET() {
       // 3. Overdue Credits needing recovery
       prisma.creditRecord.findMany({
         where: {
-          ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+          ...scopeViaRelation(activeCompanyId, "client"),
           status: "OVERDUE",
         },
         take: 3,

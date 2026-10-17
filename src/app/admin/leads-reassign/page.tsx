@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { LeadsReassignView } from "./LeadsReassignView";
 import {
   LeadsReassignData,
@@ -18,7 +18,7 @@ export default async function AdminLeadsReassignPage({
 }) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const params = await searchParams;
   const initialFromEmpId = params?.fromEmployeeId || "ALL";
@@ -54,7 +54,7 @@ export default async function AdminLeadsReassignPage({
       orderBy: { name: "asc" },
     }),
     prisma.leadReassignmentLog.findMany({
-      where: activeCompanyId ? { lead: { companyId: activeCompanyId } } : {},
+      where: scopeViaRelation(activeCompanyId, "lead"),
       include: {
         lead: {
           select: { id: true, name: true, phoneNumber: true, status: true },

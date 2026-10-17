@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLead, updateLeadActiveStatus } from "@/lib/admin-actions";
 
@@ -62,7 +62,7 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
   const activeCompanyId = getActiveCompanyId(session);
 
   const lead = await prisma.lead.findFirst({
-    where: { id, ...(activeCompanyId ? { companyId: activeCompanyId } : {}) },
+    where: { id, ...scopeToCompany(activeCompanyId) },
     include: {
       assignedEmployee: { select: { id: true, name: true } },
       remarks: { include: { employee: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
@@ -76,7 +76,7 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
   if (!lead) notFound();
 
   const employees = await prisma.employee.findMany({
-    where: activeCompanyId ? { companyId: activeCompanyId } : {},
+    where: scopeToCompany(activeCompanyId),
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

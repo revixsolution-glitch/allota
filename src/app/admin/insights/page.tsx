@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { InsightsDashboard } from "./InsightsDashboard";
 import {
   InsightsData,
@@ -37,7 +37,7 @@ interface AdminInsightsPageProps {
 export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const dateFilter = parseDashboardDateFilter(
@@ -124,7 +124,7 @@ export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
       orderBy: { orderDate: "desc" },
     }),
     prisma.creditRecord.findMany({
-      where: activeCompanyId ? { client: { companyId: activeCompanyId } } : {},
+      where: scopeViaRelation(activeCompanyId, "client"),
       include: {
         client: true,
       },
@@ -162,7 +162,7 @@ export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
     }),
     prisma.call.findMany({
       where: {
-        ...(activeCompanyId ? { employee: { companyId: activeCompanyId } } : {}),
+        ...scopeViaRelation(activeCompanyId, "employee"),
         ...callDateFilter,
       },
       include: {
@@ -173,7 +173,7 @@ export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
       orderBy: { occurredAt: "desc" },
     }),
     prisma.followupTask.findMany({
-      where: activeCompanyId ? { client: { companyId: activeCompanyId } } : {},
+      where: scopeViaRelation(activeCompanyId, "client"),
       include: {
         client: true,
         assignedEmployee: true,
@@ -181,7 +181,7 @@ export default async function AdminInsightsPage(props: AdminInsightsPageProps) {
       orderBy: { createdAt: "desc" },
     }),
     prisma.purchaseOrderAlert.findMany({
-      where: activeCompanyId ? { product: { companyId: activeCompanyId } } : {},
+      where: scopeViaRelation(activeCompanyId, "product"),
       include: {
         product: true,
       },

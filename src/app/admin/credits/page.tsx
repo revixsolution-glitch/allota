@@ -10,7 +10,7 @@ import {
   triggerAiCreditCall,
 } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { ErpModuleGate } from "@/components/ErpModuleGate";
@@ -27,7 +27,7 @@ interface AdminCreditManagementPageProps {
 export default async function AdminCreditManagementPage(props: AdminCreditManagementPageProps) {
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
-  const companyScope = activeCompanyId ? { companyId: activeCompanyId } : {};
+  const companyScope = scopeToCompany(activeCompanyId);
 
   const settings = activeCompanyId
     ? await prisma.companySettings.findFirst({
@@ -78,7 +78,7 @@ export default async function AdminCreditManagementPage(props: AdminCreditManage
   const [credits, clients] = await Promise.all([
     prisma.creditRecord.findMany({
       where: {
-        ...(activeCompanyId ? { client: { companyId: activeCompanyId } } : {}),
+        ...scopeViaRelation(activeCompanyId, "client"),
         ...creditDateFilter,
       },
       include: {

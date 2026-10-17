@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { generateSimpleReply } from "@/lib/gemini-simple";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const item = await prisma.socialInboxItem.findFirst({
-    where: { id, ...(activeCompanyId ? { companyId: activeCompanyId } : {}) },
+    where: { id, ...scopeToCompany(activeCompanyId) },
   });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

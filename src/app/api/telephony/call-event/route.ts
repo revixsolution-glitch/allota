@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { scopeToCompany } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Customer: lead first, then client, inside the rep's company.
-  const companyScope = employee.companyId ? { companyId: employee.companyId } : {};
+  const companyScope = scopeToCompany(employee.companyId);
   const leadCandidates = await prisma.lead.findMany({
     where: { ...companyScope, phoneNumber: { contains: customerDigits.slice(-5) } },
     select: { id: true, phoneNumber: true },
