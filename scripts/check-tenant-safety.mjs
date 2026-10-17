@@ -6,6 +6,12 @@ import { join } from "node:path";
 const ROOT = "src";
 const SKIP = new Set(["generated", "node_modules"]);
 
+// Files allowed to break a specific rule. Keep this list short and justified.
+//  - sync-drive: the Kesrox-only Google Drive call integration. It returns early for every
+//    other company, so its name-based lookups only ever run for Kesrox. TODO: replace with
+//    a per-company Drive/rep configuration, then remove this exception.
+const ALLOW_NAME_LOOKUPS = new Set(["src/app/api/telephony/sync-drive/route.ts"]);
+
 const RULES = [
   {
     name: "fail-open company filter (empty filter returns EVERY company's rows) — use scopeToCompany()/scopeViaRelation() from @/lib/auth",
@@ -14,6 +20,11 @@ const RULES = [
   {
     name: "fail-open company filter through a relation — use scopeViaRelation() from @/lib/auth",
     test: /\?\s*\{\s*\w+\s*:\s*\{\s*companyId[^}]*\}\s*\}\s*:\s*\{\s*\}/,
+  },
+  {
+    name: "query special-cases one customer by name (e.g. contains \"Savi\"/\"Kesrox\") — every company would see that customer's data",
+    test: /contains:\s*["'](Savi|Kesrox)/i,
+    allow: ALLOW_NAME_LOOKUPS,
   },
   { name: "hardcoded Meta access token", test: /EAA[A-Za-z0-9]{40,}/ },
   { name: "hardcoded Google/Gemini API key", test: /\bAQ\.[A-Za-z0-9_-]{30,}|\bAIza[A-Za-z0-9_-]{30,}/ },
@@ -34,6 +45,7 @@ for (const file of walk(ROOT)) {
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
     for (const rule of RULES) {
+      if (rule.allow && rule.allow.has(file.replaceAll("\\", "/"))) continue;
       if (rule.test.test(line)) problems.push(`${file}:${i + 1}  ${rule.name}`);
     }
   });

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { prisma, defaultPrisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { AdminCallsView, CallFeedItem, RepSummaryItem } from "./AdminCallsView";
 
@@ -34,26 +34,17 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
       ? { occurredAt: { gte: dateFilter.start } }
       : {};
 
+  // A call belongs to the company of the rep who made it. Fails (throws) if no
+  // company is selected, instead of returning every company's calls.
   const callWhere: any = {
-    ...(activeCompanyId
-      ? {
-          OR: [
-            { employee: { companyId: activeCompanyId } },
-            { lead: { companyId: activeCompanyId } },
-            { client: { companyId: activeCompanyId } },
-            { employee: { name: { contains: "Savi", mode: "insensitive" } } },
-          ],
-        }
-      : {}),
+    ...scopeViaRelation(activeCompanyId, "employee"),
     ...callDateFilter,
   };
 
-  const companyPromise = activeCompanyId
-    ? prisma.company.findUnique({
-        where: { id: activeCompanyId },
-        select: { name: true },
-      })
-    : null;
+  const companyPromise = prisma.company.findUnique({
+    where: { id: scopeToCompany(activeCompanyId).companyId },
+    select: { name: true },
+  });
 
   let company: any = null;
   let calls: any[] = [];
@@ -79,14 +70,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
       }),
 
       prisma.employee.findMany({
-        where: activeCompanyId
-          ? {
-              OR: [
-                { companyId: activeCompanyId },
-                { name: { contains: "Savi", mode: "insensitive" } },
-              ],
-            }
-          : {},
+        where: scopeToCompany(activeCompanyId),
         include: {
           calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
         },
@@ -100,37 +84,7 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
     console.warn("Error fetching calls from primary tenant DB:", err);
   }
 
-  // Seamless fallback to defaultPrisma (the shared DB) if tenant DB doesn't have the calls yet
-  if (calls.length === 0) {
-    calls = await defaultPrisma.call.findMany({
-      where: callWhere,
-      include: {
-        employee: true,
-        client: { include: { territory: true } },
-        lead: { include: { client: { include: { territory: true } } } },
-      },
-      orderBy: { occurredAt: "desc" },
-    });
-  }
-
-  if (employees.length === 0) {
-    employees = await defaultPrisma.employee.findMany({
-      where: activeCompanyId
-        ? {
-            OR: [
-              { companyId: activeCompanyId },
-              { name: { contains: "Savi", mode: "insensitive" } },
-            ],
-          }
-        : {},
-      include: {
-        calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
-      },
-      orderBy: { name: "asc" },
-    });
-  }
-
-  const companyName = company?.name || "Kesrox Pharmaceuticals";
+  const companyName = company?.name || "Allota AI";
 
   const callFeed: CallFeedItem[] = calls.map((c) => {
     const territoryStr = c.client?.territory
