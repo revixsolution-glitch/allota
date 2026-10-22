@@ -37,9 +37,9 @@ export async function POST() {
   // 1. Try real Meta Graph API sync if pageId and token are present
   if (token && pageId) {
     try {
-      // Fetch Facebook feed posts with comments and likes
+      // Fetch Facebook feed posts with comments, likes, and attachments
       const feedRes = await fetch(
-        `https://graph.facebook.com/v19.0/${pageId}/feed?fields=id,message,created_time,permalink_url,full_picture,comments.limit(20){id,from,message,created_time},likes.summary(true).limit(20){id,name}&limit=10&access_token=${token}`
+        `https://graph.facebook.com/v19.0/${pageId}/feed?fields=id,message,status_type,created_time,permalink_url,full_picture,comments.limit(20){id,from,message,created_time},likes.summary(true).limit(20){id,name}&limit=10&access_token=${token}`
       );
 
       if (feedRes.ok) {
@@ -48,6 +48,9 @@ export async function POST() {
           const postTitle = post.message?.slice(0, 120) || "Facebook Post";
           const postThumbnail = post.full_picture || null;
           const permalink = post.permalink_url || `https://facebook.com/${post.id}`;
+          const isReel = post.status_type === "added_video" || (post.message || "").toLowerCase().includes("reel");
+          const isAd = (post.message || "").toLowerCase().includes("ad") || (post.status_type || "").includes("promoted");
+          const mediaType = isAd ? "AD" : isReel ? "REEL" : "POST";
 
           // Ingest comments
           for (const c of post.comments?.data || []) {
@@ -67,6 +70,9 @@ export async function POST() {
                   postOrThreadId: post.id,
                   postTitle,
                   postThumbnail,
+                  mediaType,
+                  isAd,
+                  adCampaignName: isAd ? "Meta Page Promotion" : null,
                   permalink,
                   receivedAt: new Date(c.created_time || Date.now()),
                 },
@@ -94,6 +100,9 @@ export async function POST() {
                   postOrThreadId: post.id,
                   postTitle,
                   postThumbnail,
+                  mediaType,
+                  isAd,
+                  adCampaignName: isAd ? "Meta Page Promotion" : null,
                   permalink,
                   receivedAt: new Date(post.created_time || Date.now()),
                 },
@@ -108,7 +117,7 @@ export async function POST() {
     }
   }
 
-  // 2. Ensure initial showcase items for Kesrox and Ekonmed so non-technical users can see comments, likes & DMs immediately
+  // 2. Ensure initial showcase items for Kesrox and Ekonmed with distinct creatives, posts, reels, and ads
   const existingCount = await prisma.socialInboxItem.count({
     where: { ...scopeToCompany(activeCompanyId) },
   });
@@ -122,65 +131,85 @@ export async function POST() {
           {
             platform: "INSTAGRAM",
             kind: "COMMENT",
-            externalId: `ekonmed_comment_1`,
+            externalId: `seed_ekonmed_c1`,
             fromName: "dr_sandeep_patna",
             fromId: "ig_usr_101",
             text: "Interested in PCD Franchise monopoly rights for Patna district. Please share catalogue & price list on WhatsApp.",
-            postOrThreadId: "ig_post_901",
+            postOrThreadId: "ig_ad_901",
             postTitle: `${brandName} — Derma & Cardiac Diabetic PCD Franchise 2026. 100% Monopoly Rights & Marketing Bags.`,
+            postThumbnail: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&auto=format&fit=crop&q=80",
+            mediaType: "AD",
+            isAd: true,
+            adCampaignName: "Derma & Diabetic PCD Franchise - Bihar & UP",
             permalink: "https://instagram.com/p/ekonmed_derma_launch",
             status: "NEW",
-            receivedAt: new Date(Date.now() - 1000 * 60 * 35), // 35 mins ago
+            receivedAt: new Date(Date.now() - 1000 * 60 * 35),
           },
           {
             platform: "INSTAGRAM",
             kind: "LIKE",
-            externalId: `ekonmed_like_1`,
+            externalId: `seed_ekonmed_l1`,
             fromName: "pharma_distributors_up",
             fromId: "ig_usr_102",
             text: "❤️ Liked your Instagram Reel",
-            postOrThreadId: "ig_post_901",
-            postTitle: `${brandName} — Derma & Cardiac Diabetic PCD Franchise 2026. 100% Monopoly Rights & Marketing Bags.`,
-            permalink: "https://instagram.com/p/ekonmed_derma_launch",
+            postOrThreadId: "ig_reel_902",
+            postTitle: `${brandName} — Inside our WHO-GMP Certified sterile liquid syrup & injectable plant! 🚀`,
+            postThumbnail: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80",
+            mediaType: "REEL",
+            isAd: false,
+            adCampaignName: null,
+            permalink: "https://instagram.com/reel/ekonmed_plant_tour",
             status: "SEEN",
-            receivedAt: new Date(Date.now() - 1000 * 60 * 52), // 52 mins ago
+            receivedAt: new Date(Date.now() - 1000 * 60 * 52),
           },
           {
             platform: "FACEBOOK",
             kind: "MESSAGE",
-            externalId: `ekonmed_dm_1`,
+            externalId: `seed_ekonmed_m1`,
             fromName: "Amitabh Verma (Bareilly Chemist)",
             fromId: "fb_msg_201",
             text: "Namaste team, we run a retail and wholesale counter in Bareilly. Want to take distributorship for syrup and tablet division. What is the MOQ?",
             postOrThreadId: "thread_bareilly_01",
             postTitle: "Facebook Messenger Direct Inquiry",
+            postThumbnail: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=600&auto=format&fit=crop&q=80",
+            mediaType: "POST",
+            isAd: false,
+            adCampaignName: null,
             permalink: null,
             status: "NEW",
-            receivedAt: new Date(Date.now() - 1000 * 60 * 110), // ~2 hours ago
+            receivedAt: new Date(Date.now() - 1000 * 60 * 110),
           },
           {
             platform: "FACEBOOK",
             kind: "COMMENT",
-            externalId: `ekonmed_comment_2`,
+            externalId: `seed_ekonmed_c2`,
             fromName: "Pooja Gupta",
             fromId: "fb_usr_202",
             text: "Sir monopoly available in Gorakhpur? Need urgent dispatch for new clinic setup.",
-            postOrThreadId: "fb_post_802",
+            postOrThreadId: "fb_ad_802",
             postTitle: `${brandName} — Antibiotic & Injectable Range with High Margin Support for Franchise Partners.`,
+            postThumbnail: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&auto=format&fit=crop&q=80",
+            mediaType: "AD",
+            isAd: true,
+            adCampaignName: "Click-to-WhatsApp Antibiotics & Injectables",
             permalink: "https://facebook.com/ekonmed/posts/802",
             status: "NEW",
-            receivedAt: new Date(Date.now() - 1000 * 60 * 240), // 4 hours ago
+            receivedAt: new Date(Date.now() - 1000 * 60 * 240),
           },
           {
             platform: "FACEBOOK",
             kind: "LIKE",
-            externalId: `ekonmed_like_2`,
+            externalId: `seed_ekonmed_l2`,
             fromName: "Kalyan Medical Hall",
             fromId: "fb_usr_203",
             text: "👍 Liked your Post",
-            postOrThreadId: "fb_post_802",
-            postTitle: `${brandName} — Antibiotic & Injectable Range with High Margin Support for Franchise Partners.`,
-            permalink: "https://facebook.com/ekonmed/posts/802",
+            postOrThreadId: "fb_post_803",
+            postTitle: `${brandName} — Free Promotional Material Kit: MR Bags, Visual Aids & Sample Sets Included.`,
+            postThumbnail: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&auto=format&fit=crop&q=80",
+            mediaType: "POST",
+            isAd: false,
+            adCampaignName: null,
+            permalink: "https://facebook.com/ekonmed/posts/803",
             status: "SEEN",
             receivedAt: new Date(Date.now() - 1000 * 60 * 300),
           },
@@ -189,25 +218,33 @@ export async function POST() {
           {
             platform: "FACEBOOK",
             kind: "COMMENT",
-            externalId: `kesrox_comment_1`,
+            externalId: `seed_kesrox_c1`,
             fromName: "Dr. Rajesh Sharma",
             fromId: "fb_usr_101",
             text: "Please send product catalogue and monopoly details for Ambala & Kurukshetra districts.",
-            postOrThreadId: "fb_post_701",
+            postOrThreadId: "fb_ad_701",
             postTitle: `${brandName} — Over 450+ WHO-GMP Certified Formulations with Strict District Monopoly Rights.`,
+            postThumbnail: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&auto=format&fit=crop&q=80",
+            mediaType: "AD",
+            isAd: true,
+            adCampaignName: "PCD Monopoly Haryana & Punjab Meta Ad",
             permalink: "https://facebook.com/kesrox/posts/701",
             status: "NEW",
-            receivedAt: new Date(Date.now() - 1000 * 60 * 25), // 25 mins ago
+            receivedAt: new Date(Date.now() - 1000 * 60 * 25),
           },
           {
             platform: "FACEBOOK",
             kind: "LIKE",
-            externalId: `kesrox_like_1`,
+            externalId: `seed_kesrox_l1`,
             fromName: "Vikas Pharma Agencies",
             fromId: "fb_usr_102",
             text: "❤️ Loved your PCD Franchise post",
-            postOrThreadId: "fb_post_701",
+            postOrThreadId: "fb_ad_701",
             postTitle: `${brandName} — Over 450+ WHO-GMP Certified Formulations with Strict District Monopoly Rights.`,
+            postThumbnail: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&auto=format&fit=crop&q=80",
+            mediaType: "AD",
+            isAd: true,
+            adCampaignName: "PCD Monopoly Haryana & Punjab Meta Ad",
             permalink: "https://facebook.com/kesrox/posts/701",
             status: "SEEN",
             receivedAt: new Date(Date.now() - 1000 * 60 * 45),
@@ -215,12 +252,16 @@ export async function POST() {
           {
             platform: "INSTAGRAM",
             kind: "MESSAGE",
-            externalId: `kesrox_dm_1`,
+            externalId: `seed_kesrox_m1`,
             fromName: "sanjay_medicos_karnal",
             fromId: "ig_usr_201",
             text: "Hello Sir, we are interested in antibiotic injectable monopoly in Karnal. What is the minimum billing requirement to start?",
             postOrThreadId: "thread_karnal_01",
             postTitle: "Instagram Direct Message (DM)",
+            postThumbnail: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=600&auto=format&fit=crop&q=80",
+            mediaType: "POST",
+            isAd: false,
+            adCampaignName: null,
             permalink: null,
             status: "NEW",
             receivedAt: new Date(Date.now() - 1000 * 60 * 95),
@@ -228,12 +269,16 @@ export async function POST() {
           {
             platform: "INSTAGRAM",
             kind: "COMMENT",
-            externalId: `kesrox_comment_2`,
+            externalId: `seed_kesrox_c2`,
             fromName: "priyanka_health_hub",
             fromId: "ig_usr_202",
             text: "Does the company provide visual aids, reminder cards and sample kit?",
             postOrThreadId: "ig_post_702",
             postTitle: `${brandName} — Free Promotional Material Kit with Every PCD Franchise Order.`,
+            postThumbnail: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&auto=format&fit=crop&q=80",
+            mediaType: "POST",
+            isAd: false,
+            adCampaignName: null,
             permalink: "https://instagram.com/p/kesrox_promotional_kit",
             status: "NEW",
             receivedAt: new Date(Date.now() - 1000 * 60 * 180),
@@ -241,13 +286,17 @@ export async function POST() {
           {
             platform: "INSTAGRAM",
             kind: "LIKE",
-            externalId: `kesrox_like_2`,
+            externalId: `seed_kesrox_l2`,
             fromName: "haryana_medicine_traders",
             fromId: "ig_usr_203",
             text: "❤️ Liked your Reel",
-            postOrThreadId: "ig_post_702",
-            postTitle: `${brandName} — Free Promotional Material Kit with Every PCD Franchise Order.`,
-            permalink: "https://instagram.com/p/kesrox_promotional_kit",
+            postOrThreadId: "ig_reel_703",
+            postTitle: `${brandName} — 1-Minute Reel: Watch our fast 24-Hour Dispatch Process from Warehouse! 📦`,
+            postThumbnail: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80",
+            mediaType: "REEL",
+            isAd: false,
+            adCampaignName: null,
+            permalink: "https://instagram.com/reel/kesrox_warehouse_dispatch",
             status: "SEEN",
             receivedAt: new Date(Date.now() - 1000 * 60 * 210),
           },

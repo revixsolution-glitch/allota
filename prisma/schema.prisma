@@ -518,6 +518,9 @@ model SocialInboxItem {
   postOrThreadId  String?
   postTitle       String?   // Headline or excerpt of the post that received the comment/like
   postThumbnail   String?   // Media preview image URL of the post
+  mediaType       String?   // "POST" | "REEL" | "AD" | "STORY"
+  isAd            Boolean   @default(false)
+  adCampaignName  String?
   permalink       String?
   status          String    @default("NEW") // NEW | REPLIED | IGNORED
   aiDraftReply    String?

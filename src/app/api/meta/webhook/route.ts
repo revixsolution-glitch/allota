@@ -80,6 +80,9 @@ async function captureSocialInboxItem(companyId: string, item: {
   postOrThreadId?: string | null;
   postTitle?: string | null;
   postThumbnail?: string | null;
+  mediaType?: "POST" | "REEL" | "AD" | "STORY" | null;
+  isAd?: boolean;
+  adCampaignName?: string | null;
   permalink?: string | null;
 }) {
   const settings = await prisma.companySettings.findFirst({

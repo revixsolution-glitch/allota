@@ -13,6 +13,9 @@ export interface SocialItemData {
   postOrThreadId: string | null;
   postTitle?: string | null;
   postThumbnail?: string | null;
+  mediaType?: "POST" | "REEL" | "AD" | "STORY" | null;
+  isAd?: boolean;
+  adCampaignName?: string | null;
   permalink?: string | null;
   status: "NEW" | "REPLIED" | "IGNORED" | "SEEN";
   aiDraftReply: string | null;
@@ -30,6 +33,7 @@ export function SocialInboxView({
   const router = useRouter();
   const [items, setItems] = useState<SocialItemData[]>(initialItems);
   const [activeTab, setActiveTab] = useState<"ALL" | "COMMENT" | "LIKE" | "MESSAGE">("ALL");
+  const [creativeFilter, setCreativeFilter] = useState<"ALL" | "ADS" | "REELS" | "POSTS">("ALL");
   const [platformFilter, setPlatformFilter] = useState<"ALL" | "INSTAGRAM" | "FACEBOOK">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -125,20 +129,30 @@ export function SocialInboxView({
   // Filtered Items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      // 1. Interaction Kind Filter
       if (activeTab !== "ALL" && item.kind !== activeTab) return false;
+
+      // 2. Platform Filter
       if (platformFilter !== "ALL" && item.platform !== platformFilter) return false;
 
+      // 3. Creative Format Filter (Ads vs Reels vs Organic Posts)
+      if (creativeFilter === "ADS" && !item.isAd && item.mediaType !== "AD") return false;
+      if (creativeFilter === "REELS" && item.mediaType !== "REEL") return false;
+      if (creativeFilter === "POSTS" && (item.isAd || item.mediaType === "REEL" || item.kind === "MESSAGE")) return false;
+
+      // 4. Search Filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = item.fromName?.toLowerCase().includes(q) || false;
         const matchesText = item.text?.toLowerCase().includes(q) || false;
         const matchesPost = item.postTitle?.toLowerCase().includes(q) || false;
-        if (!matchesName && !matchesText && !matchesPost) return false;
+        const matchesCampaign = item.adCampaignName?.toLowerCase().includes(q) || false;
+        if (!matchesName && !matchesText && !matchesPost && !matchesCampaign) return false;
       }
 
       return true;
     });
-  }, [items, activeTab, platformFilter, searchQuery]);
+  }, [items, activeTab, platformFilter, creativeFilter, searchQuery]);
 
   // Metrics
   const stats = useMemo(() => {
@@ -146,8 +160,10 @@ export function SocialInboxView({
     const comments = items.filter((i) => i.kind === "COMMENT").length;
     const likes = items.filter((i) => i.kind === "LIKE").length;
     const dms = items.filter((i) => i.kind === "MESSAGE").length;
+    const adsCount = items.filter((i) => i.isAd || i.mediaType === "AD").length;
+    const reelsCount = items.filter((i) => i.mediaType === "REEL").length;
     const newItems = items.filter((i) => i.status === "NEW").length;
-    return { total, comments, likes, dms, newItems };
+    return { total, comments, likes, dms, adsCount, reelsCount, newItems };
   }, [items]);
 
   return (
@@ -171,8 +187,8 @@ export function SocialInboxView({
               Social Media Activity &amp; Community Inbox
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-ink-muted max-w-2xl leading-relaxed">
-              Real-time feed of comments, post likes, and direct messages (DMs) from Facebook &amp; Instagram. 
-              See which post got loved or commented, and reply in 1-click.
+              Real-time feed of comments, post likes, and direct messages (DMs). 
+              View the exact creative (Post, Reel, or Paid Meta Ad) that received attention.
             </p>
           </div>
 
@@ -236,15 +252,15 @@ export function SocialInboxView({
 
         <div className="rounded-2xl bg-white p-4 sm:p-5 neo-panel border border-line">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">New / Unread</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-50 text-sm">⚡</span>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Sponsored Meta Ads</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-50 text-sm">📢</span>
           </div>
-          <p className="text-3xl font-black text-emerald-600 mt-2">{stats.newItems}</p>
-          <p className="text-[10px] text-emerald-700/80 mt-1">Awaiting your review or response</p>
+          <p className="text-3xl font-black text-amber-700 mt-2">{stats.adsCount}</p>
+          <p className="text-[10px] text-amber-800/80 mt-1">Paid ad creative interactions</p>
         </div>
       </div>
 
-      {/* Filter Tabs & Platform Bar */}
+      {/* Primary Interaction Tabs & Platform Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-3">
         {/* Interaction Type Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
@@ -306,6 +322,32 @@ export function SocialInboxView({
         </div>
       </div>
 
+      {/* Creative Format Differentiator Strip */}
+      <div className="flex flex-wrap items-center gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-line">
+        <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 px-2">
+          Creative Format:
+        </span>
+        {[
+          { id: "ALL", label: "All Creatives", icon: "✨" },
+          { id: "ADS", label: `Meta Ads (Sponsored) (${stats.adsCount})`, icon: "📢", color: "bg-amber-100 text-amber-900 border-amber-300" },
+          { id: "REELS", label: `Video Reels (${stats.reelsCount})`, icon: "🎬", color: "bg-purple-100 text-purple-900 border-purple-300" },
+          { id: "POSTS", label: "Organic Feed Posts", icon: "📸", color: "bg-slate-200 text-slate-800" },
+        ].map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCreativeFilter(c.id as any)}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition cursor-pointer ${
+              creativeFilter === c.id
+                ? "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
+                : "bg-white text-slate-600 border border-line hover:bg-slate-100"
+            }`}
+          >
+            <span>{c.icon}</span>
+            <span>{c.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Search Bar */}
       <div className="relative">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-ink-faint text-sm">
@@ -315,13 +357,13 @@ export function SocialInboxView({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by prospect name, message keyword, or post topic..."
+          placeholder="Search by prospect name, message keyword, campaign, or post topic..."
           className="w-full rounded-2xl border border-line bg-white pl-10 pr-4 py-2.5 text-xs text-ink placeholder:text-ink-faint focus:outline-teal-600 shadow-2xs"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-xs text-ink-faint hover:text-ink"
+            className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-xs text-ink-faint hover:text-ink cursor-pointer"
           >
             ✕
           </button>
@@ -332,15 +374,15 @@ export function SocialInboxView({
       {filteredItems.length === 0 ? (
         <div className="rounded-3xl border border-line bg-white p-12 text-center neo-panel space-y-3">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
-            {activeTab === "LIKE" ? "❤️" : activeTab === "MESSAGE" ? "✉️" : "💬"}
+            {creativeFilter === "ADS" ? "📢" : creativeFilter === "REELS" ? "🎬" : "💬"}
           </div>
           <h3 className="text-base font-extrabold text-ink">
-            No {activeTab === "ALL" ? "social interactions" : activeTab.toLowerCase() + "s"} found
+            No {creativeFilter === "ADS" ? "sponsored ad interactions" : creativeFilter === "REELS" ? "reel interactions" : "social interactions"} found
           </h3>
           <p className="text-xs text-ink-muted max-w-md mx-auto">
             {searchQuery
               ? "No interactions matched your search query. Try clearing the filter."
-              : "As users comment on your posts, send DMs, or like your media on Instagram & Facebook, they will immediately appear here."}
+              : "Try switching creative format filters or clicking Sync Social Feed above."}
           </p>
           <button
             onClick={handleSync}
@@ -361,20 +403,69 @@ export function SocialInboxView({
             return (
               <div
                 key={item.id}
-                className="rounded-3xl border border-line bg-white p-5 sm:p-6 neo-panel shadow-xs transition hover:shadow-md space-y-4"
+                className={`rounded-3xl border bg-white p-5 sm:p-6 neo-panel shadow-xs transition hover:shadow-md space-y-4 ${
+                  item.isAd
+                    ? "border-amber-300 ring-2 ring-amber-400/20 bg-gradient-to-b from-amber-50/20 to-white"
+                    : "border-line"
+                }`}
               >
-                {/* 1. WHICH POST GOT INTERACTION (POST CONTEXT BANNER) */}
+                {/* 1. VISUAL CREATIVE PREVIEW (POST / REEL / AD) */}
                 {item.postTitle && (
-                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-xs shadow-2xs">
-                        {isInstagram ? "📸" : "📘"}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-faint block">
-                          On Post / Reel
-                        </span>
-                        <p className="font-bold text-ink truncate text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Creative Media Thumbnail */}
+                      <div className="relative h-14 w-14 sm:h-16 sm:w-16 rounded-xl overflow-hidden bg-slate-200 border border-slate-300 shrink-0 shadow-2xs group">
+                        {item.postThumbnail ? (
+                          <img
+                            src={item.postThumbnail}
+                            alt={item.postTitle}
+                            className="h-full w-full object-cover transition group-hover:scale-105 duration-200"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500 font-bold text-xs">
+                            {isInstagram ? "IG" : "FB"}
+                          </div>
+                        )}
+
+                        {/* Play Icon Overlay if REEL */}
+                        {item.mediaType === "REEL" && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/95 text-[10px] text-slate-900 shadow-md">
+                              ▶
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Creative Details & Badges */}
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {/* Ad vs Reel vs Organic Post Badge */}
+                          {item.isAd ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-950 shadow-xs">
+                              <span>📢</span>
+                              <span>Sponsored Meta Ad</span>
+                            </span>
+                          ) : item.mediaType === "REEL" ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
+                              <span>🎬</span>
+                              <span>Reel (Video)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+                              <span>📸</span>
+                              <span>Organic Post</span>
+                            </span>
+                          )}
+
+                          {item.adCampaignName && (
+                            <span className="rounded-md bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 text-[10px] font-bold text-amber-900 truncate max-w-xs">
+                              🎯 Campaign: {item.adCampaignName}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="font-extrabold text-ink line-clamp-1 text-xs">
                           {item.postTitle}
                         </p>
                       </div>
@@ -385,9 +476,9 @@ export function SocialInboxView({
                         href={item.permalink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-ink-muted hover:text-ink hover:bg-slate-100 transition shrink-0"
+                        className="flex items-center justify-center gap-1 rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-ink-muted hover:text-ink hover:bg-slate-100 transition shrink-0"
                       >
-                        <span>View Post</span>
+                        <span>View Creative</span>
                         <span>↗</span>
                       </a>
                     )}
@@ -463,7 +554,7 @@ export function SocialInboxView({
                   {item.kind === "LIKE" ? (
                     <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm">
                       <span className="text-lg">❤️</span>
-                      <span>Liked and appreciated this post!</span>
+                      <span>Liked and appreciated this creative!</span>
                     </div>
                   ) : (
                     <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed">

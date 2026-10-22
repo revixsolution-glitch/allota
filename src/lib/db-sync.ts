@@ -83,9 +83,12 @@ export async function ensureCompanySettingsColumns() {
         );
       `);
 
-      // Add postTitle and postThumbnail if table already existed
+      // Add postTitle, postThumbnail, mediaType, isAd, adCampaignName if table already existed
       await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "postTitle" TEXT;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "postThumbnail" TEXT;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "mediaType" TEXT DEFAULT 'POST';`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "isAd" BOOLEAN NOT NULL DEFAULT false;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "adCampaignName" TEXT;`);
     } catch (err) {
       console.warn("[DB Sync] SocialInboxItem table check:", err);
     }
