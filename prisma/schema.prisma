@@ -437,6 +437,8 @@ model CompanySettings {
   metaPhoneNumberId       String? // WhatsApp Business Phone Number ID
   metaApiKey              String? // Legacy / combined token fallback
   whatsappCompanionCreds  String? // Encrypted AES-256-GCM Baileys multi-device credentials
+  whatsappConnected       Boolean  @default(false)
+  whatsappCompanionPhone  String?
 
   pharmaHopperApiKey      String?
   pharmaVentApiKey        String?

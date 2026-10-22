@@ -20,6 +20,10 @@ function getAuthDirs(companyId: string) {
   ];
 }
 
+function getCompanySettingsWhere(companyId: string) {
+  return companyId && companyId !== "default" ? { companyId } : { id: "default" };
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getSession();
@@ -62,9 +66,14 @@ export async function POST(request: Request) {
       await saveCreds();
       if (sock.authState.creds.registered) {
         try {
+          const credsPhone = sock.authState.creds.me?.id
+            ? sock.authState.creds.me.id.split(":")[0]
+            : fullPhone;
           await prisma.companySettings.updateMany({
-            where: { companyId },
+            where: getCompanySettingsWhere(companyId),
             data: {
+              whatsappConnected: true,
+              whatsappCompanionPhone: credsPhone,
               whatsappCompanionCreds: JSON.stringify(sock.authState.creds, BufferJSON.replacer),
             },
           });
@@ -81,7 +90,7 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
     });
 
-    sock.ev.on("connection.update", (update) => {
+    sock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect } = update;
       const current = activeSockets.get(companyId);
 
@@ -90,6 +99,15 @@ export async function POST(request: Request) {
           current.status = "CONNECTED";
           current.connectedAt = new Date();
         }
+        try {
+          await prisma.companySettings.updateMany({
+            where: getCompanySettingsWhere(companyId),
+            data: {
+              whatsappConnected: true,
+              whatsappCompanionPhone: fullPhone,
+            },
+          });
+        } catch {}
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
         if (current) {
@@ -102,9 +120,23 @@ export async function POST(request: Request) {
     await delay(3500);
 
     if (sock.authState.creds.registered) {
+      try {
+        await prisma.companySettings.updateMany({
+          where: getCompanySettingsWhere(companyId),
+          data: {
+            whatsappConnected: true,
+            whatsappCompanionPhone: fullPhone,
+            whatsappCompanionCreds: JSON.stringify(sock.authState.creds, BufferJSON.replacer),
+          },
+        });
+      } catch (dbErr) {
+        console.warn("[Encrypted Vault] Creds backup:", dbErr);
+      }
+
       return NextResponse.json({
         success: true,
         alreadyRegistered: true,
+        status: "CONNECTED",
         message: "This phone number is already linked and connected!",
         phone: fullPhone,
       });
@@ -136,7 +168,16 @@ export async function GET() {
   const companyId = getActiveCompanyId(session) || "default";
   const current = activeSockets.get(companyId);
 
-  // 1. Check persisted credentials on disk
+  // 1. Check in-memory active socket
+  if (current?.status === "CONNECTED") {
+    return NextResponse.json({
+      status: "CONNECTED",
+      phone: current.phone,
+      connectedAt: current.connectedAt || null,
+    });
+  }
+
+  // 2. Check persisted credentials on disk
   const authDirs = getAuthDirs(companyId);
   let savedPhone: string | null = null;
   let isSaved = false;
@@ -157,42 +198,51 @@ export async function GET() {
     }
   }
 
-  // 2. Fallback to encrypted credentials stored in PostgreSQL vault
-  if (!isSaved && companyId !== "default") {
+  // 3. Fallback to PostgreSQL database (CompanySettings)
+  if (!isSaved) {
     try {
       const settings = await prisma.companySettings.findFirst({
-        where: { companyId },
-        select: { whatsappCompanionCreds: true },
+        where: getCompanySettingsWhere(companyId),
+        select: {
+          whatsappConnected: true,
+          whatsappCompanionPhone: true,
+          whatsappCompanionCreds: true,
+        },
       });
 
-      if (settings?.whatsappCompanionCreds) {
-        const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
-        if (decryptedCreds?.registered && decryptedCreds?.me?.id) {
-          isSaved = true;
-          savedPhone = decryptedCreds.me.id.split(":")[0];
-
-          // Restore to local tmp auth directory with strict 0o600 permissions
-          const targetDir = path.join(os.tmpdir(), `wa_auth_${companyId}`);
-          if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true, mode: 0o700 });
-          }
-          fs.writeFileSync(
-            path.join(targetDir, "creds.json"),
-            JSON.stringify(decryptedCreds, BufferJSON.replacer),
-            { mode: 0o600 }
-          );
+      if (settings?.whatsappConnected || settings?.whatsappCompanionCreds) {
+        isSaved = true;
+        savedPhone = settings.whatsappCompanionPhone || null;
+        if (!savedPhone && settings?.whatsappCompanionCreds) {
+          try {
+            const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
+            if (decryptedCreds?.me?.id) {
+              savedPhone = decryptedCreds.me.id.split(":")[0];
+            }
+          } catch {}
         }
       }
     } catch (vaultErr) {
-      console.warn("[Encrypted Vault] Creds restore error:", vaultErr);
+      console.warn("[Encrypted Vault] Creds check error:", vaultErr);
     }
   }
 
-  const isConnected = current?.status === "CONNECTED" || isSaved;
+  // Fallback to company contactPhone if connected without phone
+  if (isSaved && !savedPhone && companyId !== "default") {
+    try {
+      const comp = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { contactPhone: true },
+      });
+      if (comp?.contactPhone) savedPhone = comp.contactPhone;
+    } catch {}
+  }
+
+  const isConnected = isSaved || current?.status === "CONNECTED";
 
   return NextResponse.json({
     status: isConnected ? "CONNECTED" : (current?.status || "NOT_CONNECTED"),
-    phone: current?.phone || savedPhone || null,
+    phone: savedPhone || current?.phone || null,
     connectedAt: current?.connectedAt || null,
   });
 }
@@ -213,11 +263,15 @@ export async function DELETE() {
   }
   activeSockets.delete(companyId);
 
-  // Clear encrypted credentials in database
+  // Clear credentials & status in database
   try {
     await prisma.companySettings.updateMany({
-      where: { companyId },
-      data: { whatsappCompanionCreds: null },
+      where: getCompanySettingsWhere(companyId),
+      data: {
+        whatsappConnected: false,
+        whatsappCompanionPhone: null,
+        whatsappCompanionCreds: null,
+      },
     });
   } catch (err) {
     console.warn("[Encrypted Vault] Clear DB creds:", err);
@@ -232,5 +286,5 @@ export async function DELETE() {
     }
   }
 
-  return NextResponse.json({ success: true, status: "DISCONNECTED" });
+  return NextResponse.json({ success: true, status: "NOT_CONNECTED" });
 }

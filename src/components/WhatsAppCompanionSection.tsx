@@ -2,13 +2,45 @@
 
 import { useState, useEffect } from "react";
 
-export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: string }) {
-  const [phone, setPhone] = useState(initialPhone || "9996589217");
+function cleanDigits(val?: string | null): string {
+  if (!val) return "";
+  return val.replace(/\D/g, "");
+}
+
+function formatPhoneDisplay(raw?: string | null, fallback = "9996589217"): string {
+  const digits = cleanDigits(raw) || cleanDigits(fallback);
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+  if (digits.length > 0) {
+    return `+${digits}`;
+  }
+  return "+91 99965 89217";
+}
+
+export function WhatsAppCompanionSection({
+  initialPhone,
+  initialConnected = false,
+  initialConnectedPhone,
+}: {
+  initialPhone?: string;
+  initialConnected?: boolean;
+  initialConnectedPhone?: string;
+}) {
+  // Strip country code from input field so user just sees clean 10-digit local number next to +91 flag
+  const initialLocalPhone = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "") || "9996589217";
+
+  const [phone, setPhone] = useState(initialLocalPhone);
   const [loading, setLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("LOADING");
-  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>(initialConnected ? "CONNECTED" : "NOT_CONNECTED");
+  const [connectedPhone, setConnectedPhone] = useState<string | null>(
+    initialConnected ? (initialConnectedPhone || initialPhone || "919996589217") : null
+  );
   const [copied, setCopied] = useState(false);
 
   // Check initial status on mount
@@ -16,19 +48,22 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
     async function checkStatus() {
       try {
         const res = await fetch("/api/whatsapp-companion/pair");
+        if (!res.ok) return;
         const data = await res.json();
-        if (data?.status) {
-          setStatus(data.status);
+        if (data?.status === "CONNECTED") {
+          setStatus("CONNECTED");
           if (data.phone) {
             setConnectedPhone(data.phone);
           }
+        } else if (data?.status === "NOT_CONNECTED" && !initialConnected) {
+          setStatus("NOT_CONNECTED");
         }
       } catch {
-        setStatus("NOT_CONNECTED");
+        // Keep initial connected state intact if network blip
       }
     }
     checkStatus();
-  }, []);
+  }, [initialConnected]);
 
   // Poll status when pairing code is active
   useEffect(() => {
@@ -38,17 +73,15 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
         try {
           const res = await fetch("/api/whatsapp-companion/pair");
           const data = await res.json();
-          if (data?.status) {
-            setStatus(data.status);
-            if (data.status === "CONNECTED") {
-              setPairingCode(null);
-              if (data.phone) setConnectedPhone(data.phone);
-            }
+          if (data?.status === "CONNECTED") {
+            setStatus("CONNECTED");
+            setPairingCode(null);
+            if (data.phone) setConnectedPhone(data.phone);
           }
         } catch {
           // ignore
         }
-      }, 3500);
+      }, 3000);
     }
     return () => clearInterval(interval);
   }, [pairingCode, status]);
@@ -75,12 +108,13 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
         throw new Error(data.error || "Failed to generate pairing code.");
       }
 
-      if (data.pairingCode) {
-        setPairingCode(data.pairingCode);
-        setStatus("PAIRING_REQUESTED");
-      } else if (data.alreadyRegistered) {
+      if (data.alreadyRegistered || data.status === "CONNECTED") {
         setStatus("CONNECTED");
         if (data.phone) setConnectedPhone(data.phone);
+        setPairingCode(null);
+      } else if (data.pairingCode) {
+        setPairingCode(data.pairingCode);
+        setStatus("PAIRING_REQUESTED");
       }
     } catch (err: any) {
       setError(err?.message || "Something went wrong.");
@@ -113,9 +147,7 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
 
   // 1. SLEEK CONNECTED STATE
   if (status === "CONNECTED") {
-    const displayPhone = connectedPhone
-      ? (connectedPhone.startsWith("91") ? `+91 ${connectedPhone.slice(2)}` : `+${connectedPhone}`)
-      : `+91 ${phone}`;
+    const displayPhone = formatPhoneDisplay(connectedPhone || phone);
 
     return (
       <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-5 sm:p-6 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md transition-all">
@@ -241,7 +273,7 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
                 type="text"
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();

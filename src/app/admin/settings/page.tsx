@@ -5,6 +5,9 @@ import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 import { UpgradePlanCard } from "@/components/UpgradePlanCard";
 import { GradientText } from "@/components/GradientText";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 
 export default async function AdminSettingsPage() {
   const session = await getSession();
@@ -265,7 +268,53 @@ export default async function AdminSettingsPage() {
       ) : null}
 
       {/* Direct WhatsApp Business Phone Companion Link (Option A) */}
-      <WhatsAppCompanionSection initialPhone={company?.contactPhone || undefined} />
+      {(() => {
+        let isWhatsAppConnected = Boolean((settings as any)?.whatsappConnected);
+        let companionPhone = (settings as any)?.whatsappCompanionPhone || null;
+
+        if (!isWhatsAppConnected && settings?.whatsappCompanionCreds) {
+          try {
+            const parsed = JSON.parse(settings.whatsappCompanionCreds);
+            if (parsed?.registered) {
+              isWhatsAppConnected = true;
+              if (parsed?.me?.id) {
+                companionPhone = parsed.me.id.split(":")[0];
+              }
+            }
+          } catch {}
+        }
+
+        if (!isWhatsAppConnected) {
+          const authDirs = [
+            path.join(os.tmpdir(), `wa_auth_${activeCompanyId || "default"}`),
+            path.join(process.cwd(), "tmp", `wa_auth_${activeCompanyId || "default"}`),
+            path.join(process.cwd(), "tmp", "whatsapp_auth_test"),
+          ];
+          for (const dir of authDirs) {
+            const credsPath = path.join(dir, "creds.json");
+            if (fs.existsSync(credsPath)) {
+              try {
+                const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+                if (creds?.registered && creds?.me?.id) {
+                  isWhatsAppConnected = true;
+                  companionPhone = creds.me.id.split(":")[0];
+                  break;
+                }
+              } catch {}
+            }
+          }
+        }
+
+        const finalCompanionPhone = companionPhone || company?.contactPhone || undefined;
+
+        return (
+          <WhatsAppCompanionSection
+            initialPhone={company?.contactPhone || companionPhone || undefined}
+            initialConnected={isWhatsAppConnected}
+            initialConnectedPhone={finalCompanionPhone}
+          />
+        );
+      })()}
 
       {/* Main Configuration Form */}
       <form action={updateCompanyPlanSettings} className="space-y-6">

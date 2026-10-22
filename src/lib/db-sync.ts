@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import path from "node:path";
+import fs from "node:fs";
 
 let syncPromise: Promise<void> | null = null;
 
@@ -27,6 +29,8 @@ export async function ensureCompanySettingsColumns() {
       ["metaPhoneNumberId", "TEXT"],
       ["metaApiKey", "TEXT"],
       ["whatsappCompanionCreds", "TEXT"],
+      ["whatsappConnected", 'BOOLEAN NOT NULL DEFAULT false'],
+      ["whatsappCompanionPhone", "TEXT"],
       ["pharmaHopperApiKey", "TEXT"],
       ["pharmaVentApiKey", "TEXT"],
       ["enableAdsInsights", 'BOOLEAN NOT NULL DEFAULT false'],
@@ -42,6 +46,34 @@ export async function ensureCompanySettingsColumns() {
         console.warn(`[DB Sync] Column check for ${col}:`, err);
       }
     }
+
+    // Auto-sync active WhatsApp companion status if creds exist
+    try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "CompanySettings"
+        SET "whatsappConnected" = true
+        WHERE ("whatsappCompanionCreds" LIKE '%"registered":true%' OR "whatsappCompanionCreds" LIKE '%"registered": true%')
+          AND "whatsappConnected" = false;
+      `);
+    } catch {}
+
+    // Auto-sync host daemon credentials to default company if available
+    try {
+      const defaultCredsPath = path.join(process.cwd(), "tmp", "whatsapp_auth_test", "creds.json");
+      if (fs.existsSync(defaultCredsPath)) {
+        const credsRaw = fs.readFileSync(defaultCredsPath, "utf8");
+        const creds = JSON.parse(credsRaw);
+        if (creds?.registered && creds?.me?.id) {
+          const phone = creds.me.id.split(":")[0];
+          await prisma.$executeRawUnsafe(`
+            UPDATE "CompanySettings"
+            SET "whatsappConnected" = true,
+                "whatsappCompanionPhone" = COALESCE("whatsappCompanionPhone", '${phone}')
+            WHERE "id" = 'default' OR "companyId" IS NULL;
+          `);
+        }
+      }
+    } catch {}
 
     // Add-on feature tables — same idempotent, self-healing approach.
     try {
