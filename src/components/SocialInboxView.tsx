@@ -377,19 +377,31 @@ export function SocialInboxView({
             {creativeFilter === "ADS" ? "📢" : creativeFilter === "REELS" ? "🎬" : "💬"}
           </div>
           <h3 className="text-base font-extrabold text-ink">
-            No {creativeFilter === "ADS" ? "sponsored ad interactions" : creativeFilter === "REELS" ? "reel interactions" : "social interactions"} found
-          </h3>
-          <p className="text-xs text-ink-muted max-w-md mx-auto">
             {searchQuery
-              ? "No interactions matched your search query. Try clearing the filter."
-              : "Try switching creative format filters or clicking Sync Social Feed above."}
+              ? "No interactions matched your search"
+              : creativeFilter === "ADS"
+              ? "No Sponsored Ad Comments or Inquiries Yet"
+              : creativeFilter === "REELS"
+              ? "No Reel Comments or Likes Yet"
+              : "No Recent Social Comments, Likes, or DMs Found"}
+          </h3>
+          <p className="text-xs text-ink-muted max-w-lg mx-auto leading-relaxed">
+            {searchQuery
+              ? "Try clearing your search query to see all activity."
+              : "Your Social Inbox is 100% connected to live Meta APIs. As real doctors, chemists, and distributors interact with your posts, reels, or ads on Facebook & Instagram, their activity will appear here instantly."}
           </p>
-          <button
-            onClick={handleSync}
-            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-black transition cursor-pointer"
-          >
-            <span>🔄</span> Refresh Feed Now
-          </button>
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-[11px] font-bold text-emerald-800">
+            <span>🛡️</span>
+            <span>100% Live Meta Data Guarantee · Zero Mock/Demo Records</span>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={handleSync}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-black transition cursor-pointer shadow-xs"
+            >
+              <span>🔄</span> Check &amp; Sync Meta Activity
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
