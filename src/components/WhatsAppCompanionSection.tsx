@@ -32,8 +32,11 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
     return () => clearInterval(interval);
   }, [pairingCode, status]);
 
-  async function handleRequestCode(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRequestCode(e?: React.FormEvent | React.MouseEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setError(null);
     setPairingCode(null);
     setLoading(true);
@@ -114,8 +117,8 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
         </div>
       </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleRequestCode} className="space-y-4">
+      {/* Input Form (div to avoid nested form collisions) */}
+      <div className="space-y-4">
         <div className="flex flex-col sm:flex-row items-end gap-3">
           <div className="flex-1 w-full">
             <label className="block text-xs font-bold text-ink mb-1.5">
@@ -130,6 +133,13 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRequestCode();
+                  }
+                }}
                 placeholder="9996589217"
                 className="w-full rounded-2xl border border-line bg-white pl-16 pr-4 py-2.5 text-xs font-bold text-ink placeholder:text-ink-faint focus:outline-emerald-600 focus:bg-white"
               />
@@ -137,14 +147,15 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
           </div>
 
           <button
-            type="submit"
+            type="button"
+            onClick={handleRequestCode}
             disabled={loading}
             className="w-full sm:w-auto rounded-2xl bg-emerald-600 px-6 py-2.5 text-xs font-extrabold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer shrink-0"
           >
             {loading ? "Requesting Pairing Code..." : "📲 Get 8-Digit Pairing Code"}
           </button>
         </div>
-      </form>
+      </div>
 
       {/* Error Banner */}
       {error && (

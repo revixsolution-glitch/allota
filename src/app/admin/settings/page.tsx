@@ -264,6 +264,9 @@ export default async function AdminSettingsPage() {
         </section>
       ) : null}
 
+      {/* Direct WhatsApp Business Phone Companion Link (Option A) */}
+      <WhatsAppCompanionSection initialPhone={company?.contactPhone || undefined} />
+
       {/* Main Configuration Form */}
       <form action={updateCompanyPlanSettings} className="space-y-6">
         {/* Plan Switcher — visible to demo admin (Allota AI) and Super Admin only */}
@@ -490,9 +493,6 @@ export default async function AdminSettingsPage() {
                 className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
               />
             </div>
-
-            {/* Direct WhatsApp Business Phone Companion Link (Option A) */}
-            <WhatsAppCompanionSection initialPhone={company?.contactPhone || undefined} />
 
             {/* Meta Suite (Facebook, Instagram & WhatsApp Business API) */}
             <div className="rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4 space-y-4">
