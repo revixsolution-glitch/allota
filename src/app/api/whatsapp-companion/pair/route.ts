@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
-import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason, Browsers, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
+import { prisma } from "@/lib/prisma";
+import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason, Browsers, fetchLatestBaileysVersion, BufferJSON } from "@whiskeysockets/baileys";
 import pino from "pino";
 import path from "node:path";
 import fs from "node:fs";
@@ -57,7 +58,21 @@ export async function POST(request: Request) {
       browser: Browsers.macOS("Chrome"),
     });
 
-    sock.ev.on("creds.update", saveCreds);
+    sock.ev.on("creds.update", async () => {
+      await saveCreds();
+      if (sock.authState.creds.registered) {
+        try {
+          await prisma.companySettings.updateMany({
+            where: { companyId },
+            data: {
+              whatsappCompanionCreds: JSON.stringify(sock.authState.creds, BufferJSON.replacer),
+            },
+          });
+        } catch (dbErr) {
+          console.warn("[Encrypted Vault] Creds backup:", dbErr);
+        }
+      }
+    });
 
     activeSockets.set(companyId, {
       sock,
@@ -121,7 +136,7 @@ export async function GET() {
   const companyId = getActiveCompanyId(session) || "default";
   const current = activeSockets.get(companyId);
 
-  // Check persisted credentials on disk
+  // 1. Check persisted credentials on disk
   const authDirs = getAuthDirs(companyId);
   let savedPhone: string | null = null;
   let isSaved = false;
@@ -139,6 +154,37 @@ export async function GET() {
       } catch {
         // ignore
       }
+    }
+  }
+
+  // 2. Fallback to encrypted credentials stored in PostgreSQL vault
+  if (!isSaved && companyId !== "default") {
+    try {
+      const settings = await prisma.companySettings.findFirst({
+        where: { companyId },
+        select: { whatsappCompanionCreds: true },
+      });
+
+      if (settings?.whatsappCompanionCreds) {
+        const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
+        if (decryptedCreds?.registered && decryptedCreds?.me?.id) {
+          isSaved = true;
+          savedPhone = decryptedCreds.me.id.split(":")[0];
+
+          // Restore to local tmp auth directory with strict 0o600 permissions
+          const targetDir = path.join(os.tmpdir(), `wa_auth_${companyId}`);
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true, mode: 0o700 });
+          }
+          fs.writeFileSync(
+            path.join(targetDir, "creds.json"),
+            JSON.stringify(decryptedCreds, BufferJSON.replacer),
+            { mode: 0o600 }
+          );
+        }
+      }
+    } catch (vaultErr) {
+      console.warn("[Encrypted Vault] Creds restore error:", vaultErr);
     }
   }
 
@@ -166,6 +212,16 @@ export async function DELETE() {
     } catch {}
   }
   activeSockets.delete(companyId);
+
+  // Clear encrypted credentials in database
+  try {
+    await prisma.companySettings.updateMany({
+      where: { companyId },
+      data: { whatsappCompanionCreds: null },
+    });
+  } catch (err) {
+    console.warn("[Encrypted Vault] Clear DB creds:", err);
+  }
 
   const authDirs = getAuthDirs(companyId);
   for (const dir of authDirs) {

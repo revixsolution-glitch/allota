@@ -26,6 +26,7 @@ export async function ensureCompanySettingsColumns() {
       ["metaWabaId", "TEXT"],
       ["metaPhoneNumberId", "TEXT"],
       ["metaApiKey", "TEXT"],
+      ["whatsappCompanionCreds", "TEXT"],
       ["pharmaHopperApiKey", "TEXT"],
       ["pharmaVentApiKey", "TEXT"],
       ["enableAdsInsights", 'BOOLEAN NOT NULL DEFAULT false'],

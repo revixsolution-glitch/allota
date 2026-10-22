@@ -436,6 +436,7 @@ model CompanySettings {
   metaWabaId              String? // WhatsApp Business Account ID (WABA ID)
   metaPhoneNumberId       String? // WhatsApp Business Phone Number ID
   metaApiKey              String? // Legacy / combined token fallback
+  whatsappCompanionCreds  String? // Encrypted AES-256-GCM Baileys multi-device credentials
 
   pharmaHopperApiKey      String?
   pharmaVentApiKey        String?

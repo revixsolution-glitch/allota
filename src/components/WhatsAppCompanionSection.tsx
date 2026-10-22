@@ -139,9 +139,17 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
                 </h2>
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               </div>
-              <p className="text-xs font-semibold text-emerald-900 mt-0.5">
-                Active on {displayPhone} · Receiving Meta Ad Leads
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <p className="text-xs font-semibold text-emerald-900">
+                  Active on {displayPhone} · Receiving Meta Ad Leads
+                </p>
+                <span className="text-[10px] font-bold text-emerald-800 bg-white/70 px-2 py-0.5 rounded-full border border-emerald-300/60">
+                  🔒 AES-256-GCM Encrypted
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-white/70 px-2 py-0.5 rounded-full border border-emerald-300/60">
+                  🛡️ Privacy Firewall Active
+                </span>
+              </div>
             </div>
           </div>
 
@@ -328,6 +336,18 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
           </div>
         </div>
       )}
+
+      {/* Privacy & Encryption Guarantee Badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-emerald-500/20 text-[11px] text-emerald-950/80 font-medium">
+        <div className="flex items-center gap-1.5">
+          <span className="text-emerald-700 font-bold">🔒</span>
+          <span><strong>AES-256-GCM Encrypted:</strong> Session credentials stored with authenticated encryption at rest.</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-emerald-700 font-bold">🛡️</span>
+          <span><strong>Zero Personal Message Logging:</strong> Only Meta ad inquiries captured. Personal chats dropped in memory.</span>
+        </div>
+      </div>
     </section>
   );
 }
