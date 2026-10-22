@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
+import { resolveCompanyMetaCredentials, resolvePageAccessToken } from "@/lib/tenant-credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const activeCompanyId = getActiveCompanyId(session);
+  if (!activeCompanyId) {
+    return NextResponse.json({ error: "No active company" }, { status: 400 });
+  }
   const { id } = await params;
 
   const body = await req.json().catch(() => ({}));
@@ -50,30 +54,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ success: true, simulated: true });
   }
 
+  const company = await prisma.company.findUnique({
+    where: { id: activeCompanyId },
+    select: { id: true, name: true, slug: true },
+  });
+
   const settings = await prisma.companySettings.findFirst({
-    where: { companyId: activeCompanyId ?? undefined },
+    where: { companyId: activeCompanyId },
     select: { metaAccessToken: true, metaApiKey: true, metaPageId: true },
   });
-  const accessToken = settings?.metaAccessToken || settings?.metaApiKey;
-  if (!accessToken) {
-    return NextResponse.json({ error: "No Meta access token is saved for this company yet." }, { status: 400 });
+
+  const creds = resolveCompanyMetaCredentials(company || { id: activeCompanyId }, settings);
+  if (!creds.isConfigured || !creds.systemToken || !creds.pageId) {
+    return NextResponse.json(
+      { error: creds.unconfiguredReason || "No Meta access token is saved for this company yet." },
+      { status: 400 }
+    );
   }
 
   // Resolve Page Access Token for New Pages Experience
-  let effectiveToken = accessToken;
-  if (settings?.metaPageId) {
-    try {
-      const pageRes = await fetch(
-        `https://graph.facebook.com/v19.0/${settings.metaPageId}?fields=access_token&access_token=${accessToken}`
-      );
-      if (pageRes.ok) {
-        const pageData = await pageRes.json();
-        if (pageData.access_token) {
-          effectiveToken = pageData.access_token;
-        }
-      }
-    } catch {}
-  }
+  const effectiveToken = await resolvePageAccessToken(creds.pageId, creds.systemToken);
 
   try {
     let metaRes: Response;

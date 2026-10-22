@@ -216,10 +216,11 @@ async function handleSync(req: NextRequest) {
           });
         }
 
-        // Shift calls from drive to Savi Kesorx
+        // Shift calls from drive to Savi Kesorx strictly for this company
         await db.call.updateMany({
           where: {
             recordingUrl: { contains: "drive.google.com" },
+            employee: { companyId: effectiveCompanyId },
           },
           data: {
             employeeId: saviEmp.id,
@@ -393,13 +394,13 @@ async function handleSync(req: NextRequest) {
             try {
               const targetRep =
                 (await db.employee.findFirst({
-                  where: { name: { contains: "Savi", mode: "insensitive" } },
+                  where: { name: { contains: "Savi", mode: "insensitive" }, companyId: effectiveCompanyId },
                 })) || rep;
               if (!targetRep) continue;
 
               let leadId = (
                 await db.lead.findFirst({
-                  where: { name: { contains: item.contactName, mode: "insensitive" } },
+                  where: { name: { contains: item.contactName, mode: "insensitive" }, companyId: effectiveCompanyId },
                   select: { id: true },
                 })
               )?.id;

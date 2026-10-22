@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { resolveCompanyMetaCredentials } from "@/lib/tenant-credentials";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,11 @@ export async function POST() {
     return NextResponse.json({ error: "No active company" }, { status: 400 });
   }
 
+  const company = await prisma.company.findUnique({
+    where: { id: activeCompanyId },
+    select: { id: true, name: true, slug: true },
+  });
+
   const settings = await prisma.companySettings.findFirst({
     where: { companyId: activeCompanyId },
     select: { enableAdsInsights: true, metaAdAccountId: true, metaAccessToken: true, metaApiKey: true },
@@ -67,8 +73,9 @@ export async function POST() {
     return NextResponse.json({ error: "Ads Insights is not enabled for this company." }, { status: 403 });
   }
 
-  const adAccountId = settings.metaAdAccountId?.trim();
-  const accessToken = settings.metaAccessToken || settings.metaApiKey;
+  const creds = resolveCompanyMetaCredentials(company || { id: activeCompanyId }, settings);
+  const adAccountId = creds.adAccountId?.trim();
+  const accessToken = creds.systemToken;
 
   if (!adAccountId) {
     const message = "No Meta Ad Account ID is saved in Settings yet. Add it under Meta Suite, then sync again.";
@@ -76,7 +83,7 @@ export async function POST() {
     return NextResponse.json({ error: message }, { status: 400 });
   }
   if (!accessToken) {
-    const message = "No Meta access token is saved in Settings yet.";
+    const message = creds.unconfiguredReason || "No Meta access token is saved in Settings yet.";
     await saveError(activeCompanyId, message);
     return NextResponse.json({ error: message }, { status: 400 });
   }

@@ -48,7 +48,7 @@ export async function GET() {
         where: {
           OR: [{ id: "default" }, { companyId: pharmaLifeCompany.id }],
         },
-        data: { driveFolderUrl: driveUrl, companyId: pharmaLifeCompany.id },
+        data: { companyId: pharmaLifeCompany.id },
       });
     }
 
