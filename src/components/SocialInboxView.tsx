@@ -37,6 +37,11 @@ export function SocialInboxView({
   const [platformFilter, setPlatformFilter] = useState<"ALL" | "INSTAGRAM" | "FACEBOOK">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{
+    type: "success" | "warning" | "error";
+    message: string;
+    hasSettingsLink?: boolean;
+  } | null>(null);
 
   // Per-card draft and sending state
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -47,10 +52,21 @@ export function SocialInboxView({
   // Sync / Refresh social activity
   async function handleSync() {
     setIsSyncing(true);
+    setSyncFeedback(null);
     try {
       const res = await fetch("/api/social-inbox/sync", { method: "POST" });
       const data = await res.json();
-      if (res.ok && Array.isArray(data.items)) {
+
+      if (!res.ok || data.success === false) {
+        setSyncFeedback({
+          type: "warning",
+          message: data.error || "Meta integration credentials are required to sync live activity.",
+          hasSettingsLink: true,
+        });
+        return;
+      }
+
+      if (Array.isArray(data.items)) {
         setItems(
           data.items.map((i: any) => ({
             ...i,
@@ -58,9 +74,32 @@ export function SocialInboxView({
           }))
         );
       }
+
+      if (data.syncedLiveCount > 0) {
+        setSyncFeedback({
+          type: "success",
+          message: `Successfully synced ${data.syncedLiveCount} new live comment(s) and reaction(s) from Meta!`,
+        });
+      } else if (data.totalItems === 0) {
+        setSyncFeedback({
+          type: "warning",
+          message: data.warning
+            ? `Meta notice: ${data.warning}`
+            : `Connected to Meta Page (${data.pageId || "Live"}), but no comments or likes were returned from Facebook or Instagram yet.`,
+        });
+      } else {
+        setSyncFeedback({
+          type: "success",
+          message: `Social feed refreshed. All ${data.totalItems} live interaction(s) are up to date.`,
+        });
+      }
+
       router.refresh();
-    } catch {
-      // ignore
+    } catch (err: any) {
+      setSyncFeedback({
+        type: "error",
+        message: err?.message || "Sync connection error.",
+      });
     } finally {
       setIsSyncing(false);
     }
@@ -180,6 +219,42 @@ export function SocialInboxView({
           </div>
         </div>
       </section>
+
+      {/* Sync Feedback Alert */}
+      {syncFeedback && (
+        <div
+          className={`flex items-start justify-between gap-3 rounded-2xl p-4 text-xs font-bold border animate-in fade-in transition ${
+            syncFeedback.type === "error"
+              ? "bg-rose-50 border-rose-200 text-rose-800"
+              : syncFeedback.type === "warning"
+              ? "bg-amber-50 border-amber-200 text-amber-900"
+              : "bg-emerald-50 border-emerald-200 text-emerald-800"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm">
+              {syncFeedback.type === "error" ? "⚠️" : syncFeedback.type === "warning" ? "ℹ️" : "✓"}
+            </span>
+            <span>{syncFeedback.message}</span>
+            {syncFeedback.hasSettingsLink && (
+              <a
+                href="/admin/settings"
+                className="inline-flex items-center gap-1 underline font-black ml-1 text-teal-800 hover:text-teal-950"
+              >
+                <span>Open Settings → Meta Suite</span>
+                <span>→</span>
+              </a>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncFeedback(null)}
+            className="text-slate-400 hover:text-slate-700 text-xs px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

@@ -47,148 +47,187 @@ export async function POST() {
     console.warn("[Social Inbox] Purge seed records:", err);
   }
 
+  // Resolve tokens & IDs (including target brand fallbacks)
+  let pageId = settings?.metaPageId;
+  if (!pageId) {
+    if (company?.slug?.includes("kesrox") || company?.name?.toLowerCase().includes("kesrox")) {
+      pageId = "112876304657266";
+    } else if (company?.slug?.includes("ekonmed") || company?.name?.toLowerCase().includes("ekonmed")) {
+      pageId = "1342042688984003";
+    }
+  }
+
+  const token =
+    settings?.metaAccessToken ||
+    settings?.metaApiKey ||
+    process.env.META_ACCESS_TOKEN ||
+    process.env.WHATSAPP_ACCESS_TOKEN;
+
+  if (!token || !pageId) {
+    const isDemo =
+      !company?.slug ||
+      company.slug === "pharma-life" ||
+      company.slug === "pharma-life-sciences" ||
+      company.name?.includes("Allota");
+
+    return NextResponse.json({
+      success: false,
+      isDemo,
+      error: isDemo
+        ? "Demo presentation account: No live Meta Page is connected. To view genuine live comments & DMs, switch to an active client (e.g. Kesrox or Ekonmed) or add your Meta Page ID & Token in Settings → Meta Suite."
+        : `Meta Access Token or Page ID is missing for ${company?.name || "your account"}. Please enter your permanent Meta Access Token under Settings → Meta Suite.`,
+      pageId: pageId || null,
+      hasToken: Boolean(token),
+      syncedLiveCount: 0,
+      totalItems: 0,
+      items: [],
+    });
+  }
+
   let syncedLiveCount = 0;
-  const token = settings?.metaAccessToken || settings?.metaApiKey;
-  const pageId = settings?.metaPageId;
+  let lastError: string | null = null;
 
   // 2. Fetch genuine live data from Meta Graph API
-  if (token && pageId) {
-    // A. Facebook Page Feed (Posts, Comments, Likes)
-    try {
-      const feedRes = await fetch(
-        `https://graph.facebook.com/v19.0/${pageId}/feed?fields=id,message,status_type,created_time,permalink_url,full_picture,comments.limit(25){id,from,message,created_time},likes.summary(true).limit(25){id,name}&limit=15&access_token=${token}`
-      );
+  // A. Facebook Page Feed (Posts, Comments, Likes)
+  try {
+    const feedRes = await fetch(
+      `https://graph.facebook.com/v19.0/${pageId}/feed?fields=id,message,status_type,created_time,permalink_url,full_picture,comments.limit(25){id,from,message,created_time},likes.summary(true).limit(25){id,name}&limit=15&access_token=${token}`
+    );
 
-      if (feedRes.ok) {
-        const feedData = await feedRes.json();
-        for (const post of feedData.data || []) {
-          const postTitle = post.message?.slice(0, 120) || "Facebook Post";
-          const postThumbnail = post.full_picture || null;
-          const permalink = post.permalink_url || `https://facebook.com/${post.id}`;
-          const isReel = post.status_type === "added_video" || (post.message || "").toLowerCase().includes("reel");
-          const isAd = (post.message || "").toLowerCase().includes("ad") || (post.status_type || "").includes("promoted");
-          const mediaType = isAd ? "AD" : isReel ? "REEL" : "POST";
+    if (feedRes.ok) {
+      const feedData = await feedRes.json();
+      for (const post of feedData.data || []) {
+        const postTitle = post.message?.slice(0, 120) || "Facebook Post";
+        const postThumbnail = post.full_picture || null;
+        const permalink = post.permalink_url || `https://facebook.com/${post.id}`;
+        const isReel = post.status_type === "added_video" || (post.message || "").toLowerCase().includes("reel");
+        const isAd = (post.message || "").toLowerCase().includes("ad") || (post.status_type || "").includes("promoted");
+        const mediaType = isAd ? "AD" : isReel ? "REEL" : "POST";
 
-          // Ingest live comments
-          for (const c of post.comments?.data || []) {
-            const existing = await prisma.socialInboxItem.findUnique({
-              where: { externalId: c.id },
+        // Ingest live comments
+        for (const c of post.comments?.data || []) {
+          const existing = await prisma.socialInboxItem.findUnique({
+            where: { externalId: c.id },
+          });
+          if (!existing) {
+            await prisma.socialInboxItem.create({
+              data: {
+                companyId: activeCompanyId,
+                platform: "FACEBOOK",
+                kind: "COMMENT",
+                externalId: c.id,
+                fromName: c.from?.name || "Facebook User",
+                fromId: c.from?.id || null,
+                text: c.message,
+                postOrThreadId: post.id,
+                postTitle,
+                postThumbnail,
+                mediaType,
+                isAd,
+                adCampaignName: isAd ? "Meta Sponsored Post" : null,
+                permalink,
+                receivedAt: new Date(c.created_time || Date.now()),
+              },
             });
-            if (!existing) {
-              await prisma.socialInboxItem.create({
-                data: {
-                  companyId: activeCompanyId,
-                  platform: "FACEBOOK",
-                  kind: "COMMENT",
-                  externalId: c.id,
-                  fromName: c.from?.name || "Facebook User",
-                  fromId: c.from?.id || null,
-                  text: c.message,
-                  postOrThreadId: post.id,
-                  postTitle,
-                  postThumbnail,
-                  mediaType,
-                  isAd,
-                  adCampaignName: isAd ? "Meta Sponsored Post" : null,
-                  permalink,
-                  receivedAt: new Date(c.created_time || Date.now()),
-                },
-              });
-              syncedLiveCount++;
-            }
+            syncedLiveCount++;
           }
+        }
 
-          // Ingest live likes
-          for (const l of post.likes?.data || []) {
-            const likeExternalId = `fb_like_${post.id}_${l.id}`;
-            const existing = await prisma.socialInboxItem.findUnique({
-              where: { externalId: likeExternalId },
+        // Ingest live likes
+        for (const l of post.likes?.data || []) {
+          const likeExternalId = `fb_like_${post.id}_${l.id}`;
+          const existing = await prisma.socialInboxItem.findUnique({
+            where: { externalId: likeExternalId },
+          });
+          if (!existing) {
+            await prisma.socialInboxItem.create({
+              data: {
+                companyId: activeCompanyId,
+                platform: "FACEBOOK",
+                kind: "LIKE",
+                externalId: likeExternalId,
+                fromName: l.name || "Facebook User",
+                fromId: l.id || null,
+                text: "❤️ Liked your post",
+                postOrThreadId: post.id,
+                postTitle,
+                postThumbnail,
+                mediaType,
+                isAd,
+                adCampaignName: isAd ? "Meta Sponsored Post" : null,
+                permalink,
+                receivedAt: new Date(post.created_time || Date.now()),
+              },
             });
-            if (!existing) {
-              await prisma.socialInboxItem.create({
-                data: {
-                  companyId: activeCompanyId,
-                  platform: "FACEBOOK",
-                  kind: "LIKE",
-                  externalId: likeExternalId,
-                  fromName: l.name || "Facebook User",
-                  fromId: l.id || null,
-                  text: "❤️ Liked your post",
-                  postOrThreadId: post.id,
-                  postTitle,
-                  postThumbnail,
-                  mediaType,
-                  isAd,
-                  adCampaignName: isAd ? "Meta Sponsored Post" : null,
-                  permalink,
-                  receivedAt: new Date(post.created_time || Date.now()),
-                },
-              });
-              syncedLiveCount++;
-            }
+            syncedLiveCount++;
           }
         }
       }
-    } catch (err) {
-      console.warn("[Social Inbox Sync] Facebook Graph API error:", err);
+    } else {
+      const errJson = await feedRes.json().catch(() => ({}));
+      lastError = errJson?.error?.message || `Meta Graph API HTTP ${feedRes.status}`;
+      console.warn("[Social Inbox Sync] Facebook Graph API error:", lastError);
     }
+  } catch (err: any) {
+    lastError = err?.message || "Failed to reach Meta Graph API";
+    console.warn("[Social Inbox Sync] Facebook network error:", err);
+  }
 
-    // B. Connected Instagram Business Account (Media & Comments)
-    try {
-      const pageRes = await fetch(
-        `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account{id,username}&access_token=${token}`
-      );
-      if (pageRes.ok) {
-        const pageData = await pageRes.json();
-        const igId = pageData.instagram_business_account?.id;
-        if (igId) {
-          const mediaRes = await fetch(
-            `https://graph.facebook.com/v19.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments.limit(25){id,username,text,timestamp},like_count&limit=15&access_token=${token}`
-          );
-          if (mediaRes.ok) {
-            const mediaData = await mediaRes.json();
-            for (const media of mediaData.data || []) {
-              const postTitle = media.caption?.slice(0, 120) || "Instagram Media Post";
-              const postThumbnail = media.thumbnail_url || media.media_url || null;
-              const permalink = media.permalink || `https://instagram.com/p/${media.id}`;
-              const isReel = media.media_type === "VIDEO" || (media.caption || "").toLowerCase().includes("reel");
+  // B. Connected Instagram Business Account (Media & Comments)
+  try {
+    const pageRes = await fetch(
+      `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account{id,username}&access_token=${token}`
+    );
+    if (pageRes.ok) {
+      const pageData = await pageRes.json();
+      const igId = pageData.instagram_business_account?.id;
+      if (igId) {
+        const mediaRes = await fetch(
+          `https://graph.facebook.com/v19.0/${igId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments.limit(25){id,username,text,timestamp},like_count&limit=15&access_token=${token}`
+        );
+        if (mediaRes.ok) {
+          const mediaData = await mediaRes.json();
+          for (const media of mediaData.data || []) {
+            const postTitle = media.caption?.slice(0, 120) || "Instagram Media Post";
+            const postThumbnail = media.thumbnail_url || media.media_url || null;
+            const permalink = media.permalink || `https://instagram.com/p/${media.id}`;
+            const isReel = media.media_type === "VIDEO" || (media.caption || "").toLowerCase().includes("reel");
 
-              for (const c of media.comments?.data || []) {
-                const existing = await prisma.socialInboxItem.findUnique({
-                  where: { externalId: c.id },
+            for (const c of media.comments?.data || []) {
+              const existing = await prisma.socialInboxItem.findUnique({
+                where: { externalId: c.id },
+              });
+              if (!existing) {
+                await prisma.socialInboxItem.create({
+                  data: {
+                    companyId: activeCompanyId,
+                    platform: "INSTAGRAM",
+                    kind: "COMMENT",
+                    externalId: c.id,
+                    fromName: c.username || "Instagram User",
+                    fromId: null,
+                    text: c.text,
+                    postOrThreadId: media.id,
+                    postTitle,
+                    postThumbnail,
+                    mediaType: isReel ? "REEL" : "POST",
+                    isAd: false,
+                    permalink,
+                    receivedAt: new Date(c.timestamp || Date.now()),
+                  },
                 });
-                if (!existing) {
-                  await prisma.socialInboxItem.create({
-                    data: {
-                      companyId: activeCompanyId,
-                      platform: "INSTAGRAM",
-                      kind: "COMMENT",
-                      externalId: c.id,
-                      fromName: c.username || "Instagram User",
-                      fromId: null,
-                      text: c.text,
-                      postOrThreadId: media.id,
-                      postTitle,
-                      postThumbnail,
-                      mediaType: isReel ? "REEL" : "POST",
-                      isAd: false,
-                      permalink,
-                      receivedAt: new Date(c.timestamp || Date.now()),
-                    },
-                  });
-                  syncedLiveCount++;
-                }
+                syncedLiveCount++;
               }
             }
           }
         }
       }
-    } catch (igErr) {
-      console.warn("[Social Inbox Sync] Instagram fetch error:", igErr);
     }
+  } catch (igErr: any) {
+    console.warn("[Social Inbox Sync] Instagram fetch error:", igErr?.message);
   }
 
-  // 3. Return only genuine live items
+  // 3. Return genuine live items
   const allItems = await prisma.socialInboxItem.findMany({
     where: { ...scopeToCompany(activeCompanyId) },
     orderBy: { receivedAt: "desc" },
@@ -198,8 +237,10 @@ export async function POST() {
   return NextResponse.json({
     success: true,
     companyName: company?.name,
+    pageId,
     syncedLiveCount,
     totalItems: allItems.length,
     items: allItems,
+    warning: lastError,
   });
 }
