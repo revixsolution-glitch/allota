@@ -69,15 +69,17 @@ async function routeToCompanyForPage(
   return { companyId: settings.companyId, accessToken: settings.metaAccessToken || settings.metaApiKey || null };
 }
 
-/** Save a comment or message into the Social Inbox, only if the company has the add-on enabled. Ignores an event already captured (Meta retries webhook deliveries). */
+/** Save a comment, like, or message into the Social Inbox, only if the company has the add-on enabled. Ignores an event already captured (Meta retries webhook deliveries). */
 async function captureSocialInboxItem(companyId: string, item: {
   platform: "FACEBOOK" | "INSTAGRAM";
-  kind: "COMMENT" | "MESSAGE";
+  kind: "COMMENT" | "MESSAGE" | "LIKE";
   externalId: string;
   fromName?: string | null;
   fromId?: string | null;
   text?: string | null;
   postOrThreadId?: string | null;
+  postTitle?: string | null;
+  postThumbnail?: string | null;
   permalink?: string | null;
 }) {
   const settings = await prisma.companySettings.findFirst({
@@ -239,33 +241,83 @@ export async function POST(req: NextRequest) {
         if (change.field === "feed" && change.value?.item === "comment" && change.value?.verb === "add") {
           const routed = await routeToCompanyForPage(pageId);
           if (routed) {
+            const postId = change.value.post_id || change.value.parent_id || null;
             await captureSocialInboxItem(routed.companyId, {
               platform: "FACEBOOK",
               kind: "COMMENT",
               externalId: change.value.comment_id,
-              fromName: change.value.from?.name || null,
+              fromName: change.value.from?.name || "Facebook User",
               fromId: change.value.from?.id || null,
               text: change.value.message || null,
-              postOrThreadId: change.value.post_id || null,
-              permalink: null,
+              postOrThreadId: postId,
+              postTitle: change.value.post?.message || "Facebook Page Post",
+              permalink: postId ? `https://facebook.com/${postId}` : null,
             });
           }
           continue;
         }
 
-        // Instagram comment (same "add a comment" idea, different field name).
+        // Facebook Page Post Like / Reaction
+        if (
+          change.field === "feed" &&
+          (change.value?.item === "like" || change.value?.item === "reaction") &&
+          change.value?.verb === "add"
+        ) {
+          const routed = await routeToCompanyForPage(pageId);
+          if (routed) {
+            const postId = change.value.post_id || null;
+            const rType = change.value.reaction_type || "like";
+            const rIcon = rType === "love" ? "❤️ Loved" : rType === "wow" ? "😮 Wowed" : "👍 Liked";
+            await captureSocialInboxItem(routed.companyId, {
+              platform: "FACEBOOK",
+              kind: "LIKE",
+              externalId: `fb_like_${change.value.post_id}_${change.value.from?.id || change.value.user_id || Date.now()}`,
+              fromName: change.value.from?.name || "Facebook Prospect",
+              fromId: change.value.from?.id || change.value.user_id || null,
+              text: `${rIcon} your post`,
+              postOrThreadId: postId,
+              postTitle: change.value.post?.message || "Facebook Page Post",
+              permalink: postId ? `https://facebook.com/${postId}` : null,
+            });
+          }
+          continue;
+        }
+
+        // Instagram comment
         if (change.field === "comments") {
           const routed = await routeToCompanyForPage(pageId);
           if (routed) {
+            const mediaId = change.value?.media?.id || null;
             await captureSocialInboxItem(routed.companyId, {
               platform: "INSTAGRAM",
               kind: "COMMENT",
               externalId: change.value?.id,
-              fromName: change.value?.from?.username || null,
+              fromName: change.value?.from?.username || "Instagram User",
               fromId: change.value?.from?.id || null,
               text: change.value?.text || null,
-              postOrThreadId: change.value?.media?.id || null,
-              permalink: null,
+              postOrThreadId: mediaId,
+              postTitle: change.value?.media?.caption || "Instagram Post",
+              permalink: change.value?.media?.permalink || (mediaId ? `https://instagram.com/p/${mediaId}` : null),
+            });
+          }
+          continue;
+        }
+
+        // Instagram like
+        if (change.field === "likes") {
+          const routed = await routeToCompanyForPage(pageId);
+          if (routed) {
+            const mediaId = change.value?.media?.id || null;
+            await captureSocialInboxItem(routed.companyId, {
+              platform: "INSTAGRAM",
+              kind: "LIKE",
+              externalId: `ig_like_${mediaId}_${change.value?.from?.id || Date.now()}`,
+              fromName: change.value?.from?.username || "Instagram Prospect",
+              fromId: change.value?.from?.id || null,
+              text: "❤️ Liked your Instagram post",
+              postOrThreadId: mediaId,
+              postTitle: change.value?.media?.caption || "Instagram Post",
+              permalink: change.value?.media?.permalink || (mediaId ? `https://instagram.com/p/${mediaId}` : null),
             });
           }
           continue;

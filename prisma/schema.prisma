@@ -516,6 +516,8 @@ model SocialInboxItem {
   fromId          String?
   text            String?
   postOrThreadId  String?
+  postTitle       String?   // Headline or excerpt of the post that received the comment/like
+  postThumbnail   String?   // Media preview image URL of the post
   permalink       String?
   status          String    @default("NEW") // NEW | REPLIED | IGNORED
   aiDraftReply    String?

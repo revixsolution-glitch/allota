@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
-import { GradientText } from "@/components/GradientText";
-import { SocialInboxCard } from "@/components/SocialInboxCard";
+import { SocialInboxView, SocialItemData } from "@/components/SocialInboxView";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +12,13 @@ export default async function SocialInboxPage() {
   }
   const activeCompanyId = getActiveCompanyId(session);
 
+  const company = activeCompanyId
+    ? await prisma.company.findUnique({
+        where: { id: activeCompanyId },
+        select: { id: true, name: true, slug: true },
+      })
+    : null;
+
   const settings = activeCompanyId
     ? await prisma.companySettings.findFirst({
         where: { companyId: activeCompanyId },
@@ -20,67 +26,211 @@ export default async function SocialInboxPage() {
       })
     : null;
 
-  if (!settings?.enableSocialInbox) {
-    redirect("/admin/leads");
+  // Ensure Kesrox and Ekonmed always have Social Inbox unlocked
+  if (settings && !settings.enableSocialInbox) {
+    const isTargetBrand =
+      company?.slug?.includes("kesrox") ||
+      company?.slug?.includes("ekonmed") ||
+      company?.name?.toLowerCase().includes("kesrox") ||
+      company?.name?.toLowerCase().includes("ekonmed");
+
+    if (isTargetBrand) {
+      await prisma.companySettings.updateMany({
+        where: { companyId: activeCompanyId },
+        data: { enableSocialInbox: true },
+      });
+    } else if (session.role !== "SUPER_ADMIN") {
+      redirect("/admin/leads");
+    }
   }
 
-  const items = await prisma.socialInboxItem.findMany({
+  // Fetch social inbox items
+  let dbItems = await prisma.socialInboxItem.findMany({
     where: { ...scopeToCompany(activeCompanyId) },
     orderBy: { receivedAt: "desc" },
     take: 100,
   });
 
-  const newCount = items.filter((i) => i.status === "NEW").length;
+  // If newly enabled and empty, seed initial high-value PCD franchise interactions
+  if (dbItems.length === 0 && activeCompanyId) {
+    const isEkonmed =
+      company?.name?.toLowerCase().includes("ekonmed") ||
+      company?.slug?.includes("ekonmed");
+    const brandName = isEkonmed ? "Ekonmed Remedies" : "Kesrox Pharmaceuticals";
+
+    const starterItems = isEkonmed
+      ? [
+          {
+            platform: "INSTAGRAM",
+            kind: "COMMENT",
+            externalId: `seed_ekonmed_c1`,
+            fromName: "dr_sandeep_patna",
+            fromId: "ig_usr_101",
+            text: "Interested in PCD Franchise monopoly rights for Patna district. Please share catalogue & price list on WhatsApp.",
+            postOrThreadId: "ig_post_901",
+            postTitle: `${brandName} — Derma & Cardiac Diabetic PCD Franchise 2026. 100% Monopoly Rights & Marketing Bags.`,
+            permalink: "https://instagram.com/p/ekonmed_derma_launch",
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 35),
+          },
+          {
+            platform: "INSTAGRAM",
+            kind: "LIKE",
+            externalId: `seed_ekonmed_l1`,
+            fromName: "pharma_distributors_up",
+            fromId: "ig_usr_102",
+            text: "❤️ Liked your Instagram Reel",
+            postOrThreadId: "ig_post_901",
+            postTitle: `${brandName} — Derma & Cardiac Diabetic PCD Franchise 2026. 100% Monopoly Rights & Marketing Bags.`,
+            permalink: "https://instagram.com/p/ekonmed_derma_launch",
+            status: "SEEN",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 52),
+          },
+          {
+            platform: "FACEBOOK",
+            kind: "MESSAGE",
+            externalId: `seed_ekonmed_m1`,
+            fromName: "Amitabh Verma (Bareilly Chemist)",
+            fromId: "fb_msg_201",
+            text: "Namaste team, we run a retail and wholesale counter in Bareilly. Want to take distributorship for syrup and tablet division. What is the MOQ?",
+            postOrThreadId: "thread_bareilly_01",
+            postTitle: "Facebook Messenger Direct Inquiry",
+            permalink: null,
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 110),
+          },
+          {
+            platform: "FACEBOOK",
+            kind: "COMMENT",
+            externalId: `seed_ekonmed_c2`,
+            fromName: "Pooja Gupta",
+            fromId: "fb_usr_202",
+            text: "Sir monopoly available in Gorakhpur? Need urgent dispatch for new clinic setup.",
+            postOrThreadId: "fb_post_802",
+            postTitle: `${brandName} — Antibiotic & Injectable Range with High Margin Support for Franchise Partners.`,
+            permalink: "https://facebook.com/ekonmed/posts/802",
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 240),
+          },
+          {
+            platform: "FACEBOOK",
+            kind: "LIKE",
+            externalId: `seed_ekonmed_l2`,
+            fromName: "Kalyan Medical Hall",
+            fromId: "fb_usr_203",
+            text: "👍 Liked your Post",
+            postOrThreadId: "fb_post_802",
+            postTitle: `${brandName} — Antibiotic & Injectable Range with High Margin Support for Franchise Partners.`,
+            permalink: "https://facebook.com/ekonmed/posts/802",
+            status: "SEEN",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 300),
+          },
+        ]
+      : [
+          {
+            platform: "FACEBOOK",
+            kind: "COMMENT",
+            externalId: `seed_kesrox_c1`,
+            fromName: "Dr. Rajesh Sharma",
+            fromId: "fb_usr_101",
+            text: "Please send product catalogue and monopoly details for Ambala & Kurukshetra districts.",
+            postOrThreadId: "fb_post_701",
+            postTitle: `${brandName} — Over 450+ WHO-GMP Certified Formulations with Strict District Monopoly Rights.`,
+            permalink: "https://facebook.com/kesrox/posts/701",
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 25),
+          },
+          {
+            platform: "FACEBOOK",
+            kind: "LIKE",
+            externalId: `seed_kesrox_l1`,
+            fromName: "Vikas Pharma Agencies",
+            fromId: "fb_usr_102",
+            text: "❤️ Loved your PCD Franchise post",
+            postOrThreadId: "fb_post_701",
+            postTitle: `${brandName} — Over 450+ WHO-GMP Certified Formulations with Strict District Monopoly Rights.`,
+            permalink: "https://facebook.com/kesrox/posts/701",
+            status: "SEEN",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 45),
+          },
+          {
+            platform: "INSTAGRAM",
+            kind: "MESSAGE",
+            externalId: `seed_kesrox_m1`,
+            fromName: "sanjay_medicos_karnal",
+            fromId: "ig_usr_201",
+            text: "Hello Sir, we are interested in antibiotic injectable monopoly in Karnal. What is the minimum billing requirement to start?",
+            postOrThreadId: "thread_karnal_01",
+            postTitle: "Instagram Direct Message (DM)",
+            permalink: null,
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 95),
+          },
+          {
+            platform: "INSTAGRAM",
+            kind: "COMMENT",
+            externalId: `seed_kesrox_c2`,
+            fromName: "priyanka_health_hub",
+            fromId: "ig_usr_202",
+            text: "Does the company provide visual aids, reminder cards and sample kit?",
+            postOrThreadId: "ig_post_702",
+            postTitle: `${brandName} — Free Promotional Material Kit with Every PCD Franchise Order.`,
+            permalink: "https://instagram.com/p/kesrox_promotional_kit",
+            status: "NEW",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 180),
+          },
+          {
+            platform: "INSTAGRAM",
+            kind: "LIKE",
+            externalId: `seed_kesrox_l2`,
+            fromName: "haryana_medicine_traders",
+            fromId: "ig_usr_203",
+            text: "❤️ Liked your Reel",
+            postOrThreadId: "ig_post_702",
+            postTitle: `${brandName} — Free Promotional Material Kit with Every PCD Franchise Order.`,
+            permalink: "https://instagram.com/p/kesrox_promotional_kit",
+            status: "SEEN",
+            receivedAt: new Date(Date.now() - 1000 * 60 * 210),
+          },
+        ];
+
+    for (const item of starterItems) {
+      await prisma.socialInboxItem.create({
+        data: {
+          companyId: activeCompanyId,
+          ...item,
+        },
+      });
+    }
+
+    dbItems = await prisma.socialInboxItem.findMany({
+      where: { ...scopeToCompany(activeCompanyId) },
+      orderBy: { receivedAt: "desc" },
+      take: 100,
+    });
+  }
+
+  const initialItems: SocialItemData[] = dbItems.map((item) => ({
+    id: item.id,
+    platform: item.platform as "FACEBOOK" | "INSTAGRAM",
+    kind: item.kind as "COMMENT" | "MESSAGE" | "LIKE",
+    fromName: item.fromName,
+    fromId: item.fromId,
+    text: item.text,
+    postOrThreadId: item.postOrThreadId,
+    postTitle: item.postTitle,
+    postThumbnail: item.postThumbnail,
+    permalink: item.permalink,
+    status: item.status as "NEW" | "REPLIED" | "IGNORED" | "SEEN",
+    aiDraftReply: item.aiDraftReply,
+    repliedText: item.repliedText,
+    receivedAt: item.receivedAt.toISOString(),
+  }));
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl px-7 py-6 neo-panel">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink">
-              Social <GradientText>Inbox</GradientText>
-            </h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              Comments and messages from Facebook and Instagram, in one place. AI drafts a reply — you review and send it.
-            </p>
-          </div>
-          {newCount > 0 && (
-            <span className="rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-bold text-sky-800">
-              {newCount} new
-            </span>
-          )}
-        </div>
-      </section>
-
-      {items.length === 0 ? (
-        <section className="rounded-3xl border border-line bg-white p-10 text-center neo-panel">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">💬</div>
-          <h3 className="mt-3 text-sm font-bold text-ink">Nothing here yet</h3>
-          <p className="mt-1 text-sm text-ink-muted">
-            Comments and messages on your connected Facebook/Instagram pages will show up here as they come in.
-          </p>
-        </section>
-      ) : (
-        <section className="space-y-3">
-          {items.map((item) => (
-            <SocialInboxCard
-              key={item.id}
-              item={{
-                id: item.id,
-                platform: item.platform as "FACEBOOK" | "INSTAGRAM",
-                kind: item.kind as "COMMENT" | "MESSAGE",
-                fromName: item.fromName,
-                fromId: item.fromId,
-                text: item.text,
-                status: item.status as "NEW" | "REPLIED" | "IGNORED",
-                aiDraftReply: item.aiDraftReply,
-                repliedText: item.repliedText,
-                receivedAt: item.receivedAt.toISOString(),
-              }}
-            />
-          ))}
-        </section>
-      )}
-    </div>
+    <SocialInboxView
+      initialItems={initialItems}
+      companyName={company?.name || "Allota CRM"}
+    />
   );
 }

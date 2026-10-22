@@ -70,6 +70,8 @@ export async function ensureCompanySettingsColumns() {
           "fromId" TEXT,
           "text" TEXT,
           "postOrThreadId" TEXT,
+          "postTitle" TEXT,
+          "postThumbnail" TEXT,
           "permalink" TEXT,
           "status" TEXT NOT NULL DEFAULT 'NEW',
           "aiDraftReply" TEXT,
@@ -80,6 +82,10 @@ export async function ensureCompanySettingsColumns() {
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
+
+      // Add postTitle and postThumbnail if table already existed
+      await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "postTitle" TEXT;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "SocialInboxItem" ADD COLUMN IF NOT EXISTS "postThumbnail" TEXT;`);
     } catch (err) {
       console.warn("[DB Sync] SocialInboxItem table check:", err);
     }
