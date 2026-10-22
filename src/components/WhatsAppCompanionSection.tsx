@@ -7,8 +7,28 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
   const [loading, setLoading] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("NOT_CONNECTED");
+  const [status, setStatus] = useState<string>("LOADING");
+  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Check initial status on mount
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const res = await fetch("/api/whatsapp-companion/pair");
+        const data = await res.json();
+        if (data?.status) {
+          setStatus(data.status);
+          if (data.phone) {
+            setConnectedPhone(data.phone);
+          }
+        }
+      } catch {
+        setStatus("NOT_CONNECTED");
+      }
+    }
+    checkStatus();
+  }, []);
 
   // Poll status when pairing code is active
   useEffect(() => {
@@ -22,12 +42,13 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
             setStatus(data.status);
             if (data.status === "CONNECTED") {
               setPairingCode(null);
+              if (data.phone) setConnectedPhone(data.phone);
             }
           }
         } catch {
-          // ignore background polling error
+          // ignore
         }
-      }, 4000);
+      }, 3500);
     }
     return () => clearInterval(interval);
   }, [pairingCode, status]);
@@ -59,9 +80,25 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
         setStatus("PAIRING_REQUESTED");
       } else if (data.alreadyRegistered) {
         setStatus("CONNECTED");
+        if (data.phone) setConnectedPhone(data.phone);
       }
     } catch (err: any) {
       setError(err?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (!confirm("Are you sure you want to disconnect this WhatsApp number?")) return;
+    setLoading(true);
+    try {
+      await fetch("/api/whatsapp-companion/pair", { method: "DELETE" });
+      setStatus("NOT_CONNECTED");
+      setConnectedPhone(null);
+      setPairingCode(null);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -74,6 +111,61 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
     setTimeout(() => setCopied(false), 2000);
   }
 
+  // 1. SLEEK CONNECTED STATE
+  if (status === "CONNECTED") {
+    const displayPhone = connectedPhone
+      ? (connectedPhone.startsWith("91") ? `+91 ${connectedPhone.slice(2)}` : `+${connectedPhone}`)
+      : `+91 ${phone}`;
+
+    return (
+      <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-5 sm:p-6 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            {/* Official WhatsApp Logo */}
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md shadow-emerald-500/20 border border-emerald-200">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-6 w-6 fill-[#25D366]"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12.004 2C6.48 2 2 6.48 2 12.004c0 1.956.564 3.784 1.54 5.332L2.2 21.8l4.636-1.308A9.957 9.957 0 0012.004 22c5.524 0 10.004-4.48 10.004-9.996C22.008 6.48 17.528 2 12.004 2zm5.836 14.152c-.244.688-1.424 1.32-1.988 1.396-.54.076-1.22.108-3.924-.984-3.468-1.396-5.712-4.94-5.888-5.172-.172-.232-1.408-1.876-1.408-3.576 0-1.7 1.048-2.536 1.424-2.884.288-.268.664-.336.888-.336.22 0 .444.004.636.012.204.012.48-.076.748.568.28.672.952 2.324 1.036 2.496.084.172.14.376.028.608-.108.232-.164.376-.328.568-.164.192-.344.428-.492.576-.164.164-.336.344-.144.672.192.328.852 1.4 1.824 2.268 1.256 1.116 2.312 1.464 2.64 1.628.328.164.52.14.712-.08.192-.224.82-.952 1.04-1.28.22-.328.444-.272.748-.164.304.108 1.932.912 2.264 1.076.336.164.56.244.64.38.084.136.084.788-.16 1.476z" />
+              </svg>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-black tracking-tight text-slate-900">
+                  WhatsApp connection
+                </h2>
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <p className="text-xs font-semibold text-emerald-900 mt-0.5">
+                Active on {displayPhone} · Receiving Meta Ad Leads
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end sm:self-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-black text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-600/20">
+              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+              Connected
+            </span>
+
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              disabled={loading}
+              className="text-xs font-bold text-slate-400 hover:text-rose-600 transition px-2 py-1 cursor-pointer"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // 2. DISCONNECTED / PAIRING STATE
   return (
     <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-6 sm:p-7 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md space-y-5 transition-all">
       {/* Decorative Glow */}
@@ -109,21 +201,17 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
         <div className="shrink-0">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs ${
-              status === "CONNECTED"
-                ? "bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20"
-                : status === "PAIRING_REQUESTED"
+              status === "PAIRING_REQUESTED"
                 ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse"
                 : "bg-white/80 text-slate-700 border border-slate-200"
             }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${
-                status === "CONNECTED" ? "bg-white" : status === "PAIRING_REQUESTED" ? "bg-amber-600" : "bg-slate-400"
+                status === "PAIRING_REQUESTED" ? "bg-amber-600" : "bg-slate-400"
               }`}
             />
-            {status === "CONNECTED"
-              ? "● Connected to Phone"
-              : status === "PAIRING_REQUESTED"
+            {status === "PAIRING_REQUESTED"
               ? "Waiting for Code on Phone..."
               : "Ready to Connect"}
           </span>
@@ -236,23 +324,6 @@ export function WhatsAppCompanionSection({ initialPhone }: { initialPhone?: stri
               <span className="font-black text-emerald-700 block text-sm">Step 4</span>
               <p className="font-bold text-slate-900 mt-0.5">Type Code</p>
               <p className="text-[11px] text-emerald-800 font-mono font-bold mt-0.5">{pairingCode}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Connected Success Card */}
-      {status === "CONNECTED" && (
-        <div className="rounded-2xl border-2 border-emerald-500 bg-white p-5 flex items-center justify-between shadow-md shadow-emerald-500/10">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 text-xl font-bold">
-              ✓
-            </div>
-            <div>
-              <p className="text-sm font-black text-slate-900">WhatsApp Phone Successfully Linked!</p>
-              <p className="text-xs text-slate-600 mt-0.5">
-                All incoming Click-to-WhatsApp ad inquiries will now be captured directly into the Allota CRM Leads Desk.
-              </p>
             </div>
           </div>
         </div>

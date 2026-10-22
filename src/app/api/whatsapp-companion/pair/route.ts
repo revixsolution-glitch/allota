@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
-import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason } from "@whiskeysockets/baileys";
+import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason, Browsers, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import pino from "pino";
 import path from "node:path";
 import fs from "node:fs";
@@ -10,6 +10,14 @@ export const dynamic = "force-dynamic";
 
 // In-memory cache of active companion sockets per company
 const activeSockets = new Map<string, any>();
+
+function getAuthDirs(companyId: string) {
+  return [
+    path.join(os.tmpdir(), `wa_auth_${companyId}`),
+    path.join(process.cwd(), "tmp", `wa_auth_${companyId}`),
+    path.join(process.cwd(), "tmp", "whatsapp_auth_test"),
+  ];
+}
 
 export async function POST(request: Request) {
   try {
@@ -38,13 +46,15 @@ export async function POST(request: Request) {
       fs.mkdirSync(authDir, { recursive: true });
     }
 
+    const { version } = await fetchLatestBaileysVersion();
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     const sock = makeWASocket({
+      version,
       auth: state,
       printQRInTerminal: false,
       logger: pino({ level: "silent" }) as any,
-      browser: ["Allota CRM", "Chrome", "120.0.0"],
+      browser: Browsers.macOS("Chrome"),
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -73,8 +83,8 @@ export async function POST(request: Request) {
       }
     });
 
-    // Wait 2.5 seconds for socket initialization before requesting pairing code
-    await delay(2500);
+    // Wait 3.5 seconds for socket handshake before requesting pairing code
+    await delay(3500);
 
     if (sock.authState.creds.registered) {
       return NextResponse.json({
@@ -111,9 +121,60 @@ export async function GET() {
   const companyId = getActiveCompanyId(session) || "default";
   const current = activeSockets.get(companyId);
 
+  // Check persisted credentials on disk
+  const authDirs = getAuthDirs(companyId);
+  let savedPhone: string | null = null;
+  let isSaved = false;
+
+  for (const dir of authDirs) {
+    const credsPath = path.join(dir, "creds.json");
+    if (fs.existsSync(/*turbopackIgnore: true*/ credsPath)) {
+      try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+        if (creds?.registered && creds?.me?.id) {
+          isSaved = true;
+          savedPhone = creds.me.id.split(":")[0];
+          break;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const isConnected = current?.status === "CONNECTED" || isSaved;
+
   return NextResponse.json({
-    status: current?.status || "NOT_CONNECTED",
-    phone: current?.phone || null,
+    status: isConnected ? "CONNECTED" : (current?.status || "NOT_CONNECTED"),
+    phone: current?.phone || savedPhone || null,
     connectedAt: current?.connectedAt || null,
   });
+}
+
+export async function DELETE() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const companyId = getActiveCompanyId(session) || "default";
+  const current = activeSockets.get(companyId);
+
+  if (current?.sock) {
+    try {
+      current.sock.end(undefined);
+    } catch {}
+  }
+  activeSockets.delete(companyId);
+
+  const authDirs = getAuthDirs(companyId);
+  for (const dir of authDirs) {
+    if (fs.existsSync(/*turbopackIgnore: true*/ dir)) {
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch {}
+    }
+  }
+
+  return NextResponse.json({ success: true, status: "DISCONNECTED" });
 }
