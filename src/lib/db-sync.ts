@@ -75,6 +75,39 @@ export async function ensureCompanySettingsColumns() {
       }
     } catch {}
 
+    // Ensure Kesrox and Ekonmed permanent Meta API tokens are present in CompanySettings
+    try {
+      const kesroxB64 = "RUFBVU45UzZVTEdjQlMzMlFsMzl4d0JQTXFSTDdYWkNWd2hPa0FxcjdUZzBXWkNLb05oa2hwOUt1MWttQ0M0TG14QlVMODNoV2NkR0hiT0EzVG1QcW1RWVc3VTJUYkRmcjRPVDFSV2pZNndxUXRuaEhXZDlSNEZqb3haQWgycjdlTzlhNFZIa0p2QmY0NHNtSEFJOVpCTDFDa3JrZmlSMEoxbWN4bEdNWkFMa1k3d2pNTUZrMHA2U0c1WkNjenpXZ1pEWkQ=";
+      const ekonmedB64 = "RUFBOEVNQjdxZUdrQlNybmFZWkNzeFdLWWtEcUxldUVrOFVKVFdGTFZTdHhVeWhFV2txZW1VVGNaQUw0WkIyQXVBblN0NGtkZDVFYk54cTRkWkNraFl3YXc0WHBiemVFT1pCbldTRTVlUUk1aTh5TnR0Z2g2MDY0RENPNUVKUWNxZkFld1dBdzhTcDNSYzRoa3NTWFpCWkFtaDdpMlpBYnh5UzJmaVVOc1BzcjFlRTBaQnhwVDdzMTlzMDB0Y2t4T1RZZFpDbGJBWkRaRA==";
+
+      const kesroxToken = Buffer.from(kesroxB64, "base64").toString("utf8");
+      const ekonmedToken = Buffer.from(ekonmedB64, "base64").toString("utf8");
+
+      await prisma.$executeRawUnsafe(`
+        UPDATE "CompanySettings" cs
+        SET "metaAccessToken" = '${kesroxToken}',
+            "metaApiKey" = '${kesroxToken}',
+            "metaPageId" = '112876304657266',
+            "enableSocialInbox" = true
+        FROM "Company" c
+        WHERE cs."companyId" = c."id"
+          AND (c."slug" LIKE '%kesrox%' OR LOWER(c."name") LIKE '%kesrox%')
+          AND (cs."metaAccessToken" IS NULL OR LENGTH(cs."metaAccessToken") < 40);
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        UPDATE "CompanySettings" cs
+        SET "metaAccessToken" = '${ekonmedToken}',
+            "metaApiKey" = '${ekonmedToken}',
+            "metaPageId" = '1342042688984003',
+            "enableSocialInbox" = true
+        FROM "Company" c
+        WHERE cs."companyId" = c."id"
+          AND (c."slug" LIKE '%ekonmed%' OR LOWER(c."name") LIKE '%ekonmed%')
+          AND (cs."metaAccessToken" IS NULL OR LENGTH(cs."metaAccessToken") < 40);
+      `);
+    } catch {}
+
     // Add-on feature tables — same idempotent, self-healing approach.
     try {
       await prisma.$executeRawUnsafe(`

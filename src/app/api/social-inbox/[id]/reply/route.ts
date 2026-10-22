@@ -52,11 +52,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const settings = await prisma.companySettings.findFirst({
     where: { companyId: activeCompanyId ?? undefined },
-    select: { metaAccessToken: true, metaApiKey: true },
+    select: { metaAccessToken: true, metaApiKey: true, metaPageId: true },
   });
   const accessToken = settings?.metaAccessToken || settings?.metaApiKey;
   if (!accessToken) {
     return NextResponse.json({ error: "No Meta access token is saved for this company yet." }, { status: 400 });
+  }
+
+  // Resolve Page Access Token for New Pages Experience
+  let effectiveToken = accessToken;
+  if (settings?.metaPageId) {
+    try {
+      const pageRes = await fetch(
+        `https://graph.facebook.com/v19.0/${settings.metaPageId}?fields=access_token&access_token=${accessToken}`
+      );
+      if (pageRes.ok) {
+        const pageData = await pageRes.json();
+        if (pageData.access_token) {
+          effectiveToken = pageData.access_token;
+        }
+      }
+    } catch {}
   }
 
   try {
@@ -65,7 +81,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       metaRes = await fetch(`https://graph.facebook.com/v19.0/${item.externalId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, access_token: accessToken }),
+        body: JSON.stringify({ message: text, access_token: effectiveToken }),
       });
     } else {
       metaRes = await fetch(`https://graph.facebook.com/v19.0/me/messages`, {
@@ -75,7 +91,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           recipient: { id: item.fromId },
           message: { text },
           messaging_type: "RESPONSE",
-          access_token: accessToken,
+          access_token: effectiveToken,
         }),
       });
     }
