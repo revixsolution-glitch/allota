@@ -5,25 +5,58 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 export const dynamic = "force-dynamic";
 
 /**
- * Ingestion endpoint for WhatsApp companion messages.
- * Automatically converts incoming WhatsApp ad inquiries into CRM Leads.
+ * Commercial Ad & Lead Keywords for PCD Pharma & Meta Ads.
+ * Personal, family, or supplier chats that do not match these are dropped by the firewall.
+ */
+const AD_INTENT_KEYWORDS = [
+  "pcd",
+  "franchise",
+  "product list",
+  "pricing",
+  "rate list",
+  "catalog",
+  "catalogue",
+  "monopoly",
+  "distributor",
+  "distributorship",
+  "pharma",
+  "remedies",
+  "interested",
+  "inquiry",
+  "enquiry",
+  "share details",
+  "order",
+  "medicine",
+  "sample",
+];
+
+/**
+ * Strict Security Ingestion endpoint for WhatsApp companion messages.
+ * PRIVACY GUARANTEE: Only captures verifiable Meta Ad leads and commercial inquiries.
+ * Personal chats, family messages, group chats, and outbound texts are dropped immediately.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { companyId, senderPhone, senderName, messageText, isFromMe } = body;
+    const { companyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral } = body;
 
-    if (!companyId || !senderPhone || isFromMe) {
-      return NextResponse.json({ success: true, ignored: true });
+    // 1. Strict Security Filter: Never process outbound or group chats
+    if (!companyId || !senderPhone || isFromMe || isGroup) {
+      return NextResponse.json({ success: true, ignored: true, reason: "OUTBOUND_OR_GROUP" });
     }
 
-    // Format phone to clean +91 format
+    const cleanText = String(messageText || "").trim().toLowerCase();
+
+    // 2. Format phone to clean +91 format
     const digits = senderPhone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      return NextResponse.json({ success: true, ignored: true, reason: "INVALID_PHONE" });
+    }
     const formattedPhone = digits.startsWith("91") && digits.length === 12
       ? `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`
       : `+${digits}`;
 
-    // Verify company exists
+    // 3. Verify company exists
     const company = await prisma.company.findUnique({
       where: { id: companyId },
       select: { id: true, name: true },
@@ -33,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    // Check if lead already exists
+    // 4. Check if sender is ALREADY a tracked lead in the CRM
     const existing = await prisma.lead.findFirst({
       where: {
         companyId,
@@ -43,8 +76,8 @@ export async function POST(request: Request) {
     });
 
     if (existing) {
-      // Append inquiry update
-      const updatedInquiry = `${existing.inquiryDetails || ""}\n[New Message]: ${messageText}`.trim();
+      // It is an ongoing conversation with an existing lead
+      const updatedInquiry = `${existing.inquiryDetails || ""}\n[Follow-up]: ${messageText}`.trim();
       await prisma.lead.update({
         where: { id: existing.id },
         data: {
@@ -60,34 +93,40 @@ export async function POST(request: Request) {
       });
     }
 
-    // Pick first active employee to auto-assign
+    // 5. PRIVACY FIREWALL: Verify if this new contact is from a Meta Ad or Commercial Inquiry
+    const matchesCommercialIntent = AD_INTENT_KEYWORDS.some((kw) => cleanText.includes(kw));
+    const isVerifiedAdLead = Boolean(hasAdReferral) || matchesCommercialIntent;
+
+    if (!isVerifiedAdLead) {
+      // Drop personal / non-ad chats silently without storing anything
+      return NextResponse.json({
+        success: true,
+        ignored: true,
+        reason: "FILTERED_NON_AD_MESSAGE",
+      });
+    }
+
+    // 6. Ingest only verified ad leads into Allota CRM
     const defaultEmployee = await prisma.employee.findFirst({
       where: { companyId },
       select: { id: true, name: true },
     });
 
-    const isAdMessage =
-      messageText?.toLowerCase().includes("pcd") ||
-      messageText?.toLowerCase().includes("franchise") ||
-      messageText?.toLowerCase().includes("product list") ||
-      messageText?.toLowerCase().includes("pricing") ||
-      messageText?.toLowerCase().includes("monopoly");
-
     const newLead = await prisma.lead.create({
       data: {
         companyId,
-        name: senderName || "WhatsApp Inquirer",
+        name: senderName || "WhatsApp Prospect",
         phoneNumber: formattedPhone,
         source: LeadSource.WHATSAPP,
-        sourceTag: isAdMessage ? "WhatsApp Meta Ad Inquiry" : "WhatsApp Direct Message",
+        sourceTag: hasAdReferral ? "Meta Click-to-WhatsApp Ad" : "WhatsApp Ad Inquirer",
         division: "PCD_FRANCHISE",
         status: defaultEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: defaultEmployee?.id || null,
-        inquiryDetails: messageText || "Customer initiated WhatsApp conversation.",
+        inquiryDetails: messageText || "Initiated ad inquiry on WhatsApp.",
       },
     });
 
-    console.log(`[WhatsApp Companion] New Lead Created: ${newLead.name} (${newLead.phoneNumber}) for ${company.name}`);
+    console.log(`[Privacy Firewall] Verified Ad Lead Captured: ${newLead.name} (${newLead.phoneNumber}) for ${company.name}`);
 
     return NextResponse.json({
       success: true,
