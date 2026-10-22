@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { GradientText } from "@/components/GradientText";
 
 export interface SocialItemData {
   id: string;
@@ -25,7 +26,6 @@ export interface SocialItemData {
 
 export function SocialInboxView({
   initialItems,
-  companyName = "My Company",
 }: {
   initialItems: SocialItemData[];
   companyName?: string;
@@ -37,7 +37,6 @@ export function SocialInboxView({
   const [platformFilter, setPlatformFilter] = useState<"ALL" | "INSTAGRAM" | "FACEBOOK">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   // Per-card draft and sending state
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -48,7 +47,6 @@ export function SocialInboxView({
   // Sync / Refresh social activity
   async function handleSync() {
     setIsSyncing(true);
-    setSyncStatus("Checking Meta feed & comments...");
     try {
       const res = await fetch("/api/social-inbox/sync", { method: "POST" });
       const data = await res.json();
@@ -59,15 +57,10 @@ export function SocialInboxView({
             receivedAt: new Date(i.receivedAt).toISOString(),
           }))
         );
-        setSyncStatus(`Updated! Synced ${data.syncedCount || 0} recent interactions.`);
-      } else {
-        setSyncStatus("Synced successfully.");
       }
-      setTimeout(() => setSyncStatus(null), 4000);
       router.refresh();
     } catch {
-      setSyncStatus("Sync failed. Check connection.");
-      setTimeout(() => setSyncStatus(null), 3000);
+      // ignore
     } finally {
       setIsSyncing(false);
     }
@@ -129,18 +122,12 @@ export function SocialInboxView({
   // Filtered Items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // 1. Interaction Kind Filter
       if (activeTab !== "ALL" && item.kind !== activeTab) return false;
-
-      // 2. Platform Filter
       if (platformFilter !== "ALL" && item.platform !== platformFilter) return false;
-
-      // 3. Creative Format Filter (Ads vs Reels vs Organic Posts)
       if (creativeFilter === "ADS" && !item.isAd && item.mediaType !== "AD") return false;
       if (creativeFilter === "REELS" && item.mediaType !== "REEL") return false;
       if (creativeFilter === "POSTS" && (item.isAd || item.mediaType === "REEL" || item.kind === "MESSAGE")) return false;
 
-      // 4. Search Filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = item.fromName?.toLowerCase().includes(q) || false;
@@ -167,40 +154,28 @@ export function SocialInboxView({
   }, [items]);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Top Executive Header */}
-      <section className="relative overflow-hidden rounded-3xl border border-line bg-white p-6 sm:p-7 neo-panel shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Consistent Global Header */}
+      <section className="relative overflow-hidden rounded-3xl bg-white px-7 py-6 neo-panel border border-line">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                {companyName} · Live Social Desk
-              </span>
-              {syncStatus && (
-                <span className="text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                  {syncStatus}
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-ink mt-2 tracking-tight">
-              Social Media Activity &amp; Community Inbox
+            <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+              Social <GradientText>Inbox</GradientText>
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-ink-muted max-w-2xl leading-relaxed">
-              Real-time feed of comments, post likes, and direct messages (DMs). 
-              View the exact creative (Post, Reel, or Paid Meta Ad) that received attention.
+            <p className="mt-1 text-sm text-ink-muted">
+              Comments, likes, and direct messages from Facebook and Instagram in one place.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleSync}
               disabled={isSyncing}
-              className="flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-2.5 text-xs font-bold text-ink shadow-xs hover:bg-slate-50 active:scale-98 transition cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-2 text-xs font-bold text-ink shadow-xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
             >
               <span className={isSyncing ? "animate-spin" : ""}>🔄</span>
-              <span>{isSyncing ? "Syncing Feed..." : "Sync Social Feed"}</span>
+              <span>{isSyncing ? "Syncing..." : "Sync Feed"}</span>
             </button>
           </div>
         </div>
@@ -215,11 +190,11 @@ export function SocialInboxView({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-sky-800">Post Comments</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-50 text-sm">💬</span>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-faint">Comments</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-100 text-sm">💬</span>
           </div>
           <p className="text-3xl font-black text-ink mt-2">{stats.comments}</p>
-          <p className="text-[10px] text-ink-faint mt-1">Questions &amp; franchise inquiries</p>
+          <p className="text-[10px] text-ink-faint mt-1">Post discussions</p>
         </div>
 
         <div
@@ -229,11 +204,11 @@ export function SocialInboxView({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800">Likes &amp; Reactions</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-rose-50 text-sm">❤️</span>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-faint">Likes &amp; Reactions</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-100 text-sm">❤️</span>
           </div>
           <p className="text-3xl font-black text-ink mt-2">{stats.likes}</p>
-          <p className="text-[10px] text-ink-faint mt-1">Post appreciations &amp; brand love</p>
+          <p className="text-[10px] text-ink-faint mt-1">Reactions on posts &amp; reels</p>
         </div>
 
         <div
@@ -243,20 +218,20 @@ export function SocialInboxView({
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-800">Direct Messages (DMs)</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-50 text-sm">✉️</span>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-faint">Direct Messages</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-100 text-sm">✉️</span>
           </div>
           <p className="text-3xl font-black text-ink mt-2">{stats.dms}</p>
-          <p className="text-[10px] text-ink-faint mt-1">Private 1-on-1 conversations</p>
+          <p className="text-[10px] text-ink-faint mt-1">Messenger &amp; Instagram DMs</p>
         </div>
 
         <div className="rounded-2xl bg-white p-4 sm:p-5 neo-panel border border-line">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Sponsored Meta Ads</p>
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-50 text-sm">📢</span>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-faint">Sponsored Ads</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-100 text-sm">📢</span>
           </div>
-          <p className="text-3xl font-black text-amber-700 mt-2">{stats.adsCount}</p>
-          <p className="text-[10px] text-amber-800/80 mt-1">Paid ad creative interactions</p>
+          <p className="text-3xl font-black text-ink mt-2">{stats.adsCount}</p>
+          <p className="text-[10px] text-ink-faint mt-1">Paid ad creative activity</p>
         </div>
       </div>
 
@@ -323,23 +298,23 @@ export function SocialInboxView({
       </div>
 
       {/* Creative Format Differentiator Strip */}
-      <div className="flex flex-wrap items-center gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-line">
-        <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 px-2">
+      <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-line">
+        <span className="text-[11px] font-bold text-ink-faint px-2">
           Creative Format:
         </span>
         {[
           { id: "ALL", label: "All Creatives", icon: "✨" },
-          { id: "ADS", label: `Meta Ads (Sponsored) (${stats.adsCount})`, icon: "📢", color: "bg-amber-100 text-amber-900 border-amber-300" },
-          { id: "REELS", label: `Video Reels (${stats.reelsCount})`, icon: "🎬", color: "bg-purple-100 text-purple-900 border-purple-300" },
-          { id: "POSTS", label: "Organic Feed Posts", icon: "📸", color: "bg-slate-200 text-slate-800" },
+          { id: "ADS", label: `Meta Ads (${stats.adsCount})`, icon: "📢" },
+          { id: "REELS", label: `Reels (${stats.reelsCount})`, icon: "🎬" },
+          { id: "POSTS", label: "Organic Posts", icon: "📸" },
         ].map((c) => (
           <button
             key={c.id}
             onClick={() => setCreativeFilter(c.id as any)}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-extrabold transition cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
               creativeFilter === c.id
-                ? "bg-slate-900 text-white shadow-xs ring-2 ring-slate-900/20"
-                : "bg-white text-slate-600 border border-line hover:bg-slate-100"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white text-ink-muted border border-line hover:bg-slate-100 hover:text-ink"
             }`}
           >
             <span>{c.icon}</span>
@@ -357,7 +332,7 @@ export function SocialInboxView({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by prospect name, message keyword, campaign, or post topic..."
+          placeholder="Search by prospect name, message keyword, or post topic..."
           className="w-full rounded-2xl border border-line bg-white pl-10 pr-4 py-2.5 text-xs text-ink placeholder:text-ink-faint focus:outline-teal-600 shadow-2xs"
         />
         {searchQuery && (
@@ -372,37 +347,25 @@ export function SocialInboxView({
 
       {/* Items List */}
       {filteredItems.length === 0 ? (
-        <div className="rounded-3xl border border-line bg-white p-12 text-center neo-panel space-y-3">
+        <section className="rounded-3xl border border-line bg-white p-12 text-center neo-panel space-y-3">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
-            {creativeFilter === "ADS" ? "📢" : creativeFilter === "REELS" ? "🎬" : "💬"}
+            💬
           </div>
-          <h3 className="text-base font-extrabold text-ink">
-            {searchQuery
-              ? "No interactions matched your search"
-              : creativeFilter === "ADS"
-              ? "No Sponsored Ad Comments or Inquiries Yet"
-              : creativeFilter === "REELS"
-              ? "No Reel Comments or Likes Yet"
-              : "No Recent Social Comments, Likes, or DMs Found"}
+          <h3 className="text-base font-bold text-ink">
+            No social interactions yet
           </h3>
-          <p className="text-xs text-ink-muted max-w-lg mx-auto leading-relaxed">
-            {searchQuery
-              ? "Try clearing your search query to see all activity."
-              : "Your Social Inbox is 100% connected to live Meta APIs. As real doctors, chemists, and distributors interact with your posts, reels, or ads on Facebook & Instagram, their activity will appear here instantly."}
+          <p className="text-xs text-ink-muted max-w-md mx-auto leading-relaxed">
+            Comments, likes, and direct messages from your connected Facebook Page and Instagram account will show up here as they come in.
           </p>
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-[11px] font-bold text-emerald-800">
-            <span>🛡️</span>
-            <span>100% Live Meta Data Guarantee · Zero Mock/Demo Records</span>
-          </div>
           <div className="pt-2">
             <button
               onClick={handleSync}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-black transition cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-black transition cursor-pointer"
             >
-              <span>🔄</span> Check &amp; Sync Meta Activity
+              <span>🔄</span> Check for Updates
             </button>
           </div>
-        </div>
+        </section>
       ) : (
         <div className="space-y-4">
           {filteredItems.map((item) => {
@@ -415,11 +378,7 @@ export function SocialInboxView({
             return (
               <div
                 key={item.id}
-                className={`rounded-3xl border bg-white p-5 sm:p-6 neo-panel shadow-xs transition hover:shadow-md space-y-4 ${
-                  item.isAd
-                    ? "border-amber-300 ring-2 ring-amber-400/20 bg-gradient-to-b from-amber-50/20 to-white"
-                    : "border-line"
-                }`}
+                className="rounded-3xl border border-line bg-white p-5 sm:p-6 neo-panel shadow-xs transition hover:shadow-md space-y-4"
               >
                 {/* 1. VISUAL CREATIVE PREVIEW (POST / REEL / AD) */}
                 {item.postTitle && (
@@ -454,14 +413,14 @@ export function SocialInboxView({
                         <div className="flex flex-wrap items-center gap-1.5">
                           {/* Ad vs Reel vs Organic Post Badge */}
                           {item.isAd ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-950 shadow-xs">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-950">
                               <span>📢</span>
-                              <span>Sponsored Meta Ad</span>
+                              <span>Sponsored Ad</span>
                             </span>
                           ) : item.mediaType === "REEL" ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
                               <span>🎬</span>
-                              <span>Reel (Video)</span>
+                              <span>Reel</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-md bg-slate-200 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
@@ -471,8 +430,8 @@ export function SocialInboxView({
                           )}
 
                           {item.adCampaignName && (
-                            <span className="rounded-md bg-amber-100/80 border border-amber-300/80 px-2 py-0.5 text-[10px] font-bold text-amber-900 truncate max-w-xs">
-                              🎯 Campaign: {item.adCampaignName}
+                            <span className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900 truncate max-w-xs">
+                              {item.adCampaignName}
                             </span>
                           )}
                         </div>
@@ -562,14 +521,14 @@ export function SocialInboxView({
                 </div>
 
                 {/* 3. INTERACTION CONTENT */}
-                <div className="rounded-2xl bg-slate-50/70 border border-line/70 p-4">
+                <div className="rounded-2xl bg-slate-50 border border-line/70 p-4">
                   {item.kind === "LIKE" ? (
                     <div className="flex items-center gap-2 text-rose-600 font-bold text-xs sm:text-sm">
                       <span className="text-lg">❤️</span>
-                      <span>Liked and appreciated this creative!</span>
+                      <span>Liked this creative</span>
                     </div>
                   ) : (
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed">
+                    <p className="text-xs sm:text-sm font-medium text-ink leading-relaxed">
                       &ldquo;{item.text || "(No message body)"}&rdquo;
                     </p>
                   )}
@@ -579,9 +538,9 @@ export function SocialInboxView({
                 {item.kind !== "LIKE" && (
                   <div>
                     {item.status === "REPLIED" ? (
-                      <div className="rounded-2xl bg-emerald-50/70 border border-emerald-200 p-3.5 space-y-1">
+                      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 space-y-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
-                          <span>✓</span> Replied by You
+                          <span>✓</span> Replied
                         </span>
                         <p className="text-xs font-medium text-emerald-950">
                           {item.repliedText}
@@ -595,7 +554,7 @@ export function SocialInboxView({
                             setDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
                           }
                           rows={2}
-                          placeholder="Type a professional response, or click AI Draft Reply..."
+                          placeholder="Write a reply, or let AI draft one..."
                           className="w-full rounded-2xl border border-line bg-white p-3 text-xs text-ink placeholder:text-ink-faint focus:outline-teal-600 focus:ring-1 focus:ring-teal-600"
                         />
 
@@ -610,14 +569,14 @@ export function SocialInboxView({
                             disabled={isDrafting}
                             className="rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
                           >
-                            {isDrafting ? "✨ Drafting with Gemini..." : "✨ AI Draft Reply"}
+                            {isDrafting ? "Thinking..." : "✨ AI Draft Reply"}
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handleSend(item.id)}
                             disabled={isSending}
-                            className="rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-extrabold text-white hover:bg-black transition cursor-pointer disabled:opacity-50 shadow-xs"
+                            className="rounded-xl bg-slate-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-black transition cursor-pointer disabled:opacity-50 shadow-xs"
                           >
                             {isSending ? "Sending..." : "Send Reply →"}
                           </button>
