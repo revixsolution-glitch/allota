@@ -4,6 +4,7 @@ import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason } from "@w
 import pino from "pino";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid phone number format." }, { status: 400 });
     }
 
-    const authDir = path.join(process.cwd(), "tmp", `wa_auth_${companyId}`);
+    const authDir = path.join(os.tmpdir(), `wa_auth_${companyId}`);
     if (!fs.existsSync(authDir)) {
       fs.mkdirSync(authDir, { recursive: true });
     }
