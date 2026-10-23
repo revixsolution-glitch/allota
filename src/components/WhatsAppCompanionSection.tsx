@@ -7,18 +7,16 @@ function cleanDigits(val?: string | null): string {
   return val.replace(/\D/g, "");
 }
 
-function formatPhoneDisplay(raw?: string | null, fallback = "9996589217"): string {
-  const digits = cleanDigits(raw) || cleanDigits(fallback);
+function formatPhoneDisplay(raw?: string | null): string {
+  const digits = cleanDigits(raw);
+  if (!digits) return "";
   if (digits.length === 12 && digits.startsWith("91")) {
     return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
   }
   if (digits.length === 10) {
     return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
   }
-  if (digits.length > 0) {
-    return `+${digits}`;
-  }
-  return "+91 99965 89217";
+  return `+${digits}`;
 }
 
 export function WhatsAppCompanionSection({
@@ -31,7 +29,7 @@ export function WhatsAppCompanionSection({
   initialConnectedPhone?: string;
 }) {
   // Strip country code from input field so user just sees clean 10-digit local number next to +91 flag
-  const initialLocalPhone = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "") || "9996589217";
+  const initialLocalPhone = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "");
 
   const [phone, setPhone] = useState(initialLocalPhone);
   const [loading, setLoading] = useState(false);
@@ -39,7 +37,7 @@ export function WhatsAppCompanionSection({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>(initialConnected ? "CONNECTED" : "NOT_CONNECTED");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(
-    initialConnected ? (initialConnectedPhone || initialPhone || "919996589217") : null
+    initialConnected ? (initialConnectedPhone || null) : null
   );
   const [copied, setCopied] = useState(false);
 
@@ -50,13 +48,12 @@ export function WhatsAppCompanionSection({
         const res = await fetch("/api/whatsapp-companion/pair");
         if (!res.ok) return;
         const data = await res.json();
-        if (data?.status === "CONNECTED") {
+        if (data?.status === "CONNECTED" && data?.phone) {
           setStatus("CONNECTED");
-          if (data.phone) {
-            setConnectedPhone(data.phone);
-          }
-        } else if (data?.status === "NOT_CONNECTED" && !initialConnected) {
+          setConnectedPhone(data.phone);
+        } else if (data?.status === "NOT_CONNECTED") {
           setStatus("NOT_CONNECTED");
+          setConnectedPhone(null);
         }
       } catch {
         // Keep initial connected state intact if network blip
@@ -281,7 +278,7 @@ export function WhatsAppCompanionSection({
                     handleRequestCode();
                   }
                 }}
-                placeholder="9996589217"
+                placeholder="e.g. 9876543210"
                 className="w-full rounded-2xl border border-emerald-300/80 bg-white/90 pl-16 pr-4 py-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 shadow-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
               />
             </div>

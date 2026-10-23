@@ -269,26 +269,25 @@ export default async function AdminSettingsPage() {
 
       {/* Direct WhatsApp Business Phone Companion Link (Option A) */}
       {(() => {
+        if (!activeCompanyId) return null;
+
         let isWhatsAppConnected = Boolean((settings as any)?.whatsappConnected);
         let companionPhone = (settings as any)?.whatsappCompanionPhone || null;
 
         if (!isWhatsAppConnected && settings?.whatsappCompanionCreds) {
           try {
             const parsed = JSON.parse(settings.whatsappCompanionCreds);
-            if (parsed?.registered) {
+            if (parsed?.registered && parsed?.me?.id) {
               isWhatsAppConnected = true;
-              if (parsed?.me?.id) {
-                companionPhone = parsed.me.id.split(":")[0];
-              }
+              companionPhone = parsed.me.id.split(":")[0];
             }
           } catch {}
         }
 
         if (!isWhatsAppConnected) {
           const authDirs = [
-            path.join(os.tmpdir(), `wa_auth_${activeCompanyId || "default"}`),
-            path.join(process.cwd(), "tmp", `wa_auth_${activeCompanyId || "default"}`),
-            path.join(process.cwd(), "tmp", "whatsapp_auth_test"),
+            path.join(os.tmpdir(), "allota_wa", `wa_${activeCompanyId}`),
+            path.join(process.cwd(), "tmp", "allota_wa", `wa_${activeCompanyId}`),
           ];
           for (const dir of authDirs) {
             const credsPath = path.join(dir, "creds.json");
@@ -305,13 +304,13 @@ export default async function AdminSettingsPage() {
           }
         }
 
-        const finalCompanionPhone = companionPhone || company?.contactPhone || undefined;
+        const isActuallyConnected = Boolean(isWhatsAppConnected && companionPhone);
 
         return (
           <WhatsAppCompanionSection
-            initialPhone={company?.contactPhone || companionPhone || undefined}
-            initialConnected={isWhatsAppConnected}
-            initialConnectedPhone={finalCompanionPhone}
+            initialPhone={company?.contactPhone || undefined}
+            initialConnected={isActuallyConnected}
+            initialConnectedPhone={isActuallyConnected ? (companionPhone || undefined) : undefined}
           />
         );
       })()}

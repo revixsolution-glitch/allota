@@ -47,32 +47,28 @@ export async function ensureCompanySettingsColumns() {
       }
     }
 
-    // Auto-sync active WhatsApp companion status if creds exist
+    // Auto-sync active WhatsApp companion status strictly for company records with valid individual creds
     try {
       await prisma.$executeRawUnsafe(`
         UPDATE "CompanySettings"
         SET "whatsappConnected" = true
         WHERE ("whatsappCompanionCreds" LIKE '%"registered":true%' OR "whatsappCompanionCreds" LIKE '%"registered": true%')
+          AND "whatsappCompanionPhone" IS NOT NULL
+          AND "whatsappCompanionPhone" NOT LIKE '%9996589217%'
           AND "whatsappConnected" = false;
       `);
     } catch {}
 
-    // Auto-sync host daemon credentials to default company if available
+    // Purge any leaked test phone numbers or credentials from CompanySettings across all companies
     try {
-      const defaultCredsPath = path.join(process.cwd(), "tmp", "whatsapp_auth_test", "creds.json");
-      if (fs.existsSync(defaultCredsPath)) {
-        const credsRaw = fs.readFileSync(defaultCredsPath, "utf8");
-        const creds = JSON.parse(credsRaw);
-        if (creds?.registered && creds?.me?.id) {
-          const phone = creds.me.id.split(":")[0];
-          await prisma.$executeRawUnsafe(`
-            UPDATE "CompanySettings"
-            SET "whatsappConnected" = true,
-                "whatsappCompanionPhone" = COALESCE("whatsappCompanionPhone", '${phone}')
-            WHERE "id" = 'default' OR "companyId" IS NULL;
-          `);
-        }
-      }
+      await prisma.$executeRawUnsafe(`
+        UPDATE "CompanySettings"
+        SET "whatsappConnected" = false,
+            "whatsappCompanionPhone" = NULL,
+            "whatsappCompanionCreds" = NULL
+        WHERE "whatsappCompanionPhone" LIKE '%9996589217%'
+           OR "whatsappCompanionCreds" LIKE '%9996589217%';
+      `);
     } catch {}
 
     // Ensure Kesrox and Ekonmed permanent Meta API tokens are present in CompanySettings

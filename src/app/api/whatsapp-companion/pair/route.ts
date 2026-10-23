@@ -9,19 +9,17 @@ import os from "node:os";
 
 export const dynamic = "force-dynamic";
 
-// In-memory cache of active companion sockets per company
+// In-memory cache of active companion sockets strictly per company ID
 const activeSockets = new Map<string, any>();
 
-function getAuthDirs(companyId: string) {
+function getAuthDirs(companyId: string): string[] {
+  if (!companyId || companyId === "default") {
+    return [];
+  }
   return [
-    path.join(os.tmpdir(), `wa_auth_${companyId}`),
-    path.join(process.cwd(), "tmp", `wa_auth_${companyId}`),
-    path.join(process.cwd(), "tmp", "whatsapp_auth_test"),
+    path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`),
+    path.join(process.cwd(), "tmp", "allota_wa", `wa_${companyId}`),
   ];
-}
-
-function getCompanySettingsWhere(companyId: string) {
-  return companyId && companyId !== "default" ? { companyId } : { id: "default" };
 }
 
 export async function POST(request: Request) {
@@ -31,7 +29,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const companyId = getActiveCompanyId(session) || "default";
+    const companyId = getActiveCompanyId(session);
+    if (!companyId || companyId === "default") {
+      return NextResponse.json({ error: "No organization workspace selected." }, { status: 400 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const rawPhone = String(body.phone || "").trim();
 
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid phone number format." }, { status: 400 });
     }
 
-    const authDir = path.join(os.tmpdir(), `wa_auth_${companyId}`);
+    const authDir = path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`);
     if (!fs.existsSync(authDir)) {
       fs.mkdirSync(authDir, { recursive: true });
     }
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
             ? sock.authState.creds.me.id.split(":")[0]
             : fullPhone;
           await prisma.companySettings.updateMany({
-            where: getCompanySettingsWhere(companyId),
+            where: { companyId },
             data: {
               whatsappConnected: true,
               whatsappCompanionPhone: credsPhone,
@@ -101,7 +103,7 @@ export async function POST(request: Request) {
         }
         try {
           await prisma.companySettings.updateMany({
-            where: getCompanySettingsWhere(companyId),
+            where: { companyId },
             data: {
               whatsappConnected: true,
               whatsappCompanionPhone: fullPhone,
@@ -122,7 +124,7 @@ export async function POST(request: Request) {
     if (sock.authState.creds.registered) {
       try {
         await prisma.companySettings.updateMany({
-          where: getCompanySettingsWhere(companyId),
+          where: { companyId },
           data: {
             whatsappConnected: true,
             whatsappCompanionPhone: fullPhone,
@@ -136,24 +138,21 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         alreadyRegistered: true,
-        status: "CONNECTED",
-        message: "This phone number is already linked and connected!",
         phone: fullPhone,
       });
     }
 
-    const pairingCode = await sock.requestPairingCode(fullPhone);
+    const code = await sock.requestPairingCode(fullPhone);
 
     return NextResponse.json({
       success: true,
-      pairingCode,
+      pairingCode: code,
       phone: fullPhone,
-      expiresInSeconds: 120,
     });
-  } catch (error: any) {
-    console.error("Pairing code error:", error);
+  } catch (err: any) {
+    console.error("Failed to request pairing code:", err);
     return NextResponse.json(
-      { error: error?.message || "Failed to generate pairing code. Please try again." },
+      { error: err?.message || "Failed to initiate pairing. Please check the phone number." },
       { status: 500 }
     );
   }
@@ -165,11 +164,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const companyId = getActiveCompanyId(session) || "default";
+  const companyId = getActiveCompanyId(session);
+  if (!companyId || companyId === "default") {
+    return NextResponse.json({ status: "NOT_CONNECTED", phone: null });
+  }
+
   const current = activeSockets.get(companyId);
 
-  // 1. Check in-memory active socket
-  if (current?.status === "CONNECTED") {
+  // 1. Check in-memory active socket for THIS specific company
+  if (current?.status === "CONNECTED" && current.phone) {
     return NextResponse.json({
       status: "CONNECTED",
       phone: current.phone,
@@ -177,14 +180,14 @@ export async function GET() {
     });
   }
 
-  // 2. Check persisted credentials on disk
+  // 2. Check company-isolated persisted credentials on disk
   const authDirs = getAuthDirs(companyId);
   let savedPhone: string | null = null;
   let isSaved = false;
 
   for (const dir of authDirs) {
     const credsPath = path.join(dir, "creds.json");
-    if (fs.existsSync(/*turbopackIgnore: true*/ credsPath)) {
+    if (fs.existsSync(credsPath)) {
       try {
         const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
         if (creds?.registered && creds?.me?.id) {
@@ -198,11 +201,11 @@ export async function GET() {
     }
   }
 
-  // 3. Fallback to PostgreSQL database (CompanySettings)
+  // 3. Fallback to PostgreSQL database (CompanySettings strictly for this company)
   if (!isSaved) {
     try {
       const settings = await prisma.companySettings.findFirst({
-        where: getCompanySettingsWhere(companyId),
+        where: { companyId },
         select: {
           whatsappConnected: true,
           whatsappCompanionPhone: true,
@@ -210,13 +213,15 @@ export async function GET() {
         },
       });
 
-      if (settings?.whatsappConnected || settings?.whatsappCompanionCreds) {
-        isSaved = true;
-        savedPhone = settings.whatsappCompanionPhone || null;
-        if (!savedPhone && settings?.whatsappCompanionCreds) {
+      if (settings?.whatsappConnected && (settings?.whatsappCompanionPhone || settings?.whatsappCompanionCreds)) {
+        if (settings.whatsappCompanionPhone) {
+          isSaved = true;
+          savedPhone = settings.whatsappCompanionPhone;
+        } else if (settings.whatsappCompanionCreds) {
           try {
             const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
-            if (decryptedCreds?.me?.id) {
+            if (decryptedCreds?.registered && decryptedCreds?.me?.id) {
+              isSaved = true;
               savedPhone = decryptedCreds.me.id.split(":")[0];
             }
           } catch {}
@@ -227,22 +232,11 @@ export async function GET() {
     }
   }
 
-  // Fallback to company contactPhone if connected without phone
-  if (isSaved && !savedPhone && companyId !== "default") {
-    try {
-      const comp = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { contactPhone: true },
-      });
-      if (comp?.contactPhone) savedPhone = comp.contactPhone;
-    } catch {}
-  }
-
-  const isConnected = isSaved || current?.status === "CONNECTED";
+  const isConnected = Boolean(isSaved && savedPhone);
 
   return NextResponse.json({
     status: isConnected ? "CONNECTED" : (current?.status || "NOT_CONNECTED"),
-    phone: savedPhone || current?.phone || null,
+    phone: isConnected ? savedPhone : null,
     connectedAt: current?.connectedAt || null,
   });
 }
@@ -253,7 +247,11 @@ export async function DELETE() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const companyId = getActiveCompanyId(session) || "default";
+  const companyId = getActiveCompanyId(session);
+  if (!companyId || companyId === "default") {
+    return NextResponse.json({ success: true, status: "NOT_CONNECTED" });
+  }
+
   const current = activeSockets.get(companyId);
 
   if (current?.sock) {
@@ -263,10 +261,10 @@ export async function DELETE() {
   }
   activeSockets.delete(companyId);
 
-  // Clear credentials & status in database
+  // Clear credentials & status in database strictly for this company
   try {
     await prisma.companySettings.updateMany({
-      where: getCompanySettingsWhere(companyId),
+      where: { companyId },
       data: {
         whatsappConnected: false,
         whatsappCompanionPhone: null,
@@ -279,7 +277,7 @@ export async function DELETE() {
 
   const authDirs = getAuthDirs(companyId);
   for (const dir of authDirs) {
-    if (fs.existsSync(/*turbopackIgnore: true*/ dir)) {
+    if (fs.existsSync(dir)) {
       try {
         fs.rmSync(dir, { recursive: true, force: true });
       } catch {}
