@@ -261,23 +261,34 @@ export async function GET() {
       });
     }
 
-    // 3. Provision Kesrox Admin User
-    const adminEmail = "admin.kesrox@pharmacrm.test";
+    // 3. Provision Kesrox Admin Users (official brand emails + legacy alias)
+    const adminEmails = [
+      "kesroxpharmaceuticals@gmail.com",
+      "admin@kesrox.com",
+      "admin.kesrox@pharmacrm.test",
+    ];
     const adminPasswordHash = await bcrypt.hash("admin123", 10);
-    await prisma.user.upsert({
-      where: { email: adminEmail },
-      update: {
-        passwordHash: adminPasswordHash,
-        role: Role.ADMIN,
-        companyId: company.id,
-      },
-      create: {
-        email: adminEmail,
-        passwordHash: adminPasswordHash,
-        role: Role.ADMIN,
-        companyId: company.id,
-      },
-    });
+    for (const aEmail of adminEmails) {
+      await prisma.user.upsert({
+        where: { email: aEmail },
+        update: {
+          passwordHash: adminPasswordHash,
+          role: Role.ADMIN,
+          companyId: company.id,
+        },
+        create: {
+          email: aEmail,
+          passwordHash: adminPasswordHash,
+          role: Role.ADMIN,
+          companyId: company.id,
+        },
+      });
+      await prisma.loginDirectory.upsert({
+        where: { email: aEmail },
+        update: { companyId: company.id },
+        create: { email: aEmail, companyId: company.id },
+      }).catch(() => null);
+    }
 
     // 4. Provision Test Employee: Savi Kesorx
     const email = "savi.kesorx@pharmacrm.test";
@@ -552,7 +563,7 @@ export async function GET() {
       deletedWrongLeadsSample: wrongLeadsToDelete.slice(0, 10),
       connectedDriveFolder: "1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
       adminUser: {
-        email: adminEmail,
+        email: adminEmails[0],
         role: "ADMIN",
         company: company.name,
       },

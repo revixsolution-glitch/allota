@@ -46,10 +46,31 @@ export async function POST(request: Request) {
 
   const db = directoryEntry ? await getPrismaForCompany(directoryEntry.companyId) : defaultPrisma;
 
-  const user = await db.user.findUnique({
+  let user = await db.user.findUnique({
     where: { email: targetEmail },
     include: { employee: true, company: { select: { status: true } } },
   });
+
+  // If user not found by exact email, allow company contact email alias
+  // (e.g. if the company's registered official contact email is used to log in as company admin)
+  if (!user) {
+    const aliasCompany = await db.company.findFirst({
+      where: {
+        contactEmail: { equals: targetEmail, mode: "insensitive" },
+      },
+      include: {
+        users: {
+          where: { role: "ADMIN" },
+          include: { employee: true, company: { select: { status: true } } },
+          take: 1,
+        },
+      },
+    });
+
+    if (aliasCompany?.users?.[0]) {
+      user = aliasCompany.users[0];
+    }
+  }
 
   const isMatch = user ? await verifyPassword(password, user.passwordHash) : false;
 

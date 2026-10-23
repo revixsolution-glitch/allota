@@ -145,7 +145,7 @@ function LoginForm() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => performLogin("admin.kesrox@pharmacrm.test", "admin123", true)}
+              onClick={() => performLogin("kesroxpharmaceuticals@gmail.com", "admin123", true)}
               className="rounded-xl bg-teal-700 px-2 py-1.5 text-center text-white text-[11px] font-bold hover:bg-teal-800 disabled:opacity-50 cursor-pointer"
             >
               Kesrox Admin
