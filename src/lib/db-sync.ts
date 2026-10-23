@@ -71,6 +71,38 @@ export async function ensureCompanySettingsColumns() {
       `);
     } catch {}
 
+    // Deduplicate calls in database, keeping richest transcript/summary per recordingUrl
+    try {
+      await prisma.$executeRawUnsafe(`
+        DELETE FROM "Call"
+        WHERE id IN (
+          SELECT id FROM (
+            SELECT id,
+                   ROW_NUMBER() OVER (
+                     PARTITION BY "recordingUrl"
+                     ORDER BY LENGTH(COALESCE("aiSummary", '')) DESC,
+                              LENGTH(COALESCE("transcript", '')) DESC,
+                              "createdAt" DESC
+                   ) as rnum
+            FROM "Call"
+            WHERE "recordingUrl" IS NOT NULL AND "recordingUrl" != ''
+          ) t
+          WHERE t.rnum > 1
+        );
+      `);
+    } catch (e) {
+      console.warn("Deduplicate calls notice:", e);
+    }
+
+    // Standardize representative name to Savi Kesrox
+    try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Employee"
+        SET "name" = 'Savi Kesrox'
+        WHERE "name" ILIKE '%Savi%Kesorx%' OR "name" ILIKE '%Savi%Kesrox%';
+      `);
+    } catch {}
+
     // Ensure Kesrox and Ekonmed permanent Meta API tokens are present in CompanySettings
     try {
       const kesroxB64 = "RUFBVU45UzZVTEdjQlMzMlFsMzl4d0JQTXFSTDdYWkNWd2hPa0FxcjdUZzBXWkNLb05oa2hwOUt1MWttQ0M0TG14QlVMODNoV2NkR0hiT0EzVG1QcW1RWVc3VTJUYkRmcjRPVDFSV2pZNndxUXRuaEhXZDlSNEZqb3haQWgycjdlTzlhNFZIa0p2QmY0NHNtSEFJOVpCTDFDa3JrZmlSMEoxbWN4bEdNWkFMa1k3d2pNTUZrMHA2U0c1WkNjenpXZ1pEWkQ=";

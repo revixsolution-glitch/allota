@@ -203,20 +203,20 @@ async function handleSync(req: NextRequest) {
         if (!saviEmp) {
           saviEmp = await db.employee.create({
             data: {
-              name: "Savi Kesorx",
+              name: "Savi Kesrox",
               phoneNumber: "+91 98722 44331",
               companyId: effectiveCompanyId,
               userId: "user_savi_" + Date.now(),
             },
           });
-        } else if (effectiveCompanyId && saviEmp.companyId !== effectiveCompanyId) {
+        } else if (saviEmp.name !== "Savi Kesrox" || saviEmp.companyId !== effectiveCompanyId) {
           await db.employee.update({
             where: { id: saviEmp.id },
-            data: { companyId: effectiveCompanyId },
+            data: { name: "Savi Kesrox", companyId: effectiveCompanyId },
           });
         }
 
-        // Shift calls from drive to Savi Kesorx strictly for this company
+        // Shift calls from drive to Savi Kesrox strictly for this company
         await db.call.updateMany({
           where: {
             recordingUrl: { contains: "drive.google.com" },
@@ -318,7 +318,7 @@ async function handleSync(req: NextRequest) {
       const company = (await prisma.company.findFirst()) || { id: "default_company" };
       defaultEmployee = await prisma.employee.create({
         data: {
-          name: "Savi Kesorx",
+          name: "Savi Kesrox",
           phoneNumber: "+91 98722 44331",
           companyId: company.id,
           userId: "dev_user_" + Date.now(),
@@ -556,7 +556,9 @@ async function handleSync(req: NextRequest) {
           : ["⚡ Warm Lead", "Google Drive Sync", "PCD Franchise"];
       const durationSec = analysis?.durationSec || 25;
 
-      const existing = existingUrlMap.get(recordingUrl);
+      const existing = existingUrlMap.get(recordingUrl) || (await prisma.call.findFirst({
+        where: { recordingUrl },
+      }));
       if (existing) {
         const updated = await prisma.call.update({
           where: { id: existing.id },
@@ -569,6 +571,7 @@ async function handleSync(req: NextRequest) {
             employeeId: rep.id,
           },
         });
+        existingUrlMap.set(recordingUrl, updated);
         processedIds.push(updated.id);
       } else {
         const created = await prisma.call.create({
@@ -585,6 +588,7 @@ async function handleSync(req: NextRequest) {
             occurredAt: callDate,
           },
         });
+        existingUrlMap.set(recordingUrl, created);
         processedIds.push(created.id);
       }
     }
@@ -626,7 +630,26 @@ async function handleSync(req: NextRequest) {
       });
     }
 
-    const formattedCalls = updatedCalls.map((c: any) => {
+    // Deduplicate calls by recordingUrl, keeping the richer record
+    const dedupMap = new Map<string, any>();
+    for (const c of updatedCalls) {
+      const key = c.recordingUrl || c.id;
+      const existing = dedupMap.get(key);
+      if (!existing) {
+        dedupMap.set(key, c);
+      } else {
+        const existingIsGeneric = !existing.aiSummary || existing.aiSummary.includes("Call recorded and analyzed") || existing.aiSummary.includes("audio CRM me log");
+        const currentIsRicher = Boolean(c.aiSummary && !c.aiSummary.includes("Call recorded and analyzed") && !c.aiSummary.includes("audio CRM me log"));
+        if (existingIsGeneric && currentIsRicher) {
+          dedupMap.set(key, c);
+        } else if ((c.transcript?.length || 0) > (existing.transcript?.length || 0)) {
+          dedupMap.set(key, c);
+        }
+      }
+    }
+    const finalCalls = Array.from(dedupMap.values());
+
+    const formattedCalls = finalCalls.map((c: any) => {
       const territoryStr = c.client?.territory
         ? `${c.client.territory.city}, ${c.client.territory.state}`
         : c.lead?.client?.territory

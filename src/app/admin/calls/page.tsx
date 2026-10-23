@@ -86,7 +86,26 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
 
   const companyName = company?.name || "Allota AI";
 
-  const callFeed: CallFeedItem[] = calls.map((c) => {
+  // Deduplicate calls to ensure no duplicate cards ever render
+  const urlToCall = new Map<string, any>();
+  for (const c of calls) {
+    const key = c.recordingUrl || `${c.id}`;
+    const existing = urlToCall.get(key);
+    if (!existing) {
+      urlToCall.set(key, c);
+    } else {
+      const existingIsGeneric = !existing.aiSummary || existing.aiSummary.includes("Call recorded and analyzed") || existing.aiSummary.includes("audio CRM me log");
+      const currentIsRicher = Boolean(c.aiSummary && !c.aiSummary.includes("Call recorded and analyzed") && !c.aiSummary.includes("audio CRM me log"));
+      if (existingIsGeneric && currentIsRicher) {
+        urlToCall.set(key, c);
+      } else if ((c.transcript?.length || 0) > (existing.transcript?.length || 0)) {
+        urlToCall.set(key, c);
+      }
+    }
+  }
+  const deduplicatedCalls = Array.from(urlToCall.values());
+
+  const callFeed: CallFeedItem[] = deduplicatedCalls.map((c) => {
     const territoryStr = c.client?.territory
       ? `${c.client.territory.city}, ${c.client.territory.state}`
       : c.lead?.client?.territory

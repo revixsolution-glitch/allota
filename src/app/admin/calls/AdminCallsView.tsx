@@ -124,10 +124,31 @@ export function AdminCallsView({
         const data = await res.json();
         if (data.calls && Array.isArray(data.calls) && data.calls.length > 0) {
           setCallsList((prev) => {
-            // Merge: update existing by ID, append new ones
-            const prevMap = new Map(prev.map((c) => [c.id, c]));
-            data.calls.forEach((c: CallFeedItem) => prevMap.set(c.id, c));
-            return Array.from(prevMap.values()).sort(
+            // Merge & deduplicate across existing and incoming by recordingUrl or targetName+occurredAt
+            const urlToCall = new Map<string, CallFeedItem>();
+            const idToCall = new Map<string, CallFeedItem>();
+
+            for (const c of [...data.calls, ...prev]) {
+              const urlKey = c.recordingUrl || `${c.targetName}_${c.occurredAt}`;
+              const existing = urlToCall.get(urlKey);
+              if (!existing) {
+                urlToCall.set(urlKey, c);
+                idToCall.set(c.id, c);
+              } else {
+                const existingIsGeneric = !existing.aiSummary || existing.aiSummary.includes("Call recorded and analyzed") || existing.aiSummary.includes("audio CRM me log");
+                const currentIsRicher = Boolean(c.aiSummary && !c.aiSummary.includes("Call recorded and analyzed") && !c.aiSummary.includes("audio CRM me log"));
+                if (existingIsGeneric && currentIsRicher) {
+                  urlToCall.set(urlKey, c);
+                  idToCall.delete(existing.id);
+                  idToCall.set(c.id, c);
+                } else if ((c.transcript?.length || 0) > (existing.transcript?.length || 0)) {
+                  urlToCall.set(urlKey, c);
+                  idToCall.delete(existing.id);
+                  idToCall.set(c.id, c);
+                }
+              }
+            }
+            return Array.from(idToCall.values()).sort(
               (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
             );
           });
@@ -193,24 +214,47 @@ Report generated via Allota AI Telephony Engine
     });
   }
 
+  // Deduplicate calls strictly by unique recordingUrl or targetName+timestamp, keeping the richest record
+  const uniqueCallsList = useMemo(() => {
+    const map = new Map<string, CallFeedItem>();
+    for (const c of callsList) {
+      const key = c.recordingUrl || `${c.targetName}_${c.occurredAt}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, c);
+      } else {
+        const existingIsGeneric = !existing.aiSummary || existing.aiSummary.includes("Call recorded and analyzed") || existing.aiSummary.includes("audio CRM me log");
+        const currentIsRicher = Boolean(c.aiSummary && !c.aiSummary.includes("Call recorded and analyzed") && !c.aiSummary.includes("audio CRM me log"));
+        if (existingIsGeneric && currentIsRicher) {
+          map.set(key, c);
+        } else if ((c.transcript?.length || 0) > (existing.transcript?.length || 0)) {
+          map.set(key, c);
+        }
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    );
+  }, [callsList]);
+
   // Global KPIs
-  const totalCalls = callsList.length;
-  const connectedCalls = callsList.filter((c) => !c.missed).length;
-  const missedCalls = callsList.filter((c) => c.missed).length;
+  const totalCalls = uniqueCallsList.length;
+  const connectedCalls = uniqueCallsList.filter((c) => !c.missed).length;
+  const missedCalls = uniqueCallsList.filter((c) => c.missed).length;
   const connectionRate = totalCalls > 0 ? Math.round((connectedCalls / totalCalls) * 100) : 0;
   const missedRate = totalCalls > 0 ? Math.round((missedCalls / totalCalls) * 100) : 0;
-  const totalDurationSec = callsList.reduce((s, c) => s + (c.durationSec || 0), 0);
+  const totalDurationSec = uniqueCallsList.reduce((s, c) => s + (c.durationSec || 0), 0);
   const avgDurationSec = connectedCalls > 0 ? Math.round(totalDurationSec / connectedCalls) : 0;
-  const whatsappSentCount = callsList.filter((c) => c.whatsappSent).length;
+  const whatsappSentCount = uniqueCallsList.filter((c) => c.whatsappSent).length;
 
   // Unanswered Missed Calls requiring recovery
   const pendingMissedAlerts = useMemo(() => {
-    return callsList.filter((c) => c.missed && !c.whatsappSent);
-  }, [callsList]);
+    return uniqueCallsList.filter((c) => c.missed && !c.whatsappSent);
+  }, [uniqueCallsList]);
 
   // Filtered Calls Feed
   const filteredCalls = useMemo(() => {
-    return callsList.filter((c) => {
+    return uniqueCallsList.filter((c) => {
       const matchesRep = selectedRepId === "ALL" || c.repId === selectedRepId;
 
       const matchesStatus =
@@ -262,17 +306,17 @@ Report generated via Allota AI Telephony Engine
 
       return matchesRep && matchesStatus && matchesSearch;
     });
-  }, [callsList, selectedRepId, statusFilter, datePreset, customStartDate, customEndDate, leadCategoryFilter, searchQuery]);
+  }, [uniqueCallsList, selectedRepId, statusFilter, datePreset, customStartDate, customEndDate, leadCategoryFilter, searchQuery]);
 
   const activeEmbeddedCall = useMemo(() => {
     return (
       filteredCalls.find((c) => c.id === selectedEmbeddedDocId) ||
-      callsList.find((c) => c.id === selectedEmbeddedDocId) ||
+      uniqueCallsList.find((c) => c.id === selectedEmbeddedDocId) ||
       filteredCalls[0] ||
-      callsList[0] ||
+      uniqueCallsList[0] ||
       null
     );
-  }, [selectedEmbeddedDocId, filteredCalls, callsList]);
+  }, [selectedEmbeddedDocId, filteredCalls, uniqueCallsList]);
 
   // Reset to page 1 whenever the filtered result set changes shape
   useEffect(() => {

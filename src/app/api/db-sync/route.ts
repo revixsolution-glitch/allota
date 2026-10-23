@@ -290,11 +290,11 @@ export async function GET() {
       }).catch(() => null);
     }
 
-    // 4. Provision Test Employee: Savi Kesorx
-    const email = "savi.kesorx@pharmacrm.test";
+    // 4. Provision Representative: Savi Kesrox
+    const email = "savi.kesrox@pharmacrm.test";
     const passwordHash = await bcrypt.hash("employee123", 10);
     const phoneNumber = "+91 98722 44331";
-    const name = "Savi Kesorx";
+    const name = "Savi Kesrox";
 
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -557,7 +557,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: "Kesrox Pharmaceuticals, Kesrox Admin, Savi Kesorx, and Call Logs provisioned successfully!",
+      message: "Kesrox Pharmaceuticals, Kesrox Admin, Savi Kesrox, and Call Logs provisioned successfully!",
       deletedWrongLeadsCount: deletedWrongLeads.count,
       deletedKesroxExcelLeadsCount: deletedKesroxExcelLeads.count,
       deletedWrongLeadsSample: wrongLeadsToDelete.slice(0, 10),
