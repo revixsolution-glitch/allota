@@ -142,7 +142,7 @@ export function AddEmployeeModal() {
                     type="email"
                     name="email"
                     required
-                    placeholder="e.g. vikram@company.test"
+                    placeholder="e.g. rahul@kesrox.com or rahul@gmail.com"
                     className="w-full rounded-xl border border-line bg-slate-50/50 px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-inner"
                   />
                 </div>
