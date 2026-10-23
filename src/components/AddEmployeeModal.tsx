@@ -137,14 +137,20 @@ export function AddEmployeeModal() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Email (Login ID)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-ink-muted">Login ID (User ID or Email)</label>
+                    <span className="text-[10px] text-teal-600 font-semibold">No email required</span>
+                  </div>
                   <input
-                    type="email"
+                    type="text"
                     name="email"
                     required
-                    placeholder="e.g. rahul@kesrox.com or rahul@gmail.com"
+                    placeholder="e.g. savi01, vikram, or rahul@kesrox.com"
                     className="w-full rounded-xl border border-line bg-slate-50/50 px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40 shadow-inner"
                   />
+                  <p className="text-[10px] text-ink-faint mt-1">
+                    Enter any simple User ID (like <strong>savi01</strong>) or email. Representative can log in with this ID or their phone number.
+                  </p>
                 </div>
 
                 <div>

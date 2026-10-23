@@ -4,7 +4,7 @@ import { defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { SESSION_COOKIE, signSession, verifyPassword } from "@/lib/auth";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1, "Login identifier is required"),
   password: z.string().min(1),
   captchaToken: z.string().optional(),
   _hp: z.string().optional(), // Bot honeypot
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: "Invalid email or password" }, { status: 400 });
+    return Response.json({ error: "Invalid login ID or password" }, { status: 400 });
   }
 
   const { email, password, captchaToken, _hp } = parsed.data;
@@ -33,30 +33,52 @@ export async function POST(request: Request) {
     );
   }
 
-  const targetEmail = email.toLowerCase().trim();
+  const targetIdentifier = email.toLowerCase().trim();
+  const digitsOnly = targetIdentifier.replace(/\D/g, "");
 
   // There is no session yet, so we don't know which database to look in.
   // The login directory (always in the shared default database) tells us
-  // which company this email belongs to; a company with no dedicated
-  // database entry uses the same default database, so this is a no-op for
-  // every account created before this system existed.
+  // which company this identifier belongs to.
   const directoryEntry = await defaultPrisma.loginDirectory
-    .findUnique({ where: { email: targetEmail }, select: { companyId: true } })
+    .findUnique({ where: { email: targetIdentifier }, select: { companyId: true } })
     .catch(() => null);
 
   const db = directoryEntry ? await getPrismaForCompany(directoryEntry.companyId) : defaultPrisma;
 
-  let user = await db.user.findUnique({
-    where: { email: targetEmail },
+  // 1. Direct search by Email or User ID
+  let user = await db.user.findFirst({
+    where: {
+      OR: [
+        { email: targetIdentifier },
+        // Also match internal username if stored with @domain or suffix
+        { email: { startsWith: `${targetIdentifier}@` } },
+      ],
+    },
     include: { employee: true, company: { select: { status: true } } },
   });
 
-  // If user not found by exact email, allow company contact email alias
+  // 2. If not found and input looks like a phone number (10+ digits), allow reps to login by phone number!
+  if (!user && digitsOnly.length >= 10) {
+    const rawDigits = digitsOnly.slice(-10);
+    const emp = await db.employee.findFirst({
+      where: {
+        phoneNumber: { contains: rawDigits },
+      },
+      include: {
+        user: { include: { employee: true, company: { select: { status: true } } } },
+      },
+    });
+    if (emp?.user) {
+      user = emp.user;
+    }
+  }
+
+  // 3. If user not found by exact email/handle, allow company contact email alias
   // (e.g. if the company's registered official contact email is used to log in as company admin)
   if (!user) {
     const aliasCompany = await db.company.findFirst({
       where: {
-        contactEmail: { equals: targetEmail, mode: "insensitive" },
+        contactEmail: { equals: targetIdentifier, mode: "insensitive" },
       },
       include: {
         users: {

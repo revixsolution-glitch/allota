@@ -186,7 +186,7 @@ function LoginForm() {
 
         <div>
           <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1.5">
-            Work Email Address
+            Login ID (Email, User ID, or Phone)
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -196,12 +196,12 @@ function LoginForm() {
             </div>
             <input
               id="email"
-              type="email"
+              type="text"
               required
-              autoComplete="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@company.com"
+              placeholder="e.g. name@company.com, user ID, or phone"
               className="w-full rounded-xl border border-slate-300/80 bg-slate-50/50 py-2.5 pl-10 pr-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition"
             />
           </div>
