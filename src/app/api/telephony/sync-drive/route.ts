@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const DEFAULT_DRIVE_FOLDER_ID = "1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3";
+const DIKSHA_DRIVE_FOLDER_ID = "1zfFumRSewI4whGuvMwuNwjoQ7852ig4V";
 
 // Pre-verified verbatim transcriptions and Hinglish summaries with AI Lead Classification
 const VERIFIED_TRANSCRIPTS: Record<
@@ -216,11 +217,34 @@ async function handleSync(req: NextRequest) {
           });
         }
 
-        // Shift calls from drive to Savi Kesrox strictly for this company
+        let dikshaEmp = await db.employee.findFirst({
+          where: { name: { contains: "Diksha", mode: "insensitive" } },
+        });
+
+        if (!dikshaEmp) {
+          dikshaEmp = await db.employee.create({
+            data: {
+              name: "Diksha Kesrox",
+              phoneNumber: "+91 98000 00001",
+              companyId: effectiveCompanyId,
+              userId: "user_diksha_" + Date.now(),
+            },
+          });
+        } else if (dikshaEmp.name !== "Diksha Kesrox" || dikshaEmp.companyId !== effectiveCompanyId) {
+          await db.employee.update({
+            where: { id: dikshaEmp.id },
+            data: { name: "Diksha Kesrox", companyId: effectiveCompanyId },
+          });
+        }
+
+        // Shift calls from Savi's drive folder to Savi Kesrox (never overwrite Diksha's calls)
         await db.call.updateMany({
           where: {
             recordingUrl: { contains: "drive.google.com" },
             employee: { companyId: effectiveCompanyId },
+            NOT: {
+              employeeId: dikshaEmp.id,
+            },
           },
           data: {
             employeeId: saviEmp.id,
@@ -299,12 +323,30 @@ async function handleSync(req: NextRequest) {
       return results;
     }
 
-    const driveFiles = await fetchDriveFolderFiles(activeFolderId);
+    const [saviFiles, dikshaFiles] = await Promise.all([
+      fetchDriveFolderFiles(activeFolderId || DEFAULT_DRIVE_FOLDER_ID),
+      fetchDriveFolderFiles(DIKSHA_DRIVE_FOLDER_ID),
+    ]);
 
-    // 3. Find representatives for mapping (Savi Kesorx or Naresh)
-    const [saviRep, nareshRep] = await Promise.all([
+    interface TaggedDriveFile {
+      id: string;
+      name: string;
+      assignedRepName: "Savi" | "Diksha";
+    }
+
+    const driveFiles: TaggedDriveFile[] = [
+      ...saviFiles.map((f) => ({ ...f, assignedRepName: "Savi" as const })),
+      ...dikshaFiles.map((f) => ({ ...f, assignedRepName: "Diksha" as const })),
+    ];
+
+    // 3. Find representatives for mapping (Savi Kesorx, Diksha Kesrox, or Naresh)
+    const [saviRep, dikshaRep, nareshRep] = await Promise.all([
       prisma.employee.findFirst({
         where: { name: { contains: "Savi", mode: "insensitive" } },
+        include: { company: true },
+      }),
+      prisma.employee.findFirst({
+        where: { name: { contains: "Diksha", mode: "insensitive" } },
         include: { company: true },
       }),
       prisma.employee.findFirst({
@@ -349,12 +391,13 @@ async function handleSync(req: NextRequest) {
 
     // Collect all pre-verified recordings that need sync/update
     const verifiedToProcess: {
-      f: { id: string; name: string };
+      f: TaggedDriveFile;
       analysis: any;
       callDate: Date;
       contactName: string;
       recordingUrl: string;
       existing: any;
+      assignedRepName: "Savi" | "Diksha";
     }[] = [];
 
     for (const f of driveFiles) {
@@ -367,10 +410,11 @@ async function handleSync(req: NextRequest) {
 
       const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
       const existing = existingUrlMap.get(recordingUrl);
+      const repForFile = f.assignedRepName === "Diksha" ? (dikshaRep || saviRep || defaultEmployee) : rep;
 
       if (
         !existing ||
-        existing.employeeId !== rep.id ||
+        existing.employeeId !== repForFile.id ||
         !existing.transcript ||
         existing.transcript.includes("Recording saved")
       ) {
@@ -378,7 +422,7 @@ async function handleSync(req: NextRequest) {
           f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
         const contactName = analysis.contactName || (nameMatch ? nameMatch[1].trim() : "Prospective Client");
         const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
-        verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing });
+        verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing, assignedRepName: f.assignedRepName });
       }
     }
 
@@ -393,9 +437,13 @@ async function handleSync(req: NextRequest) {
           for (const { db } of targetDbs) {
             try {
               const targetRep =
-                (await db.employee.findFirst({
-                  where: { name: { contains: "Savi", mode: "insensitive" }, companyId: effectiveCompanyId },
-                })) || rep;
+                item.assignedRepName === "Diksha"
+                  ? ((await db.employee.findFirst({
+                      where: { name: { contains: "Diksha", mode: "insensitive" }, companyId: effectiveCompanyId },
+                    })) || dikshaRep || saviRep || rep)
+                  : ((await db.employee.findFirst({
+                      where: { name: { contains: "Savi", mode: "insensitive" }, companyId: effectiveCompanyId },
+                    })) || saviRep || rep);
               if (!targetRep) continue;
 
               let leadId = (
@@ -482,7 +530,10 @@ async function handleSync(req: NextRequest) {
     const liveBatch = unverifiedFilesToSync.slice(0, 1);
 
     for (const f of liveBatch) {
-      let rep = saviRep || defaultEmployee;
+      let rep =
+        f.assignedRepName === "Diksha"
+          ? (dikshaRep || saviRep || defaultEmployee)
+          : (saviRep || defaultEmployee);
       const lowerName = f.name.toLowerCase();
       if (lowerName.includes("naresh")) {
         rep = nareshRep || defaultEmployee;
