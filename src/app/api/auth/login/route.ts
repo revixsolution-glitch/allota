@@ -60,9 +60,15 @@ export async function POST(request: Request) {
   // 2. If not found and input looks like a phone number (10+ digits), allow reps to login by phone number!
   if (!user && digitsOnly.length >= 10) {
     const rawDigits = digitsOnly.slice(-10);
+    const part1 = rawDigits.slice(0, 5);
+    const part2 = rawDigits.slice(5);
     const emp = await db.employee.findFirst({
       where: {
-        phoneNumber: { contains: rawDigits },
+        OR: [
+          { phoneNumber: { contains: rawDigits } },
+          { phoneNumber: { contains: `${part1} ${part2}` } },
+          { phoneNumber: { contains: `${part1}-${part2}` } },
+        ],
       },
       include: {
         user: { include: { employee: true, company: { select: { status: true } } } },
