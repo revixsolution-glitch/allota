@@ -117,8 +117,49 @@ async function startCompanionListener() {
       appendLog(`   Prospect: ${senderName} (+${senderPhone})`);
       appendLog(`   Type: ${hasAdReferral ? "Direct Click-to-WhatsApp Meta Ad" : "Commercial PCD Inquiry"}`);
       appendLog(`   Inquiry: "${rawText.slice(0, 100)}..."`);
-      appendLog(`   Status: Auto-ingested into Allota CRM Leads Desk!`);
       appendLog(`🎯 ======================================================\n`);
+
+      // 1. Ingest into Allota CRM
+      try {
+        const crmRes = await fetch("https://allota.vercel.app/api/whatsapp-companion/incoming", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyId: "cmub4ssdx00000u8oqlqc62e0",
+            senderPhone: `+${senderPhone}`,
+            senderName,
+            messageText: rawText,
+            isFromMe: false,
+            isGroup: false,
+            hasAdReferral,
+          }),
+        });
+        const crmData = await crmRes.json().catch(() => ({}));
+        appendLog(`   Status: Auto-ingested into Allota CRM Leads Desk! (ID: ${crmData.leadId || "saved"})`);
+      } catch (err: any) {
+        appendLog(`   CRM sync error: ${err.message}`);
+      }
+
+      // 2. Forward lead card to Savi Kesrox on WhatsApp
+      const saviJid = "917889107964@s.whatsapp.net";
+      const forwardAlert =
+`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+
+👤 *Prospect:* ${senderName}
+📞 *Phone:* +${senderPhone}
+💬 *Inquiry:* "${rawText}"
+
+👉 *Chat with prospect directly:*
+https://wa.me/${senderPhone}
+
+_⚡ Auto-forwarded by Allota AI Desk_`;
+
+      try {
+        await sock.sendMessage(saviJid, { text: forwardAlert });
+        appendLog(`   WhatsApp Alert: Sent directly to Savi Kesrox (+91 78891 07964) ✅`);
+      } catch (fwdErr: any) {
+        appendLog(`   Failed to forward to Savi: ${fwdErr?.message}`);
+      }
     }
   });
 }

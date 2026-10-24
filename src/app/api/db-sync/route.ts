@@ -293,7 +293,7 @@ export async function GET() {
     // 4. Provision Representative: Savi Kesrox
     const email = "savi.kesrox@pharmacrm.test";
     const passwordHash = await bcrypt.hash("employee123", 10);
-    const phoneNumber = "+91 98722 44331";
+    const phoneNumber = "+91 78891 07964";
     const name = "Savi Kesrox";
 
     let user = await prisma.user.findUnique({ where: { email } });
@@ -319,7 +319,7 @@ export async function GET() {
 
     if (!employee) {
       const existingPhone = await prisma.employee.findUnique({ where: { phoneNumber } });
-      const finalPhone = existingPhone ? `+91 98722 ${Math.floor(10000 + Math.random() * 90000)}` : phoneNumber;
+      const finalPhone = existingPhone ? `+91 78891 ${Math.floor(10000 + Math.random() * 90000)}` : phoneNumber;
 
       employee = await prisma.employee.create({
         data: {

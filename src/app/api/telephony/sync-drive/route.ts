@@ -205,7 +205,7 @@ async function handleSync(req: NextRequest) {
           saviEmp = await db.employee.create({
             data: {
               name: "Savi Kesrox",
-              phoneNumber: "+91 98722 44331",
+              phoneNumber: "+91 78891 07964",
               companyId: effectiveCompanyId,
               userId: "user_savi_" + Date.now(),
             },
@@ -361,7 +361,7 @@ async function handleSync(req: NextRequest) {
       defaultEmployee = await prisma.employee.create({
         data: {
           name: "Savi Kesrox",
-          phoneNumber: "+91 98722 44331",
+          phoneNumber: "+91 78891 07964",
           companyId: company.id,
           userId: "dev_user_" + Date.now(),
         },
