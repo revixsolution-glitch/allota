@@ -52,6 +52,9 @@ async function main() {
       if (!shouldReconnect) {
         console.log("Logged out. Please re-pair.");
         process.exit(0);
+      } else {
+        console.log("Refreshing pairing connection in 3 seconds...");
+        setTimeout(() => main().catch(console.error), 3000);
       }
     } else if (connection === "open") {
       console.log("\n🎉 ========================================");

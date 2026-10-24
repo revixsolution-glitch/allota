@@ -17,7 +17,7 @@ const BRAND_TOKENS: Record<string, string> = {
 };
 
 export const KESROX_PAGE_ID = "112876304657266";
-export const KESROX_AD_ACCOUNT_ID = "120232655993370513";
+export const KESROX_AD_ACCOUNT_ID = "1307420369741671";
 export const EKONMED_PAGE_ID = "1342042688984003";
 
 export type TenantBrand = "kesrox" | "ekonmed" | "custom";
@@ -96,7 +96,8 @@ export function resolveCompanyMetaCredentials(
 
     const pageId = rawPageId || KESROX_PAGE_ID;
     const systemToken = settings?.metaAccessToken || settings?.metaApiKey || decodeBrandToken("kesrox");
-    const adAccountId = settings?.metaAdAccountId?.trim() || KESROX_AD_ACCOUNT_ID;
+    const rawAdAccountId = settings?.metaAdAccountId?.trim();
+    const adAccountId = (rawAdAccountId && rawAdAccountId !== "120232655993370513") ? rawAdAccountId : KESROX_AD_ACCOUNT_ID;
 
     return {
       companyId: company.id,
