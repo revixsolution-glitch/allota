@@ -316,6 +316,66 @@ app.post("/api/:companyId/connect", async (req, res) => {
   res.json({ success: true, status: session.status });
 });
 
+// Trigger a live test lead for verification
+app.post("/api/:companyId/test-lead", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+
+  if (!session || !session.sock || session.status !== "CONNECTED") {
+    return res.status(400).json({ error: "WhatsApp is not connected for this company" });
+  }
+
+  const senderName = "Dr. Rajesh Sharma (PCD Test Lead)";
+  const senderPhone = "919876543210";
+  const rawText = "Namaste, I saw your Meta Ad. Interested in Kesrox PCD Pharma franchise monopoly rights and product catalogue for Ambala district.";
+
+  // 1. Ingest into Allota CRM
+  try {
+    await fetch(ALLOTA_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId: session.companyId,
+        senderPhone: `+${senderPhone}`,
+        senderName,
+        messageText: rawText,
+        isFromMe: false,
+        isGroup: false,
+        hasAdReferral: true,
+      }),
+    });
+    console.log(`[Test Lead Ingested] Saved to Allota CRM for ${session.companyId}`);
+  } catch (e: any) {
+    console.warn("CRM test error:", e?.message);
+  }
+
+  // 2. Forward to Savi on WhatsApp
+  try {
+    const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+    const forwardText =
+`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+
+👤 *Prospect:* ${senderName}
+📞 *Phone:* +${senderPhone}
+💬 *Inquiry:* "${rawText}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad (Test Lead)
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+
+    await session.sock.sendMessage(saviJid, { text: forwardText });
+    console.log(`[Test Lead Forwarded] Successfully sent via WhatsApp to Savi (+${SAVI_PHONE})!`);
+
+    return res.json({
+      success: true,
+      forwardedTo: `+${SAVI_PHONE}`,
+      lead: { name: senderName, phone: senderPhone, inquiry: rawText },
+    });
+  } catch (err: any) {
+    console.error("Failed to forward test message to Savi:", err);
+    return res.status(500).json({ error: err?.message || "Failed to send WhatsApp message" });
+  }
+});
+
 app.post("/api/:companyId/disconnect", async (req, res) => {
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
