@@ -1,16 +1,31 @@
 import { NextResponse } from "next/server";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import makeWASocket, { useMultiFileAuthState, delay, DisconnectReason, Browsers, fetchLatestBaileysVersion, BufferJSON } from "@whiskeysockets/baileys";
+import makeWASocket, { 
+  useMultiFileAuthState, 
+  delay, 
+  DisconnectReason, 
+  Browsers, 
+  fetchLatestBaileysVersion, 
+  BufferJSON 
+} from "@whiskeysockets/baileys";
 import pino from "pino";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import QRCode from "qrcode";
 
 export const dynamic = "force-dynamic";
 
 // In-memory cache of active companion sockets strictly per company ID
-const activeSockets = new Map<string, any>();
+const activeSockets = new Map<string, {
+  sock: any;
+  phone?: string;
+  qrCode?: string;
+  status: "PAIRING_REQUESTED" | "AWAITING_SCAN" | "CONNECTED" | "DISCONNECTED" | "LOGGED_OUT";
+  connectedAt?: Date;
+  updatedAt: Date;
+}>();
 
 function getAuthDirs(companyId: string): string[] {
   if (!companyId || companyId === "default") {
@@ -35,20 +50,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
+    const mode = body.mode || (body.phone ? "code" : "qr");
     const rawPhone = String(body.phone || "").trim();
 
-    if (!rawPhone) {
-      return NextResponse.json({ error: "Phone number is required." }, { status: 400 });
-    }
-
-    const digits = rawPhone.replace(/\D/g, "");
-    const fullPhone = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits}`;
-
-    if (fullPhone.length < 10) {
-      return NextResponse.json({ error: "Invalid phone number format." }, { status: 400 });
-    }
-
     const authDir = path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`);
+    
+    // Clean socket if already running
+    const existing = activeSockets.get(companyId);
+    if (existing?.sock) {
+      try { existing.sock.end(undefined); } catch {}
+    }
+
     if (!fs.existsSync(authDir)) {
       fs.mkdirSync(authDir, { recursive: true });
     }
@@ -62,7 +74,24 @@ export async function POST(request: Request) {
       printQRInTerminal: false,
       logger: pino({ level: "silent" }) as any,
       browser: Browsers.macOS("Chrome"),
+      keepAliveIntervalMs: 15000,
+      connectTimeoutMs: 60000,
     });
+
+    const currentSocketRecord: {
+      sock: any;
+      phone?: string;
+      qrCode?: string;
+      status: "PAIRING_REQUESTED" | "AWAITING_SCAN" | "CONNECTED" | "DISCONNECTED" | "LOGGED_OUT";
+      connectedAt?: Date;
+      updatedAt: Date;
+    } = {
+      sock,
+      status: mode === "qr" ? "AWAITING_SCAN" : "PAIRING_REQUESTED",
+      updatedAt: new Date(),
+    };
+
+    activeSockets.set(companyId, currentSocketRecord);
 
     sock.ev.on("creds.update", async () => {
       await saveCreds();
@@ -70,7 +99,7 @@ export async function POST(request: Request) {
         try {
           const credsPhone = sock.authState.creds.me?.id
             ? sock.authState.creds.me.id.split(":")[0]
-            : fullPhone;
+            : currentSocketRecord.phone;
           await prisma.companySettings.updateMany({
             where: { companyId },
             data: {
@@ -85,74 +114,97 @@ export async function POST(request: Request) {
       }
     });
 
-    activeSockets.set(companyId, {
-      sock,
-      phone: fullPhone,
-      status: "PAIRING_REQUESTED",
-      updatedAt: new Date(),
-    });
-
     sock.ev.on("connection.update", async (update) => {
-      const { connection, lastDisconnect } = update;
-      const current = activeSockets.get(companyId);
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        try {
+          const dataUrl = await QRCode.toDataURL(qr, { width: 380, margin: 2 });
+          currentSocketRecord.qrCode = dataUrl;
+          currentSocketRecord.status = "AWAITING_SCAN";
+        } catch (qrErr) {
+          console.error("QR Code generation error:", qrErr);
+        }
+      }
 
       if (connection === "open") {
-        if (current) {
-          current.status = "CONNECTED";
-          current.connectedAt = new Date();
-        }
+        const connectedUserPhone = sock.user?.id ? sock.user.id.split(":")[0] : currentSocketRecord.phone;
+        currentSocketRecord.status = "CONNECTED";
+        currentSocketRecord.phone = connectedUserPhone;
+        currentSocketRecord.connectedAt = new Date();
+
         try {
           await prisma.companySettings.updateMany({
             where: { companyId },
             data: {
               whatsappConnected: true,
-              whatsappCompanionPhone: fullPhone,
+              whatsappCompanionPhone: connectedUserPhone,
             },
           });
-        } catch {}
+        } catch (e) {
+          console.warn("DB update on connection.open:", e);
+        }
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-        if (current) {
-          current.status = statusCode === DisconnectReason.loggedOut ? "LOGGED_OUT" : "DISCONNECTED";
-        }
+        currentSocketRecord.status = statusCode === DisconnectReason.loggedOut ? "LOGGED_OUT" : "DISCONNECTED";
       }
     });
 
-    // Wait 3.5 seconds for socket handshake before requesting pairing code
-    await delay(3500);
-
+    // Check if already registered
     if (sock.authState.creds.registered) {
-      try {
-        await prisma.companySettings.updateMany({
-          where: { companyId },
-          data: {
-            whatsappConnected: true,
-            whatsappCompanionPhone: fullPhone,
-            whatsappCompanionCreds: JSON.stringify(sock.authState.creds, BufferJSON.replacer),
-          },
-        });
-      } catch (dbErr) {
-        console.warn("[Encrypted Vault] Creds backup:", dbErr);
-      }
-
+      const credsPhone = sock.authState.creds.me?.id?.split(":")[0] || "Registered Phone";
       return NextResponse.json({
         success: true,
         alreadyRegistered: true,
-        phone: fullPhone,
+        status: "CONNECTED",
+        phone: credsPhone,
       });
     }
+
+    if (mode === "qr") {
+      // Poll for QR generation (up to 7 seconds)
+      const startWait = Date.now();
+      while (!currentSocketRecord.qrCode && Date.now() - startWait < 7000) {
+        await delay(300);
+      }
+
+      if (currentSocketRecord.qrCode) {
+        return NextResponse.json({
+          success: true,
+          mode: "qr",
+          qrCode: currentSocketRecord.qrCode,
+          status: "AWAITING_SCAN",
+        });
+      } else {
+        return NextResponse.json({
+          error: "QR code generation timed out. Please try again.",
+        }, { status: 504 });
+      }
+    }
+
+    // Code Pairing Mode
+    const digits = rawPhone.replace(/\D/g, "");
+    const fullPhone = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits}`;
+
+    if (fullPhone.length < 10) {
+      return NextResponse.json({ error: "Invalid phone number format." }, { status: 400 });
+    }
+
+    currentSocketRecord.phone = fullPhone;
+    await delay(3500);
 
     const code = await sock.requestPairingCode(fullPhone);
 
     return NextResponse.json({
       success: true,
+      mode: "code",
       pairingCode: code,
       phone: fullPhone,
     });
   } catch (err: any) {
-    console.error("Failed to request pairing code:", err);
+    console.error("Failed to request WhatsApp connection:", err);
     return NextResponse.json(
-      { error: err?.message || "Failed to initiate pairing. Please check the phone number." },
+      { error: err?.message || "Failed to initiate WhatsApp connection." },
       { status: 500 }
     );
   }
@@ -171,12 +223,19 @@ export async function GET() {
 
   const current = activeSockets.get(companyId);
 
-  // 1. Check in-memory active socket for THIS specific company
+  // 1. If currently active in memory
   if (current?.status === "CONNECTED" && current.phone) {
     return NextResponse.json({
       status: "CONNECTED",
       phone: current.phone,
       connectedAt: current.connectedAt || null,
+    });
+  }
+
+  if (current?.status === "AWAITING_SCAN" && current.qrCode) {
+    return NextResponse.json({
+      status: "AWAITING_SCAN",
+      qrCode: current.qrCode,
     });
   }
 
@@ -195,13 +254,11 @@ export async function GET() {
           savedPhone = creds.me.id.split(":")[0];
           break;
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
   }
 
-  // 3. Fallback to PostgreSQL database (CompanySettings strictly for this company)
+  // 3. Fallback to PostgreSQL database
   if (!isSaved) {
     try {
       const settings = await prisma.companySettings.findFirst({
@@ -261,7 +318,6 @@ export async function DELETE() {
   }
   activeSockets.delete(companyId);
 
-  // Clear credentials & status in database strictly for this company
   try {
     await prisma.companySettings.updateMany({
       where: { companyId },

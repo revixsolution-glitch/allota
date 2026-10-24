@@ -28,7 +28,6 @@ export function WhatsAppCompanionSection({
   initialConnected?: boolean;
   initialConnectedPhone?: string;
 }) {
-  // Strip country code from input field so user just sees clean 10-digit local number next to +91 flag
   const initialLocalPhone = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "");
 
   const [phone, setPhone] = useState(initialLocalPhone);
@@ -41,19 +40,23 @@ export function WhatsAppCompanionSection({
   );
   const [copied, setCopied] = useState(false);
 
+  // Live Official Chrome QR Code Modal State
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [justConnected, setJustConnected] = useState(false);
+
   // Check initial status on mount
   useEffect(() => {
     async function checkStatus() {
       try {
-        const res = await fetch("/api/whatsapp-companion/pair");
+        const res = await fetch("/api/whatsapp-companion/chrome-qr");
         if (!res.ok) return;
         const data = await res.json();
-        if (data?.status === "CONNECTED" && data?.phone) {
+        if (data?.status === "CONNECTED") {
           setStatus("CONNECTED");
-          setConnectedPhone(data.phone);
-        } else if (data?.status === "NOT_CONNECTED") {
-          setStatus("NOT_CONNECTED");
-          setConnectedPhone(null);
+          if (data.phone) setConnectedPhone(data.phone);
         }
       } catch {
         // Keep initial connected state intact if network blip
@@ -62,27 +65,70 @@ export function WhatsAppCompanionSection({
     checkStatus();
   }, [initialConnected]);
 
-  // Poll status when pairing code is active
+  // Polling for connection when QR Modal is open
   useEffect(() => {
     let interval: any;
-    if (pairingCode || status === "PAIRING_REQUESTED") {
+    if (qrModalOpen) {
       interval = setInterval(async () => {
         try {
-          const res = await fetch("/api/whatsapp-companion/pair");
+          const res = await fetch("/api/whatsapp-companion/chrome-qr");
           const data = await res.json();
           if (data?.status === "CONNECTED") {
+            setJustConnected(true);
             setStatus("CONNECTED");
-            setPairingCode(null);
             if (data.phone) setConnectedPhone(data.phone);
+
+            // Pop-up ALWAYS ends automatically when connected!
+            setTimeout(() => {
+              setQrModalOpen(false);
+              setJustConnected(false);
+            }, 1800);
+          } else if (data?.qrCode && data.qrCode !== qrDataUrl) {
+            setQrDataUrl(data.qrCode);
+            setQrLoading(false);
           }
         } catch {
           // ignore
         }
-      }, 3000);
+      }, 2000);
     }
     return () => clearInterval(interval);
-  }, [pairingCode, status]);
+  }, [qrModalOpen, qrDataUrl]);
 
+  // Trigger Official Google Chrome QR Code Generation
+  async function handleOpenQrModal() {
+    setQrModalOpen(true);
+    setQrLoading(true);
+    setQrError(null);
+    setQrDataUrl(null);
+    setJustConnected(false);
+
+    try {
+      const res = await fetch("/api/whatsapp-companion/chrome-qr", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start official Chrome WhatsApp Web.");
+      }
+
+      if (data.status === "CONNECTED") {
+        setStatus("CONNECTED");
+        if (data.phone) setConnectedPhone(data.phone);
+        setQrModalOpen(false);
+      } else if (data.qrCode) {
+        setQrDataUrl(data.qrCode);
+      }
+    } catch (err: any) {
+      setQrError(err?.message || "Failed to load live QR code. Please try again.");
+    } finally {
+      setQrLoading(false);
+    }
+  }
+
+  // Trigger 8-Digit Pairing Code Generation
   async function handleRequestCode(e?: React.FormEvent | React.MouseEvent) {
     if (e) {
       e.preventDefault();
@@ -96,7 +142,7 @@ export function WhatsAppCompanionSection({
       const res = await fetch("/api/whatsapp-companion/pair", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ mode: "code", phone }),
       });
 
       const data = await res.json();
@@ -121,13 +167,15 @@ export function WhatsAppCompanionSection({
   }
 
   async function handleDisconnect() {
-    if (!confirm("Are you sure you want to disconnect this WhatsApp number?")) return;
+    if (!confirm("Are you sure you want to disconnect this WhatsApp session?")) return;
     setLoading(true);
     try {
+      await fetch("/api/whatsapp-companion/chrome-qr", { method: "DELETE" });
       await fetch("/api/whatsapp-companion/pair", { method: "DELETE" });
       setStatus("NOT_CONNECTED");
       setConnectedPhone(null);
       setPairingCode(null);
+      setQrDataUrl(null);
     } catch {
       // ignore
     } finally {
@@ -142,7 +190,7 @@ export function WhatsAppCompanionSection({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // 1. SLEEK CONNECTED STATE
+  // 1. SLEEK CONNECTED STATE IN ALLOTA
   if (status === "CONNECTED") {
     const displayPhone = formatPhoneDisplay(connectedPhone || phone);
 
@@ -150,51 +198,43 @@ export function WhatsAppCompanionSection({
       <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-5 sm:p-6 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md transition-all">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            {/* Official WhatsApp Logo */}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md shadow-emerald-500/20 border border-emerald-200">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-6 w-6 fill-[#25D366]"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M12.004 2C6.48 2 2 6.48 2 12.004c0 1.956.564 3.784 1.54 5.332L2.2 21.8l4.636-1.308A9.957 9.957 0 0012.004 22c5.524 0 10.004-4.48 10.004-9.996C22.008 6.48 17.528 2 12.004 2zm5.836 14.152c-.244.688-1.424 1.32-1.988 1.396-.54.076-1.22.108-3.924-.984-3.468-1.396-5.712-4.94-5.888-5.172-.172-.232-1.408-1.876-1.408-3.576 0-1.7 1.048-2.536 1.424-2.884.288-.268.664-.336.888-.336.22 0 .444.004.636.012.204.012.48-.076.748.568.28.672.952 2.324 1.036 2.496.084.172.14.376.028.608-.108.232-.164.376-.328.568-.164.192-.344.428-.492.576-.164.164-.336.344-.144.672.192.328.852 1.4 1.824 2.268 1.256 1.116 2.312 1.464 2.64 1.628.328.164.52.14.712-.08.192-.224.82-.952 1.04-1.28.22-.328.444-.272.748-.164.304.108 1.932.912 2.264 1.076.336.164.56.244.64.38.084.136.084.788-.16 1.476z" />
-              </svg>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl shadow-md shadow-emerald-500/25 shrink-0 text-white">
+              💬
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black tracking-tight text-slate-900">
-                  WhatsApp connection
-                </h2>
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                <p className="text-xs font-semibold text-emerald-900">
-                  Active on {displayPhone} · Receiving Meta Ad Leads
-                </p>
-                <span className="text-[10px] font-bold text-emerald-800 bg-white/70 px-2 py-0.5 rounded-full border border-emerald-300/60">
-                  🔒 AES-256-GCM Encrypted
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  Official Chrome WhatsApp Active
                 </span>
-                <span className="text-[10px] font-bold text-emerald-800 bg-white/70 px-2 py-0.5 rounded-full border border-emerald-300/60">
-                  🛡️ Privacy Firewall Active
+                <span className="text-[10px] font-bold text-emerald-700 bg-white/70 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Connected
                 </span>
               </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+                WhatsApp Linked: <span className="font-mono text-emerald-800">{displayPhone || "Official Session Active"}</span>
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Monitoring incoming Meta ad leads &amp; auto-forwarding to Savi in real time.
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 self-end sm:self-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-black text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-600/20">
-              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-              Connected
-            </span>
-
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleOpenQrModal}
+              className="rounded-2xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition shadow-xs cursor-pointer"
+            >
+              🔄 Re-scan QR
+            </button>
             <button
               type="button"
               onClick={handleDisconnect}
               disabled={loading}
-              className="text-xs font-bold text-slate-400 hover:text-rose-600 transition px-2 py-1 cursor-pointer"
+              className="rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition shadow-xs cursor-pointer disabled:opacity-50"
             >
-              Disconnect
+              {loading ? "Disconnecting..." : "Disconnect"}
             </button>
           </div>
         </div>
@@ -202,108 +242,77 @@ export function WhatsAppCompanionSection({
     );
   }
 
-  // 2. DISCONNECTED / PAIRING STATE
+  // 2. DISCONNECTED / SETUP STATE
   return (
-    <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-6 sm:p-7 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md space-y-5 transition-all">
-      {/* Decorative Glow */}
-      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-500/20 pb-5">
-        <div className="flex items-start gap-3.5">
-          {/* Official WhatsApp SVG Logo */}
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md shadow-emerald-500/20 border border-emerald-200">
-            <svg
-              viewBox="0 0 24 24"
-              className="h-7 w-7 fill-[#25D366]"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12.004 2C6.48 2 2 6.48 2 12.004c0 1.956.564 3.784 1.54 5.332L2.2 21.8l4.636-1.308A9.957 9.957 0 0012.004 22c5.524 0 10.004-4.48 10.004-9.996C22.008 6.48 17.528 2 12.004 2zm5.836 14.152c-.244.688-1.424 1.32-1.988 1.396-.54.076-1.22.108-3.924-.984-3.468-1.396-5.712-4.94-5.888-5.172-.172-.232-1.408-1.876-1.408-3.576 0-1.7 1.048-2.536 1.424-2.884.288-.268.664-.336.888-.336.22 0 .444.004.636.012.204.012.48-.076.748.568.28.672.952 2.324 1.036 2.496.084.172.14.376.028.608-.108.232-.164.376-.328.568-.164.192-.344.428-.492.576-.164.164-.336.344-.144.672.192.328.852 1.4 1.824 2.268 1.256 1.116 2.312 1.464 2.64 1.628.328.164.52.14.712-.08.192-.224.82-.952 1.04-1.28.22-.328.444-.272.748-.164.304.108 1.932.912 2.264 1.076.336.164.56.244.64.38.084.136.084.788-.16 1.476z" />
-            </svg>
+    <section className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/25 to-teal-50/40 p-5 sm:p-6 neo-panel space-y-6 shadow-sm">
+      {/* Top Banner Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-500/20 pb-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-2xl shadow-md shadow-emerald-500/25 shrink-0 text-white">
+            💬
           </div>
-
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black tracking-tight text-slate-900">
-                WhatsApp connection
-              </h2>
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="flex h-2 w-2 rounded-full bg-slate-400" />
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                Official Chrome WhatsApp Companion
+              </span>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-md border border-emerald-200">
+                100% Official Web Link
+              </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm font-semibold text-emerald-950/80 leading-relaxed max-w-2xl">
-              <span className="font-extrabold text-emerald-900">Note:</span> If you have active WhatsApp ads on Meta, you must connect here to get your leads in the CRM.
+            <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+              Connect WhatsApp to Capture Meta Ads Leads
+            </h3>
+            <p className="text-xs text-slate-600 mt-0.5 max-w-2xl leading-relaxed">
+              Your mobile WhatsApp app stays 100% active. Allota links via official Google Chrome WhatsApp Web to capture incoming leads and route them directly to Savi.
             </p>
           </div>
         </div>
 
+        {/* PRIMARY ACTION: POP-UP LIVE OFFICIAL QR CODE */}
         <div className="shrink-0">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs ${
-              status === "PAIRING_REQUESTED"
-                ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse"
-                : "bg-white/80 text-slate-700 border border-slate-200"
-            }`}
+          <button
+            type="button"
+            onClick={handleOpenQrModal}
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3.5 text-xs font-black text-white shadow-xl shadow-emerald-500/25 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer active:scale-95"
           >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                status === "PAIRING_REQUESTED" ? "bg-amber-600" : "bg-slate-400"
-              }`}
-            />
-            {status === "PAIRING_REQUESTED"
-              ? "Waiting for Code on Phone..."
-              : "Ready to Connect"}
-          </span>
+            <span className="text-base">📷</span>
+            <span>Connect WhatsApp (Open Official QR Pop-up)</span>
+          </button>
         </div>
       </div>
 
-      {/* Input Form */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-end gap-3">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-bold text-slate-800 mb-1.5">
-              WhatsApp Business Mobile Number
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-xs font-bold text-slate-500">
-                🇮🇳 +91
-              </span>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleRequestCode();
-                  }
-                }}
-                placeholder="e.g. 9876543210"
-                className="w-full rounded-2xl border border-emerald-300/80 bg-white/90 pl-16 pr-4 py-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 shadow-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
-              />
-            </div>
+      {/* Secondary Alternative: Code Pairing Input */}
+      <div className="bg-white/80 rounded-2xl p-4 border border-line space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+            Alternative: Connect via 8-Digit Pairing Code
+          </span>
+          <span className="text-[10px] text-slate-400">If camera scanner unavailable</span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none select-none">
+              🇮🇳 +91
+            </span>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(cleanDigits(e.target.value).slice(0, 10))}
+              placeholder="74948 09665"
+              className="w-full rounded-2xl border border-slate-200 bg-white pl-16 pr-4 py-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
+            />
           </div>
 
           <button
             type="button"
             onClick={handleRequestCode}
-            disabled={loading}
-            className="w-full sm:w-auto rounded-2xl bg-emerald-600 px-7 py-3 text-xs font-extrabold text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 active:scale-98 transition disabled:opacity-50 cursor-pointer shrink-0 flex items-center justify-center gap-2"
+            disabled={loading || phone.length < 10}
+            className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50 shrink-0"
           >
-            {loading ? (
-              <>
-                <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span>Requesting Code...</span>
-              </>
-            ) : (
-              <>
-                <span>📲</span>
-                <span>Get 8-Digit Pairing Code</span>
-              </>
-            )}
+            {loading ? "Generating..." : "Get Code"}
           </button>
         </div>
       </div>
@@ -318,7 +327,7 @@ export function WhatsAppCompanionSection({
 
       {/* Pairing Code Display Box */}
       {pairingCode && (
-        <div className="rounded-2xl border-2 border-emerald-500 bg-white p-6 space-y-5 shadow-lg shadow-emerald-500/10 animate-in fade-in duration-200">
+        <div className="rounded-2xl border-2 border-emerald-500 bg-white p-6 space-y-4 shadow-lg shadow-emerald-500/10 animate-in fade-in duration-200">
           <div className="text-center space-y-1.5">
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">
               Your 8-Character Pairing Code
@@ -336,47 +345,122 @@ export function WhatsAppCompanionSection({
               </button>
             </div>
             <p className="text-[11px] font-medium text-slate-500 pt-1">
-              Valid for 2 minutes. Enter this code into WhatsApp on your mobile phone:
+              Enter this code in WhatsApp on your phone: Settings ➔ Linked Devices ➔ Link with phone number
             </p>
-          </div>
-
-          {/* 4 Steps */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
-            <div className="rounded-2xl bg-emerald-50/50 p-3.5 border border-emerald-200/70">
-              <span className="font-black text-emerald-700 block text-sm">Step 1</span>
-              <p className="font-bold text-slate-900 mt-0.5">Open WhatsApp</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">On phone +91 {phone}</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50/50 p-3.5 border border-emerald-200/70">
-              <span className="font-black text-emerald-700 block text-sm">Step 2</span>
-              <p className="font-bold text-slate-900 mt-0.5">Linked Devices</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Settings ➔ Linked Devices</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50/50 p-3.5 border border-emerald-200/70">
-              <span className="font-black text-emerald-700 block text-sm">Step 3</span>
-              <p className="font-bold text-slate-900 mt-0.5">Link Phone</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">&ldquo;Link with phone number instead&rdquo;</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50/50 p-3.5 border border-emerald-200/70">
-              <span className="font-black text-emerald-700 block text-sm">Step 4</span>
-              <p className="font-bold text-slate-900 mt-0.5">Type Code</p>
-              <p className="text-[11px] text-emerald-800 font-mono font-bold mt-0.5">{pairingCode}</p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Privacy & Encryption Guarantee Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-emerald-500/20 text-[11px] text-emerald-950/80 font-medium">
-        <div className="flex items-center gap-1.5">
-          <span className="text-emerald-700 font-bold">🔒</span>
-          <span><strong>AES-256-GCM Encrypted:</strong> Session credentials stored with authenticated encryption at rest.</span>
+      {/* ========================================================================= */}
+      {/* LIVE POP-UP OFFICIAL CHROME QR CODE MODAL                                 */}
+      {/* ========================================================================= */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-line space-y-5 animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-line pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xl font-black">
+                  📷
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Official WhatsApp Web QR Code
+                  </h3>
+                  <p className="text-[11px] text-emerald-700 font-semibold">
+                    ● Real Google Chrome Session (100% Official)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setQrModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            {justConnected ? (
+              <div className="py-10 text-center space-y-3 animate-in zoom-in-95">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-3xl font-black">
+                  ✓
+                </div>
+                <h4 className="text-lg font-black text-slate-900">
+                  🎉 WhatsApp Connected Successfully!
+                </h4>
+                <p className="text-xs text-emerald-700 font-bold">
+                  Closing pop-up and activating Allota CRM link...
+                </p>
+              </div>
+            ) : qrLoading ? (
+              <div className="py-12 text-center space-y-4">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+                <p className="text-xs font-bold text-slate-700">
+                  Launching official Google Chrome &amp; rendering WhatsApp Web QR...
+                </p>
+                <p className="text-[10px] text-slate-400">Takes about 3 to 4 seconds</p>
+              </div>
+            ) : qrError ? (
+              <div className="py-6 text-center space-y-4">
+                <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-800">
+                  {qrError}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenQrModal}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                >
+                  Retry Official QR
+                </button>
+              </div>
+            ) : qrDataUrl ? (
+              <div className="space-y-4 text-center">
+                {/* QR Code Container */}
+                <div className="relative mx-auto inline-block rounded-3xl p-4 bg-white border-2 border-emerald-500 shadow-xl shadow-emerald-500/10">
+                  <img
+                    src={qrDataUrl}
+                    alt="Official WhatsApp Web QR Code"
+                    className="h-64 w-64 object-contain rounded-xl select-none"
+                  />
+                  <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Official Live QR • Waiting for phone camera scan</span>
+                  </div>
+                </div>
+
+                {/* 3 Steps */}
+                <div className="rounded-2xl bg-slate-50 border border-line p-4 text-left text-xs space-y-2">
+                  <p className="font-extrabold text-slate-900 text-[11px] uppercase tracking-wider">
+                    Instructions for Phone:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-600 font-medium">
+                    <li>Open <strong>WhatsApp</strong> on your phone.</li>
+                    <li>Tap <strong>Settings</strong> (iPhone) or <strong>3 dots</strong> (Android) ➔ <strong>Linked Devices</strong>.</li>
+                    <li>Tap <strong>Link a Device</strong> and point your camera at this QR code.</li>
+                  </ol>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-2 border-t border-line text-xs">
+              <span className="text-[11px] text-slate-400">
+                🔒 Pop-up automatically closes when connected
+              </span>
+              <button
+                type="button"
+                onClick={() => setQrModalOpen(false)}
+                className="rounded-xl border border-line px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-emerald-700 font-bold">🛡️</span>
-          <span><strong>Zero Personal Message Logging:</strong> Only Meta ad inquiries captured. Personal chats dropped in memory.</span>
-        </div>
-      </div>
+      )}
     </section>
   );
 }
