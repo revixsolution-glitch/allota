@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: allota-whatsapp-companion
+    runtime: docker
+    dockerfilePath: companion-service/Dockerfile
+    dockerContext: companion-service
+    plan: free
+    region: singapore
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ALLOTA_WEBHOOK_URL
+        value: https://allota.vercel.app/api/whatsapp-companion/incoming
+      - key: SAVI_PHONE
+        value: 917889107964
+      - key: COMPANY_ID
+        value: cmub4ssdx00000u8oqlqc62e0
