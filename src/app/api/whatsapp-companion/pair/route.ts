@@ -269,6 +269,15 @@ export async function GET() {
       if (remoteRes.ok) {
         const remoteData = await remoteRes.json();
         if (remoteData.status === "CONNECTED") {
+          try {
+            await prisma.companySettings.updateMany({
+              where: { companyId },
+              data: {
+                whatsappConnected: true,
+                whatsappCompanionPhone: remoteData.phone,
+              },
+            });
+          } catch {}
           return NextResponse.json({
             status: "CONNECTED",
             phone: remoteData.phone,
