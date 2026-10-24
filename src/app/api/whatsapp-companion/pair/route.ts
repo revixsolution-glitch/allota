@@ -47,11 +47,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No organization workspace selected." }, { status: 400 });
     }
 
-    // 1. Delegate directly to the persistent 24/7 Render companion service
+    // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
     const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
     if (companionHost) {
       try {
-        const remoteRes = await fetch(`${companionHost}/api/qr`, { cache: "no-store" });
+        const remoteRes = await fetch(`${companionHost}/api/${companyId}/qr`, { cache: "no-store" });
         if (remoteRes.ok) {
           const remoteData = await remoteRes.json();
           return NextResponse.json({
@@ -261,11 +261,11 @@ export async function GET() {
     return NextResponse.json({ status: "NOT_CONNECTED", phone: null });
   }
 
-  // 1. Delegate directly to the persistent 24/7 Render companion service
+  // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
   const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
   if (companionHost) {
     try {
-      const remoteRes = await fetch(`${companionHost}/api/status`, { cache: "no-store" });
+      const remoteRes = await fetch(`${companionHost}/api/${companyId}/status`, { cache: "no-store" });
       if (remoteRes.ok) {
         const remoteData = await remoteRes.json();
         if (remoteData.status === "CONNECTED") {
@@ -378,7 +378,7 @@ export async function DELETE() {
   const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
   if (companionHost) {
     try {
-      await fetch(`${companionHost}/api/disconnect`, { method: "POST" });
+      await fetch(`${companionHost}/api/${companyId}/disconnect`, { method: "POST" });
     } catch {}
   }
 

@@ -284,19 +284,6 @@ export default async function AdminSettingsPage() {
           } catch {}
         }
 
-        if (!isWhatsAppConnected) {
-          try {
-            const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
-            const remoteRes = await fetch(`${companionHost}/api/status`, { cache: "no-store", next: { revalidate: 0 } });
-            if (remoteRes.ok) {
-              const remoteData = await remoteRes.json();
-              if (remoteData.status === "CONNECTED" && remoteData.phone) {
-                isWhatsAppConnected = true;
-                companionPhone = remoteData.phone;
-              }
-            }
-          } catch {}
-        }
 
         if (!isWhatsAppConnected) {
           const authDirs = [

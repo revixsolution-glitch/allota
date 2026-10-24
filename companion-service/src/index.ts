@@ -15,19 +15,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 const ALLOTA_WEBHOOK_URL = process.env.ALLOTA_WEBHOOK_URL || "https://allota.vercel.app/api/whatsapp-companion/incoming";
 const SAVI_PHONE = process.env.SAVI_PHONE || "917889107964";
-const AUTH_DIR = process.env.AUTH_DIR || path.join(process.cwd(), "data", "wa_auth");
+const BASE_AUTH_DIR = process.env.AUTH_DIR || path.join(process.cwd(), "data", "wa_auth");
 
-if (!fs.existsSync(AUTH_DIR)) {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
+if (!fs.existsSync(BASE_AUTH_DIR)) {
+  fs.mkdirSync(BASE_AUTH_DIR, { recursive: true });
 }
 
-let sock: any = null;
-let currentStatus: "NOT_CONNECTED" | "AWAITING_SCAN" | "CONNECTED" | "ERROR" = "NOT_CONNECTED";
-let currentQrDataUrl: string | null = null;
-let connectedPhone: string | null = null;
+interface TenantSession {
+  companyId: string;
+  sock: any;
+  status: "NOT_CONNECTED" | "AWAITING_SCAN" | "CONNECTED" | "ERROR";
+  qrDataUrl: string | null;
+  phone: string | null;
+  authDir: string;
+}
+
+// STRICT TENANT ISOLATION: Each companyId has its own completely separate WhatsApp socket and storage
+const tenantSessions = new Map<string, TenantSession>();
 
 const AD_KEYWORDS = [
   "pcd",
@@ -50,16 +57,51 @@ const AD_KEYWORDS = [
   "sample",
 ];
 
-async function startWhatsAppSocket() {
+function sanitizeCompanyId(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function getOrCreateTenantSession(companyId: string): TenantSession {
+  const cleanId = sanitizeCompanyId(companyId);
+  let session = tenantSessions.get(cleanId);
+  if (!session) {
+    const authDir = path.join(BASE_AUTH_DIR, `comp_${cleanId}`);
+    if (!fs.existsSync(authDir)) {
+      fs.mkdirSync(authDir, { recursive: true });
+    }
+    session = {
+      companyId: cleanId,
+      sock: null,
+      status: "NOT_CONNECTED",
+      qrDataUrl: null,
+      phone: null,
+      authDir,
+    };
+    tenantSessions.set(cleanId, session);
+  }
+  return session;
+}
+
+async function startTenantSocket(companyId: string): Promise<TenantSession> {
+  const session = getOrCreateTenantSession(companyId);
+
+  // Close existing socket if open
+  if (session.sock) {
+    try {
+      session.sock.end(undefined);
+    } catch {}
+    session.sock = null;
+  }
+
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    const { state, saveCreds } = await useMultiFileAuthState(session.authDir);
     const { version } = await fetchLatestBaileysVersion().catch(() => ({
       version: [2, 3000, 1043857760] as [number, number, number],
     }));
 
-    console.log(`[Companion] Initializing Baileys with protocol v${version.join(".")}`);
+    console.log(`[Companion][Company: ${session.companyId}] Initializing protocol v${version.join(".")}`);
 
-    sock = makeWASocket({
+    const sock = makeWASocket({
       version,
       auth: state,
       printQRInTerminal: false,
@@ -71,6 +113,8 @@ async function startWhatsAppSocket() {
       connectTimeoutMs: 60000,
     });
 
+    session.sock = sock;
+
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update: any) => {
@@ -78,32 +122,33 @@ async function startWhatsAppSocket() {
 
       if (qr) {
         try {
-          currentQrDataUrl = await QRCode.toDataURL(qr, { width: 380, margin: 2 });
-          currentStatus = "AWAITING_SCAN";
-          console.log("[Companion] Fresh QR code ready for scan.");
+          session.qrDataUrl = await QRCode.toDataURL(qr, { width: 380, margin: 2 });
+          session.status = "AWAITING_SCAN";
+          console.log(`[Companion][Company: ${session.companyId}] QR code ready.`);
         } catch (e) {
           console.error("QR render error:", e);
         }
       }
 
       if (connection === "open") {
-        connectedPhone = sock.user?.id ? sock.user.id.split(":")[0] : "Connected";
-        currentStatus = "CONNECTED";
-        currentQrDataUrl = null;
-        console.log(`[Companion] 🎉 CONNECTED SUCCESSFULLY as: +${connectedPhone}`);
+        session.phone = sock.user?.id ? sock.user.id.split(":")[0] : "Connected";
+        session.status = "CONNECTED";
+        session.qrDataUrl = null;
+        console.log(`[Companion][Company: ${session.companyId}] 🎉 CONNECTED as: +${session.phone}`);
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-        console.log(`[Companion] Connection closed. StatusCode: ${statusCode}`);
-        currentStatus = statusCode === DisconnectReason.loggedOut ? "NOT_CONNECTED" : "AWAITING_SCAN";
+        console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode}`);
+        session.status = statusCode === DisconnectReason.loggedOut ? "NOT_CONNECTED" : "AWAITING_SCAN";
         if (statusCode === DisconnectReason.loggedOut) {
           try {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-            fs.mkdirSync(AUTH_DIR, { recursive: true });
+            fs.rmSync(session.authDir, { recursive: true, force: true });
+            fs.mkdirSync(session.authDir, { recursive: true });
           } catch {}
-          connectedPhone = null;
+          session.phone = null;
+          session.sock = null;
         } else {
           // Reconnect automatically on network blip
-          setTimeout(startWhatsAppSocket, 3000);
+          setTimeout(() => startTenantSocket(session.companyId), 3000);
         }
       }
     });
@@ -140,15 +185,15 @@ async function startWhatsAppSocket() {
         const senderPhone = jid.replace(/@s\.whatsapp\.net/, "");
         const senderName = msg.pushName || "Prospect Lead";
 
-        console.log(`[Lead Detected] Prospect: ${senderName} (+${senderPhone})`);
+        console.log(`[Lead Detected][Company: ${session.companyId}] Prospect: ${senderName} (+${senderPhone})`);
 
-        // 1. Ingest into Allota CRM
+        // 1. Ingest into Allota CRM strictly for this company
         try {
           await fetch(ALLOTA_WEBHOOK_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              companyId: process.env.COMPANY_ID || "default",
+              companyId: session.companyId,
               senderPhone: `+${senderPhone}`,
               senderName,
               messageText: rawText,
@@ -157,16 +202,16 @@ async function startWhatsAppSocket() {
               hasAdReferral,
             }),
           });
-          console.log(`[Lead Ingested] Saved to Allota CRM.`);
+          console.log(`[Lead Ingested] Saved to Allota CRM for ${session.companyId}.`);
         } catch (e: any) {
           console.warn("[CRM Ingest Error]", e?.message);
         }
 
-        // 2. Forward to Savi on WhatsApp
+        // 2. Forward to Savi on WhatsApp if configured
         try {
           const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
           const forwardText =
-`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+`🚨 *NEW PCD FRANCHISE LEAD*
 
 👤 *Prospect:* ${senderName}
 📞 *Phone:* +${senderPhone}
@@ -181,55 +226,108 @@ async function startWhatsAppSocket() {
         }
       }
     });
+
+    return session;
   } catch (err: any) {
-    console.error("[Companion Init Error]", err);
-    currentStatus = "ERROR";
+    console.error(`[Companion Init Error][Company: ${session.companyId}]`, err);
+    session.status = "ERROR";
+    return session;
   }
 }
 
-// REST API for Allota CRM Frontend
+// Restore saved sessions on boot
+function restoreAllSavedSessions() {
+  if (!fs.existsSync(BASE_AUTH_DIR)) return;
+  const entries = fs.readdirSync(BASE_AUTH_DIR, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name.startsWith("comp_")) {
+      const companyId = entry.name.replace(/^comp_/, "");
+      const credsPath = path.join(BASE_AUTH_DIR, entry.name, "creds.json");
+      if (fs.existsSync(credsPath)) {
+        try {
+          const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+          if (creds?.registered && creds?.me?.id) {
+            console.log(`[Boot] Restoring active session for company: ${companyId}`);
+            startTenantSocket(companyId);
+          }
+        } catch {}
+      }
+    }
+  }
+}
+
+// Health Check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", uptime: process.uptime(), waStatus: currentStatus });
-});
-
-app.get("/api/qr", (req, res) => {
   res.json({
-    status: currentStatus,
-    qrCode: currentQrDataUrl,
-    phone: connectedPhone,
+    status: "ok",
+    uptime: process.uptime(),
+    activeTenants: Array.from(tenantSessions.keys()),
   });
 });
 
-app.get("/api/status", (req, res) => {
+// TENANT-SPECIFIC ENDPOINTS
+app.get("/api/:companyId/status", (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+  if (!session) {
+    return res.json({ status: "NOT_CONNECTED", phone: null });
+  }
   res.json({
-    status: currentStatus,
-    phone: connectedPhone,
+    status: session.status,
+    phone: session.phone,
   });
 });
 
-app.post("/api/connect", async (req, res) => {
-  if (currentStatus !== "CONNECTED") {
-    await startWhatsAppSocket();
+app.get("/api/:companyId/qr", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  let session = tenantSessions.get(cleanId);
+
+  if (!session || session.status === "NOT_CONNECTED" || session.status === "ERROR") {
+    session = await startTenantSocket(cleanId);
   }
-  res.json({ success: true, status: currentStatus });
+
+  // Wait briefly for QR if starting
+  let waited = 0;
+  while (!session.qrDataUrl && session.status === "AWAITING_SCAN" && waited < 4000) {
+    await new Promise((r) => setTimeout(r, 250));
+    waited += 250;
+  }
+
+  res.json({
+    status: session.status,
+    qrCode: session.qrDataUrl,
+    phone: session.phone,
+  });
 });
 
-app.post("/api/disconnect", async (req, res) => {
-  if (sock) {
-    try { sock.end(undefined); } catch {}
+app.post("/api/:companyId/connect", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = await startTenantSocket(cleanId);
+  res.json({ success: true, status: session.status });
+});
+
+app.post("/api/:companyId/disconnect", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+  if (session?.sock) {
+    try {
+      session.sock.end(undefined);
+    } catch {}
   }
-  try {
-    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-    fs.mkdirSync(AUTH_DIR, { recursive: true });
-  } catch {}
-  currentStatus = "NOT_CONNECTED";
-  currentQrDataUrl = null;
-  connectedPhone = null;
+  if (session) {
+    try {
+      fs.rmSync(session.authDir, { recursive: true, force: true });
+    } catch {}
+    tenantSessions.delete(cleanId);
+  }
   res.json({ success: true, status: "NOT_CONNECTED" });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Allota WhatsApp Companion Service listening on port ${PORT}`);
-  // Start socket listener automatically on boot
-  startWhatsAppSocket();
+  console.log(`🚀 Allota Multi-Tenant WhatsApp Companion Service on port ${PORT}`);
+  restoreAllSavedSessions();
 });
