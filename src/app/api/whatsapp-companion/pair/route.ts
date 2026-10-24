@@ -47,8 +47,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No organization workspace selected." }, { status: 400 });
     }
 
-    // 1. If Render Persistent Companion is active, delegate directly to it
-    const companionHost = process.env.COMPANION_SERVICE_URL?.replace(/\/$/, "");
+    // 1. Delegate directly to the persistent 24/7 Render companion service
+    const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
     if (companionHost) {
       try {
         const remoteRes = await fetch(`${companionHost}/api/qr`, { cache: "no-store" });
@@ -261,8 +261,8 @@ export async function GET() {
     return NextResponse.json({ status: "NOT_CONNECTED", phone: null });
   }
 
-  // 1. If Render Persistent Companion is active, check status directly
-  const companionHost = process.env.COMPANION_SERVICE_URL?.replace(/\/$/, "");
+  // 1. Delegate directly to the persistent 24/7 Render companion service
+  const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
   if (companionHost) {
     try {
       const remoteRes = await fetch(`${companionHost}/api/status`, { cache: "no-store" });
@@ -364,6 +364,13 @@ export async function DELETE() {
   const companyId = getActiveCompanyId(session);
   if (!companyId || companyId === "default") {
     return NextResponse.json({ success: true, status: "NOT_CONNECTED" });
+  }
+
+  const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
+  if (companionHost) {
+    try {
+      await fetch(`${companionHost}/api/disconnect`, { method: "POST" });
+    } catch {}
   }
 
   const current = activeSockets.get(companyId);
