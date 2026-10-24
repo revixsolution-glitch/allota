@@ -171,7 +171,7 @@ export function WhatsAppCompanionSection({
                 WhatsApp Connected: <span className="font-mono text-emerald-800">{displayPhone || "Active"}</span>
               </h3>
               <p className="text-xs text-slate-600 mt-0.5">
-                Monitoring incoming Meta ad leads and auto-forwarding to Savi in real time.
+                Monitoring incoming Meta ad leads and auto-forwarding to your team in real time.
               </p>
             </div>
           </div>
