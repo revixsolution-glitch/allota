@@ -115,7 +115,26 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 
     session.sock = sock;
 
-    sock.ev.on("creds.update", saveCreds);
+    sock.ev.on("creds.update", async () => {
+      await saveCreds();
+      if (sock.authState.creds.registered) {
+        try {
+          await fetch(ALLOTA_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "BACKUP_CREDS",
+              companyId: session.companyId,
+              phone: session.phone || sock.authState.creds.me?.id?.split(":")[0],
+              creds: sock.authState.creds,
+            }),
+          });
+          console.log(`[Creds Vault] Credentials backed up to PostgreSQL for ${session.companyId}`);
+        } catch (e: any) {
+          console.warn("[Creds Backup Warning]", e?.message);
+        }
+      }
+    });
 
     sock.ev.on("connection.update", async (update: any) => {
       const { connection, lastDisconnect, qr } = update;
@@ -242,24 +261,49 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
   }
 }
 
-// Restore saved sessions on boot
-function restoreAllSavedSessions() {
-  if (!fs.existsSync(BASE_AUTH_DIR)) return;
-  const entries = fs.readdirSync(BASE_AUTH_DIR, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.isDirectory() && entry.name.startsWith("comp_")) {
-      const companyId = entry.name.replace(/^comp_/, "");
-      const credsPath = path.join(BASE_AUTH_DIR, entry.name, "creds.json");
-      if (fs.existsSync(credsPath)) {
-        try {
-          const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
-          if (creds?.registered && creds?.me?.id) {
-            console.log(`[Boot] Restoring active session for company: ${companyId}`);
-            startTenantSocket(companyId);
-          }
-        } catch {}
+// Restore saved sessions on boot from disk and PostgreSQL vault
+async function restoreAllSavedSessions() {
+  // 1. Check local disk
+  if (fs.existsSync(BASE_AUTH_DIR)) {
+    const entries = fs.readdirSync(BASE_AUTH_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith("comp_")) {
+        const companyId = entry.name.replace(/^comp_/, "");
+        const credsPath = path.join(BASE_AUTH_DIR, entry.name, "creds.json");
+        if (fs.existsSync(credsPath)) {
+          try {
+            const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+            if (creds?.registered && creds?.me?.id) {
+              console.log(`[Boot] Restoring active session for company: ${companyId}`);
+              await startTenantSocket(companyId);
+            }
+          } catch {}
+        }
       }
     }
+  }
+
+  // 2. Hydrate from PostgreSQL database via Allota API
+  try {
+    const res = await fetch(ALLOTA_WEBHOOK_URL);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.tenants && Array.isArray(data.tenants)) {
+        for (const t of data.tenants) {
+          if (t.companyId && t.whatsappCompanionCreds) {
+            const session = getOrCreateTenantSession(t.companyId);
+            const credsPath = path.join(session.authDir, "creds.json");
+            if (!fs.existsSync(credsPath)) {
+              fs.writeFileSync(credsPath, typeof t.whatsappCompanionCreds === "string" ? t.whatsappCompanionCreds : JSON.stringify(t.whatsappCompanionCreds));
+              console.log(`[Boot] Restored PostgreSQL creds for company: ${t.companyId}`);
+              await startTenantSocket(t.companyId);
+            }
+          }
+        }
+      }
+    }
+  } catch (e: any) {
+    console.warn("[Boot Hydrate Warning]", e?.message);
   }
 }
 

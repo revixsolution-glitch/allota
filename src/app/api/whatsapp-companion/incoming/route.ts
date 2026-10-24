@@ -35,9 +35,42 @@ const AD_INTENT_KEYWORDS = [
  * PRIVACY GUARANTEE: Only captures verifiable Meta Ad leads and commercial inquiries.
  * Personal chats, family messages, group chats, and outbound texts are dropped immediately.
  */
+export async function GET() {
+  try {
+    const settings = await prisma.companySettings.findMany({
+      where: {
+        whatsappCompanionCreds: { not: null },
+        whatsappConnected: true,
+      },
+      select: {
+        companyId: true,
+        whatsappCompanionPhone: true,
+        whatsappCompanionCreds: true,
+      },
+    });
+    return NextResponse.json({ success: true, tenants: settings });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
+
+    // Handle session credential backup from companion daemon
+    if (body.action === "BACKUP_CREDS" && body.companyId && body.creds) {
+      await prisma.companySettings.updateMany({
+        where: { companyId: body.companyId },
+        data: {
+          whatsappConnected: true,
+          whatsappCompanionPhone: body.phone || null,
+          whatsappCompanionCreds: typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds),
+        },
+      });
+      return NextResponse.json({ success: true, backedUp: true });
+    }
+
     const { companyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral } = body;
 
     // 1. Strict Security Filter: Never process outbound or group chats
