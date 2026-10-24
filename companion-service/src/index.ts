@@ -207,8 +207,12 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           console.warn("[CRM Ingest Error]", e?.message);
         }
 
-        // 2. Forward to Savi on WhatsApp if company is Kesrox
-        const isKesrox = session.companyId.includes("kesrox") || session.companyId === "cmub4ssdx00000u8oqlqc62e0";
+        // 2. Forward to Savi on WhatsApp if company is Kesrox (by companyId or official phone 7494809665)
+        const isKesrox =
+          session.companyId.includes("kesrox") ||
+          session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
+          session.companyId === "cmubi8zf6000004l8y45hhuds" ||
+          session.phone?.includes("7494809665");
         if (isKesrox && session.sock) {
           try {
             const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
