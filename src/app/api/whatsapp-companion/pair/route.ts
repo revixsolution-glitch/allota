@@ -47,6 +47,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No organization workspace selected." }, { status: 400 });
     }
 
+    // 1. If Render Persistent Companion is active, delegate directly to it
+    const companionHost = process.env.COMPANION_SERVICE_URL?.replace(/\/$/, "");
+    if (companionHost) {
+      try {
+        const remoteRes = await fetch(`${companionHost}/api/qr`, { cache: "no-store" });
+        if (remoteRes.ok) {
+          const remoteData = await remoteRes.json();
+          return NextResponse.json({
+            success: true,
+            status: remoteData.status,
+            qrCode: remoteData.qrCode,
+            phone: remoteData.phone,
+          });
+        }
+      } catch (remoteErr) {
+        console.warn("[Companion Bridge] Remote host fetch:", remoteErr);
+      }
+    }
+
     const body = await request.json().catch(() => ({}));
     const mode = body.mode || (body.phone ? "code" : "qr");
     const rawPhone = String(body.phone || "").trim();
@@ -240,6 +259,23 @@ export async function GET() {
   const companyId = getActiveCompanyId(session);
   if (!companyId || companyId === "default") {
     return NextResponse.json({ status: "NOT_CONNECTED", phone: null });
+  }
+
+  // 1. If Render Persistent Companion is active, check status directly
+  const companionHost = process.env.COMPANION_SERVICE_URL?.replace(/\/$/, "");
+  if (companionHost) {
+    try {
+      const remoteRes = await fetch(`${companionHost}/api/status`, { cache: "no-store" });
+      if (remoteRes.ok) {
+        const remoteData = await remoteRes.json();
+        if (remoteData.status === "CONNECTED") {
+          return NextResponse.json({
+            status: "CONNECTED",
+            phone: remoteData.phone,
+          });
+        }
+      }
+    } catch {}
   }
 
   const current = activeSockets.get(companyId);
