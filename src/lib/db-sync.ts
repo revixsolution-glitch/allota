@@ -54,20 +54,7 @@ export async function ensureCompanySettingsColumns() {
         SET "whatsappConnected" = true
         WHERE ("whatsappCompanionCreds" LIKE '%"registered":true%' OR "whatsappCompanionCreds" LIKE '%"registered": true%')
           AND "whatsappCompanionPhone" IS NOT NULL
-          AND "whatsappCompanionPhone" NOT LIKE '%9996589217%'
           AND "whatsappConnected" = false;
-      `);
-    } catch {}
-
-    // Purge any leaked test phone numbers or credentials from CompanySettings across all companies
-    try {
-      await prisma.$executeRawUnsafe(`
-        UPDATE "CompanySettings"
-        SET "whatsappConnected" = false,
-            "whatsappCompanionPhone" = NULL,
-            "whatsappCompanionCreds" = NULL
-        WHERE "whatsappCompanionPhone" LIKE '%9996589217%'
-           OR "whatsappCompanionCreds" LIKE '%9996589217%';
       `);
     } catch {}
 
