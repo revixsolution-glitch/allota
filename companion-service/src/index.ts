@@ -207,11 +207,13 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           console.warn("[CRM Ingest Error]", e?.message);
         }
 
-        // 2. Forward to Savi on WhatsApp if configured
-        try {
-          const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
-          const forwardText =
-`🚨 *NEW PCD FRANCHISE LEAD*
+        // 2. Forward to Savi on WhatsApp if company is Kesrox
+        const isKesrox = session.companyId.includes("kesrox") || session.companyId === "cmub4ssdx00000u8oqlqc62e0";
+        if (isKesrox && session.sock) {
+          try {
+            const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+            const forwardText =
+`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
 📞 *Phone:* +${senderPhone}
@@ -219,10 +221,11 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 ⚡ *Source:* ${hasAdReferral ? "Meta Ad Click" : "Direct WhatsApp Inquiry"}
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
 
-          await sock.sendMessage(saviJid, { text: forwardText });
-          console.log(`[Lead Forwarded] Sent to Savi (+${SAVI_PHONE})`);
-        } catch (fwdErr: any) {
-          console.warn("[Forward Error]", fwdErr?.message);
+            await session.sock.sendMessage(saviJid, { text: forwardText });
+            console.log(`[Lead Forwarded] Sent to Savi (+${SAVI_PHONE}) for Kesrox`);
+          } catch (fwdErr: any) {
+            console.warn("[Forward Error]", fwdErr?.message);
+          }
         }
       }
     });

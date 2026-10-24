@@ -55,6 +55,9 @@ export function WhatsAppCompanionSection({
         if (data?.status === "CONNECTED") {
           setStatus("CONNECTED");
           if (data.phone) setConnectedPhone(data.phone);
+        } else if (data?.status === "NOT_CONNECTED") {
+          setStatus("NOT_CONNECTED");
+          setConnectedPhone(null);
         }
       } catch {
         // keep intact on network blip
