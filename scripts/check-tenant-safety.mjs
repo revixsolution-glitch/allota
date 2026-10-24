@@ -44,7 +44,7 @@ const RULES = [
   { name: "hardcoded Google/Gemini API key", test: /\bAQ\.[A-Za-z0-9_-]{30,}|\bAIza[A-Za-z0-9_-]{30,}/ },
   { name: "hardcoded 32-char app secret", test: /(?:secret|Secret)\w*\s*[:=]\s*["'][a-f0-9]{32}["']/ },
   { name: "shared test whatsapp auth directory leaked into code", test: /whatsapp_auth_test/ },
-  { name: "hardcoded test whatsapp number", test: /9996589217/, allow: ALLOW_CLEANUP },
+  { name: "hardcoded test whatsapp number", test: /9996589217|8708289217/, allow: ALLOW_CLEANUP },
 ];
 
 function* walk(dir) {
