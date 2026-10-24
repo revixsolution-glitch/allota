@@ -57,6 +57,52 @@ const AD_KEYWORDS = [
   "sample",
 ];
 
+function getSessionFilesMap(authDir: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!fs.existsSync(authDir)) return map;
+  const files = fs.readdirSync(authDir);
+  for (const f of files) {
+    const full = path.join(authDir, f);
+    if (fs.statSync(full).isFile() && f.endsWith(".json")) {
+      map[f] = fs.readFileSync(full, "utf8");
+    }
+  }
+  return map;
+}
+
+function restoreSessionFilesFromMap(authDir: string, rawData: any) {
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
+  let map: Record<string, any> = {};
+  if (typeof rawData === "string") {
+    try {
+      map = JSON.parse(rawData);
+    } catch {
+      return;
+    }
+  } else if (typeof rawData === "object" && rawData !== null) {
+    map = rawData;
+  }
+
+  // Handle single creds.json object (legacy)
+  if (map.me || map.registrationId || map.noiseKey) {
+    fs.writeFileSync(path.join(authDir, "creds.json"), JSON.stringify(map), "utf8");
+    return;
+  }
+
+  // Restore every key and pre-key JSON file
+  for (const [filename, content] of Object.entries(map)) {
+    if (typeof filename === "string" && filename.endsWith(".json")) {
+      fs.writeFileSync(
+        path.join(authDir, filename),
+        typeof content === "string" ? content : JSON.stringify(content),
+        "utf8"
+      );
+    }
+  }
+}
+
 function sanitizeCompanyId(raw: string): string {
   return raw.replace(/[^a-zA-Z0-9_-]/g, "");
 }
@@ -115,25 +161,29 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 
     session.sock = sock;
 
+    const backupSessionToVault = async () => {
+      if (!sock?.authState?.creds?.registered) return;
+      try {
+        const sessionMap = getSessionFilesMap(session.authDir);
+        await fetch(ALLOTA_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "BACKUP_CREDS",
+            companyId: session.companyId,
+            phone: session.phone || sock.authState.creds.me?.id?.split(":")[0],
+            sessionMap,
+          }),
+        });
+        console.log(`[Creds Vault] Full session backed up to PostgreSQL for ${session.companyId} (${Object.keys(sessionMap).length} files)`);
+      } catch (e: any) {
+        console.warn("[Creds Backup Warning]", e?.message);
+      }
+    };
+
     sock.ev.on("creds.update", async () => {
       await saveCreds();
-      if (sock.authState.creds.registered) {
-        try {
-          await fetch(ALLOTA_WEBHOOK_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "BACKUP_CREDS",
-              companyId: session.companyId,
-              phone: session.phone || sock.authState.creds.me?.id?.split(":")[0],
-              creds: sock.authState.creds,
-            }),
-          });
-          console.log(`[Creds Vault] Credentials backed up to PostgreSQL for ${session.companyId}`);
-        } catch (e: any) {
-          console.warn("[Creds Backup Warning]", e?.message);
-        }
-      }
+      await backupSessionToVault();
     });
 
     sock.ev.on("connection.update", async (update: any) => {
@@ -154,6 +204,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         session.status = "CONNECTED";
         session.qrDataUrl = null;
         console.log(`[Companion][Company: ${session.companyId}] 🎉 CONNECTED as: +${session.phone}`);
+        await backupSessionToVault();
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
         console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode}`);
@@ -292,12 +343,9 @@ async function restoreAllSavedSessions() {
         for (const t of data.tenants) {
           if (t.companyId && t.whatsappCompanionCreds) {
             const session = getOrCreateTenantSession(t.companyId);
-            const credsPath = path.join(session.authDir, "creds.json");
-            if (!fs.existsSync(credsPath)) {
-              fs.writeFileSync(credsPath, typeof t.whatsappCompanionCreds === "string" ? t.whatsappCompanionCreds : JSON.stringify(t.whatsappCompanionCreds));
-              console.log(`[Boot] Restored PostgreSQL creds for company: ${t.companyId}`);
-              await startTenantSocket(t.companyId);
-            }
+            restoreSessionFilesFromMap(session.authDir, t.whatsappCompanionCreds);
+            console.log(`[Boot] Restored full PostgreSQL session keys for company: ${t.companyId}`);
+            await startTenantSocket(t.companyId);
           }
         }
       }

@@ -58,14 +58,18 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
 
-    // Handle session credential backup from companion daemon
-    if (body.action === "BACKUP_CREDS" && body.companyId && body.creds) {
+    // Handle session credential & full key state backup from companion daemon
+    if (body.action === "BACKUP_CREDS" && body.companyId) {
+      const credsData = body.sessionMap
+        ? (typeof body.sessionMap === "string" ? body.sessionMap : JSON.stringify(body.sessionMap))
+        : (typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds));
+
       await prisma.companySettings.updateMany({
         where: { companyId: body.companyId },
         data: {
           whatsappConnected: true,
           whatsappCompanionPhone: body.phone || null,
-          whatsappCompanionCreds: typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds),
+          whatsappCompanionCreds: credsData,
         },
       });
       return NextResponse.json({ success: true, backedUp: true });
