@@ -31,10 +31,8 @@ function getAuthDirs(companyId: string): string[] {
   if (!companyId || companyId === "default") {
     return [];
   }
-  return [
-    path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`),
-    path.join(process.cwd(), "tmp", "allota_wa", `wa_${companyId}`),
-  ];
+  // os.tmpdir() is guaranteed writable in both Vercel AWS Lambda (/tmp) and local environments
+  return [path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`)];
 }
 
 export async function POST(request: Request) {
@@ -239,7 +237,7 @@ export async function GET() {
     });
   }
 
-  // 2. Check company-isolated persisted credentials on disk
+  // 2. Check company-isolated persisted credentials on disk in os.tmpdir()
   const authDirs = getAuthDirs(companyId);
   let savedPhone: string | null = null;
   let isSaved = false;

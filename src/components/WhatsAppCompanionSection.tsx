@@ -49,7 +49,7 @@ export function WhatsAppCompanionSection({
   useEffect(() => {
     async function checkStatus() {
       try {
-        const res = await fetch("/api/whatsapp-companion/chrome-qr");
+        const res = await fetch("/api/whatsapp-companion/pair");
         if (!res.ok) return;
         const data = await res.json();
         if (data?.status === "CONNECTED") {
@@ -69,7 +69,7 @@ export function WhatsAppCompanionSection({
     if (qrModalOpen) {
       interval = setInterval(async () => {
         try {
-          const res = await fetch("/api/whatsapp-companion/chrome-qr");
+          const res = await fetch("/api/whatsapp-companion/pair");
           const data = await res.json();
           if (data?.status === "CONNECTED") {
             setJustConnected(true);
@@ -103,8 +103,10 @@ export function WhatsAppCompanionSection({
     setJustConnected(false);
 
     try {
-      const res = await fetch("/api/whatsapp-companion/chrome-qr", {
+      const res = await fetch("/api/whatsapp-companion/pair", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "qr" }),
       });
 
       const data = await res.json();
@@ -113,7 +115,7 @@ export function WhatsAppCompanionSection({
         throw new Error(data.error || "Failed to initiate WhatsApp connection.");
       }
 
-      if (data.status === "CONNECTED") {
+      if (data.status === "CONNECTED" || data.alreadyRegistered) {
         setStatus("CONNECTED");
         if (data.phone) setConnectedPhone(data.phone);
         setQrModalOpen(false);
@@ -131,7 +133,6 @@ export function WhatsAppCompanionSection({
     if (!confirm("Are you sure you want to disconnect this WhatsApp number?")) return;
     setLoading(true);
     try {
-      await fetch("/api/whatsapp-companion/chrome-qr", { method: "DELETE" });
       await fetch("/api/whatsapp-companion/pair", { method: "DELETE" });
       setStatus("NOT_CONNECTED");
       setConnectedPhone(null);
@@ -190,7 +191,7 @@ export function WhatsAppCompanionSection({
     );
   }
 
-  // 2. DISCONNECTED / SETUP STATE (PREVIOUS CLEAN LAYOUT WITH WHATSAPP LOGO)
+  // 2. DISCONNECTED / SETUP STATE
   return (
     <section className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 p-5 sm:p-6 neo-panel space-y-4 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
