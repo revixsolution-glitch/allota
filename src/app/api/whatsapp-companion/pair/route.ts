@@ -57,13 +57,33 @@ export async function POST(request: Request) {
     const existing = activeSockets.get(companyId);
     if (existing?.sock) {
       try { existing.sock.end(undefined); } catch {}
+      activeSockets.delete(companyId);
+    }
+
+    // CRITICAL FIX: If generating a fresh QR code and not already registered,
+    // completely purge stale/corrupted key files so WhatsApp gets a 100% pristine cryptographic handshake.
+    // Leaving corrupt auth files causes WhatsApp mobile app to throw "Could not connect / Unable to link device".
+    if (mode === "qr" && fs.existsSync(authDir)) {
+      const credsPath = path.join(authDir, "creds.json");
+      let isRegistered = false;
+      if (fs.existsSync(credsPath)) {
+        try {
+          const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+          isRegistered = Boolean(creds?.registered && creds?.me?.id);
+        } catch {}
+      }
+      if (!isRegistered) {
+        try {
+          fs.rmSync(authDir, { recursive: true, force: true });
+        } catch {}
+      }
     }
 
     if (!fs.existsSync(authDir)) {
       fs.mkdirSync(authDir, { recursive: true });
     }
 
-    const { version } = await fetchLatestBaileysVersion();
+    const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1043857760] as [number, number, number] }));
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     const sock = makeWASocket({
@@ -72,8 +92,11 @@ export async function POST(request: Request) {
       printQRInTerminal: false,
       logger: pino({ level: "silent" }) as any,
       browser: Browsers.macOS("Chrome"),
+      syncFullHistory: false,
+      generateHighQualityLinkPreview: false,
       keepAliveIntervalMs: 15000,
       connectTimeoutMs: 60000,
+      retryRequestDelayMs: 250,
     });
 
     const currentSocketRecord: {
