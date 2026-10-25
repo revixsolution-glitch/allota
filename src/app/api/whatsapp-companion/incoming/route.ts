@@ -40,7 +40,6 @@ export async function GET() {
     const settings = await prisma.companySettings.findMany({
       where: {
         whatsappCompanionCreds: { not: null },
-        whatsappConnected: true,
       },
       select: {
         companyId: true,
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
         ? (typeof body.sessionMap === "string" ? body.sessionMap : JSON.stringify(body.sessionMap))
         : (typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds));
 
-      await prisma.companySettings.updateMany({
+      const updated = await prisma.companySettings.updateMany({
         where: { companyId: body.companyId },
         data: {
           whatsappConnected: true,
@@ -72,6 +71,25 @@ export async function POST(request: Request) {
           whatsappCompanionCreds: credsData,
         },
       });
+
+      if (updated.count === 0) {
+        const comp = await prisma.company.findUnique({
+          where: { id: body.companyId },
+          select: { id: true, name: true },
+        });
+
+        await prisma.companySettings.create({
+          data: {
+            companyId: body.companyId,
+            companyName: comp?.name || "Company",
+            whatsappConnected: true,
+            whatsappCompanionPhone: body.phone || null,
+            whatsappCompanionCreds: credsData,
+          },
+        });
+      }
+
+      console.log(`[Creds Vault] Successfully saved session for company ${body.companyId} to PostgreSQL`);
       return NextResponse.json({ success: true, backedUp: true });
     }
 
