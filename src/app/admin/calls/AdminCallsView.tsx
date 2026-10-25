@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { markWhatsAppAlertSent, toggleCallFollowUpFlag } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage, classifyCallLead } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
@@ -101,8 +102,16 @@ export function AdminCallsView({
   const [datePreset, setDatePreset] = useState<"ALL" | "TODAY" | "YESTERDAY" | "7DAYS" | "THIS_MONTH" | "CUSTOM">("ALL");
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
+  const searchParams = useSearchParams();
+  const searchParam = searchParams.get("search") || "";
   const [leadCategoryFilter, setLeadCategoryFilter] = useState<"ALL" | "HOT" | "WARM" | "COLD" | "DEAD">("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParam);
+
+  useEffect(() => {
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParam]);
   const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [activeDocCallId, setActiveDocCallId] = useState<string | null>(null);

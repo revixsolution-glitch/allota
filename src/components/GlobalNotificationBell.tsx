@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CrmNotification } from "@/app/api/notifications/route";
 
 export function GlobalNotificationBell() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<CrmNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -35,24 +36,47 @@ export function GlobalNotificationBell() {
       sessionStorage.setItem("allota_alerted_followups", JSON.stringify([...alerted, ...fresh.map((n) => n.id)]));
     } catch {}
     const first = fresh[0];
-    setToast(fresh.length > 1 ? { ...first, title: `${fresh.length} follow-ups are due`, description: fresh.map((n) => n.title.split(": ")[1] ?? "").filter(Boolean).slice(0, 3).join(", ") } : first);
+    setToast(
+      fresh.length > 1
+        ? {
+            ...first,
+            title: `${fresh.length} follow-ups are due`,
+            description: fresh
+              .map((n) => n.title.split(": ")[1] ?? "")
+              .filter(Boolean)
+              .slice(0, 3)
+              .join(", "),
+          }
+        : first
+    );
     setTimeout(() => setToast(null), 10000);
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       try {
         new Notification(fresh.length > 1 ? `${fresh.length} follow-ups are due` : first.title, {
           body: fresh.length > 1 ? "Open Allota to see them." : first.description,
+          icon: "/logo.png",
         });
       } catch {}
     }
   }
 
   async function enableDesktopAlerts() {
-    if (!("Notification" in window)) return;
-    const result = await Notification.requestPermission();
-    setNotifPermission(result);
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    try {
+      const result = await Notification.requestPermission();
+      setNotifPermission(result);
+      if (result === "granted") {
+        new Notification("Notifications Enabled", {
+          body: "You will now receive desktop alerts for missed calls and new leads.",
+          icon: "/logo.png",
+        });
+      }
+    } catch (e) {
+      console.warn("Notification permission error:", e);
+    }
   }
 
-  // Load read notifications from localStorage
+  // Load read notifications from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem("allota_read_notifications");
@@ -74,8 +98,14 @@ export function GlobalNotificationBell() {
           setNotifications(data.notifications);
           if (data.home) setHome({ href: data.home, label: data.homeLabel || "View alerts →" });
           alertForDueFollowUps(data.notifications);
+
+          let storedRead: string[] = [];
+          try {
+            storedRead = JSON.parse(localStorage.getItem("allota_read_notifications") || "[]");
+          } catch {}
+
           const unread = data.notifications.filter(
-            (n: CrmNotification) => !readIds.includes(n.id)
+            (n: CrmNotification) => !storedRead.includes(n.id)
           ).length;
           setUnreadCount(unread);
         }
@@ -85,12 +115,12 @@ export function GlobalNotificationBell() {
     }
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // 30s auto-refresh
+    const interval = setInterval(fetchNotifications, 25000); // 25s auto-refresh
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [readIds]);
+  }, []);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -116,9 +146,10 @@ export function GlobalNotificationBell() {
     } catch {}
   }
 
-  function handleItemClick(id: string) {
-    if (!readIds.includes(id)) {
-      const updated = [...readIds, id];
+  function handleNotificationClick(e: React.MouseEvent, item: CrmNotification) {
+    e.preventDefault();
+    if (!readIds.includes(item.id)) {
+      const updated = [...readIds, item.id];
       setReadIds(updated);
       setUnreadCount(Math.max(0, unreadCount - 1));
       try {
@@ -126,6 +157,8 @@ export function GlobalNotificationBell() {
       } catch {}
     }
     setIsOpen(false);
+    router.push(item.href);
+    router.refresh();
   }
 
   const hasUnread = unreadCount > 0;
@@ -205,11 +238,17 @@ export function GlobalNotificationBell() {
               notifications.map((item) => {
                 const isItemUnread = !readIds.includes(item.id);
                 return (
-                  <Link
+                  <div
                     key={item.id}
-                    href={item.href}
-                    onClick={() => handleItemClick(item.id)}
-                    className={`flex items-start gap-3 p-3 transition hover:bg-slate-50 cursor-pointer ${
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => handleNotificationClick(e, item)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleNotificationClick(e as any, item);
+                      }
+                    }}
+                    className={`flex items-start gap-3 p-3 transition hover:bg-slate-50 cursor-pointer select-none ${
                       isItemUnread ? "bg-sky-50/40" : ""
                     }`}
                   >
@@ -246,7 +285,7 @@ export function GlobalNotificationBell() {
                     {isItemUnread && (
                       <span className="h-2 w-2 rounded-full bg-[#0284c7] shrink-0 mt-1.5" />
                     )}
-                  </Link>
+                  </div>
                 );
               })
             )}
@@ -254,13 +293,17 @@ export function GlobalNotificationBell() {
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 border-t border-line">
-            <Link
-              href={home.href}
-              onClick={() => setIsOpen(false)}
-              className="text-[11px] font-bold text-[#0284c7] hover:underline"
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                router.push(home.href);
+                router.refresh();
+              }}
+              className="text-[11px] font-bold text-[#0284c7] hover:underline cursor-pointer"
             >
               {home.label}
-            </Link>
+            </button>
             {notifPermission === "default" && (
               <button
                 type="button"
@@ -275,17 +318,18 @@ export function GlobalNotificationBell() {
       )}
 
       {toast && (
-        <Link
-          href={toast.href}
-          onClick={() => setToast(null)}
-          className="fixed right-4 top-20 z-[60] flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-sky-200 bg-white p-3.5 shadow-2xl"
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={(e) => handleNotificationClick(e, toast)}
+          className="fixed right-4 top-20 z-[60] flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-sky-200 bg-white p-3.5 shadow-2xl cursor-pointer hover:shadow-lg transition"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-lg">⏰</span>
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-extrabold text-ink">{toast.title}</span>
             <span className="mt-0.5 block text-[11px] text-ink-muted">{toast.description}</span>
           </span>
-        </Link>
+        </div>
       )}
 
       {/* Bell Ringing Animation Style */}

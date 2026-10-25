@@ -11,6 +11,7 @@ interface AdminCallsPageProps {
     range?: string;
     from?: string;
     to?: string;
+    search?: string;
   }>;
 }
 

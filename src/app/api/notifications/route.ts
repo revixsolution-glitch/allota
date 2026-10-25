@@ -93,13 +93,16 @@ export async function GET() {
     // Map missed calls
     for (const c of missedCalls) {
       const callerName = c.client?.name || c.lead?.name || "Caller";
+      const callerPhone = c.lead?.phoneNumber || c.client?.phoneNumber || "";
+      const searchParam = encodeURIComponent(callerPhone || callerName);
+
       notifications.push({
         id: `call-${c.id}`,
         type: "CALL",
         title: `Missed Call: ${callerName}`,
-        description: `${c.lead?.phoneNumber || c.client?.phoneNumber || "Phone call"} missed • WhatsApp recovery ready`,
+        description: `${callerPhone || "Phone call"} missed • WhatsApp recovery ready`,
         timestamp: formatRelativeTime(c.occurredAt),
-        href: "/admin/calls",
+        href: `/admin/calls?search=${searchParam}`,
         badge: "Missed Call",
         isUnread: !c.whatsappSent,
       });
@@ -107,13 +110,15 @@ export async function GET() {
 
     // Map new/hot leads
     for (const l of newLeads) {
+      const searchParam = encodeURIComponent(l.phoneNumber || l.name || "");
+
       notifications.push({
         id: `lead-${l.id}`,
         type: "LEAD",
         title: l.status === "INTERESTED" ? `🔥 Hot Lead: ${l.name}` : `New Lead: ${l.name}`,
         description: `${l.source || "Meta"} • ${l.city || l.state || "PCD Inquiry"}`,
         timestamp: formatRelativeTime(l.createdAt),
-        href: "/admin/leads",
+        href: `/admin/leads?search=${searchParam}`,
         badge: l.status === "INTERESTED" ? "Hot Lead" : "New Lead",
         isUnread: true,
       });
@@ -122,13 +127,15 @@ export async function GET() {
     // Map overdue credits
     for (const cr of overdueCredits) {
       const amt = Number(cr.balanceAmount || 0);
+      const searchParam = encodeURIComponent(cr.client?.name || "");
+
       notifications.push({
         id: `credit-${cr.id}`,
         type: "CREDIT",
         title: `Payment Overdue: ${cr.client?.name || "Distributor"}`,
         description: `₹${amt.toLocaleString("en-IN")} overdue • Due on ${new Date(cr.dueDate).toLocaleDateString("en-IN")}`,
         timestamp: formatRelativeTime(cr.createdAt),
-        href: "/admin/credits",
+        href: `/admin/credits?search=${searchParam}`,
         badge: "Overdue",
         isUnread: true,
       });
@@ -165,7 +172,7 @@ export async function GET() {
         title: `${r.name}: ${r.overdue > 0 ? `${r.overdue} overdue` : `${r.today} due today`} follow-up${(r.overdue || r.today) === 1 ? "" : "s"}`,
         description: [r.overdue ? `${r.overdue} overdue` : "", r.today ? `${r.today} due today` : ""].filter(Boolean).join(" • "),
         timestamp: formatRelativeTime(new Date(r.latest)),
-        href: "/admin/follow-ups",
+        href: `/admin/follow-ups?employeeId=${repId}`,
         badge: r.overdue > 0 ? "Overdue" : "Due today",
         isUnread: true,
       }));
