@@ -6,7 +6,7 @@ services:
     dockerContext: companion-service
     plan: free
     region: singapore
-    autoDeploy: false
+    autoDeploy: true
     envVars:
       - key: PORT
         value: 10000
