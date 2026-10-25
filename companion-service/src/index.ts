@@ -850,6 +850,50 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
   }
 });
 
+// Prompt existing captured ad leads who only have an LID to provide their real callable phone number
+app.post("/api/:companyId/prompt-pending-leads", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+
+  if (!session || !session.sock || session.status !== "CONNECTED") {
+    return res.status(400).json({ error: "WhatsApp is not connected for this company" });
+  }
+
+  // Target the captured leads that landed via Meta Ad LIDs
+  const targets = [
+    { jid: "77588651323577@lid", name: "A K DRUGS AGENCY" },
+    { jid: "136391149277265@lid", name: "Renjith C" },
+  ];
+
+  const results: any[] = [];
+  for (const t of targets) {
+    try {
+      activeLidLeads.set(t.jid, {
+        companyId: session.companyId,
+        senderName: t.name,
+        initialInquiry: "Ad Lead Awaiting Phone Number",
+        firstSeenAt: new Date(),
+        promptSent: true,
+      });
+
+      // 1. Send native 1-tap phone share button
+      try {
+        await session.sock.sendMessage(t.jid, { requestPhoneNumber: true } as any);
+      } catch {}
+
+      // 2. Send polite prompt text
+      const prompt = `Namaste ${t.name}! 🙏\n\nThank you for reaching out to *Kesrox Healthcare* regarding PCD Pharma Franchise.\n\nTo share our complete *Product Catalogue, Monopoly Price List & Profit Margins* with you, please tap the *"Share Phone Number"* button above or reply with your:\n1. 📱 *Calling / WhatsApp Mobile Number*\n2. 📍 *City & State*\n\nOur team will assist you right away!`;
+      await session.sock.sendMessage(t.jid, { text: prompt });
+      results.push({ name: t.name, jid: t.jid, status: "PROMPTED_SUCCESS" });
+    } catch (err: any) {
+      results.push({ name: t.name, jid: t.jid, error: err?.message });
+    }
+  }
+
+  return res.json({ success: true, results });
+});
+
 app.post("/api/:companyId/disconnect", async (req, res) => {
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
