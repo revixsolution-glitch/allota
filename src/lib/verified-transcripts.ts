@@ -20,7 +20,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Stock Status Check"],
     sentiment: "WARM",
     durationSec: 10,
-    contactName: "Call recording Paul Medicine Raiganj Existing_261015_134646.m4a",
+    contactName: "Paul Medicine Raiganj",
   },
   "261015_112145": {
     transcript: "Employee: Hello.\nCustomer: Hello.\nEmployee: Ha wo consignment aaya?\nCustomer: Abhi nahi aaya sir consignment.\nEmployee: Kya baat hai aap log to...\nCustomer: Aa jayega maine bataya tha sir aapko jab aayega main aapko na phone kar dunga aapko.\nEmployee: Abhi aaya nahi?\nCustomer: Aapne to somwar mangalwar bola tha kya aana chahiye?\nCustomer: Barish ki vajah se kharid nahi ho rahi hai yahan pe pani bhara hua hai sari jagah.\nEmployee: Pani bhara hua hai?\nCustomer: Do din se haan ji.\nCustomer: Barish aaj ruki hai do din se lagatar ho rahi thi.\nEmployee: To maal aayega ya nahi aayega?\nCustomer: Aayega maal to sir.\nCustomer: Barish ki vajah se ruka hua tha.\nCustomer: Gaadiyan chali nahi rahi thi kahin bhi.\nEmployee: Maine to kaha tha chal rahi hai gaadi ab aane me jo lage do din teen din time.\nCustomer: Ha jab bhi pahunchega sir chahe aaj pahunche ya kal pahunche aapko bata dunga main jaise.",
@@ -28,7 +28,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Consignment Delayed","Weather Issue"],
     sentiment: "WARM",
     durationSec: 53,
-    contactName: "Call recording Rajesh Kumar Pandey - Jhumritliya Indiamart Existing_261015_112145.m4a",
+    contactName: "Rajesh Kumar Pandey - Jhumritliya Indiamart",
   },
   "261014_103804": {
     transcript: "Employee: Hello?\nCustomer: Hello, good morning, sir.\nEmployee: Good morning, sir. Kaise ho?\nCustomer: Main theek hu, aap batao aap kaise ho?\nEmployee: Sab badhiya, badhiya. Arre wo aapne bill banwaya tha ek Immigreen ka, bata dete ho uska?\nCustomer: Haan-haan, aaj main nikalwaunga isko main.\nEmployee: Achha, fir pack karwao itna usko?\nCustomer: Aap pack karwa do aur aur kya hai na?\nEmployee: Yehi hai sir, abhi toh. Spongcure hai Immigreen aur...\nCustomer: Haan, ek ye tha. L-Cyp syrup 12 piece ka main, ismein 100 ka bill banana hai aur 88 piece...\nEmployee: Dusre mein honge sir, kisi aur usmein.\nCustomer: Maine saare check kiye hain, unmein toh koi sima nahi hai.\nEmployee: Gin ke dalwaye the waise. Chalo main idhar check karwata hoon ek baar stock na.\nCustomer: Haan. L-Cyp syrup aur bhi hain.\nEmployee: Pada hai, kaafi pada hai sir abhi aaya tha ye toh.\nCustomer: Kya keh rahe ho?\nEmployee: Main keh raha hoon kaafi pada hai abhi toh, abhi batch aaya tha na naya.\nCustomer: Achha. Toh do ke daal dena hai list ke.\nCustomer: Do?\nEmployee: Haan.\nCustomer: theek hai.\nEmployee: Bhej raha hoon aapko na.\nCustomer: MF syrup...\nCustomer: MF bhi hai.\nCustomer: Achha.\nCustomer: Chalo ek MF ka daal diya hoon.\nEmployee: Ye 12 piece ka main na aapke, jo aap ye bata rahe ho L-Cyp, 88 piece aaye hain aapko.\nCustomer: L-Cyp 88.\nEmployee: Theek hai, chalo main 12 bhi dalwa dunga inmein na isi mein.\nCustomer: Haan.\nCustomer: Fir aisa karta hoon bill mein 12 piece kam main add kar deta hoon aur case pura aa jayega, alag se nahi toh fir se case banega, dikat hoegi.\nCustomer: Ye aise adjust kar lete hain, theek hai?\nCustomer: Theek hai. Alag se daal dio usko 12 ko aap.\nCustomer: Alag case banega fir wo, uske paise nahi lagenge aane wo.\nCustomer: Achha. Abhi toh aur aur kya kya hai tablet section mein?\nEmployee: Jaise 320 mein se 12 minus kar leta hoon na bas.\nCustomer: 308 bill mein daal deta hoon, 320 aapke paas aa jayenge.\nCustomer: Haan, chalo aisa kar liyo, aisa kar liyo.\nCustomer: Theek hai.\nCustomer: Ye batao aur kya hai tablet section mein?\nEmployee: Tablet mein toh saara hi hai max maximum.\nCustomer: Saara hi hai.\nCustomer: Haan, kuch aadha chhod ke aana tha.\nCustomer: Isme toh dekh lo, chalo thoda sa SP ka kar lo.\nCustomer: SP ka hota na, aapko bolna hi na padta sir.\nCustomer: Bahut mehangi aayi hai.\nEmployee: Kya keh rahe ho?\nCustomer: Main kaha SP bahut mehangi aayi hui hai hamari isiliye main bhi ruk paya hoon.\nCustomer: Wahi ho raha hai sir, main ye keh raha hoon SP zyada chalti hai, SP aapki lag jaye toh aur thoda bada mulla sa ho jaye.\nCustomer: Main soch raha hoon ki saare item aapke chal jayein jaise pehle chalta tha.\nEmployee: SP kitne mein ke keh rahe ho aap mujhe?\nEmployee: Ye main aapko 118 15 toh diya hua hai sirf rate.\nCustomer: 112 ka diya tha aapne.\nCustomer: Ab dekho fir aur bhi kam hua hai, balki bada hua hai SP dobara aur iska toh acyclo SP mere paas thoda hi hai ab.\nCustomer: 10 ek dabbe bach rahe honge.\nCustomer: Dahi kilo SP mil jayegi.\nCustomer: Dahi kilo SP ka rate aa jayegi.\nEmployee: Wahi hai ₹115.\nCustomer: Wohi toh hai na, batao sir, hum soch rahe hain aapke lag jaye.\nCustomer: Ye kaun se wale hain? Blister mein hai ya alu alu hai?\nCustomer: Alu hai, blister nahi hai.\nCustomer: Blister chahiye kya aapko?\nCustomer: Blister hoti toh aur badhiya thi.\nEmployee: Nahi alu hi hai sir.\nCustomer: Jab blister aata hai toh sab alu alu maangte hain, sab alu alu banwaya isliye.\nCustomer: Dekh lo sir agar ho jaye toh iska kuch adjustment.\nCustomer: 114 kar lo, yehi ho payega sir.\nCustomer: Ispe ₹10 kar lo aap.\nEmployee: Hoga hi nahi, main ₹112 mein toh aaya hua hai ye purchase, labour, saari mila ke sab kuch. Abhi toh iske upar inventory cylinder bhi laga tha humne nayi jagah se banwaya tha.\nCustomer: Wohi toh ho raha na sir, batao ab kaise settlement karein? Pehle banta tha Shivani se, ab ye Ultra se bana, Ultra ne inventory cylinder charges bhi liye hain iske upar.\nCustomer: Tablet kaise hai? Andar se scheme maroon ki hai ya orange ki hai?\nCustomer: Woh aate hain sir ye thodi jo dark si hoti hai na, orange toh nahi hai.\nCustomer: Woh ji copper colour hai, maroon, coffee colour jo coffee colour pehle aata tha, haan wo coffee hai.\nCustomer: Haan.\nCustomer: Acyclopara kaun si hai?\nCustomer: Acyclopara alu alu padi hai, 5 ek dabbe blister padi hogi.\nCustomer: Alu alu kitne hain?\nCustomer: Kami hai sir, 10-12 dabbe honge.\nCustomer: Woh toh hai na sir, ab ye batao itna costly manga ke fir party kaise settle karein?\nCustomer: Hai hi hai costly, dena hi padega sir aapko bhi aage.\nCustomer: Ji.\nCustomer: Aur kya cost hai aapki?\nCustomer: Difluza abhi khatam hui hai parso hi, difluza nahi hai.\nCustomer: Sufixmo Floxacin mil jayegi, Ofloxacin mil jayegi, Ofloxacin OZD mil jayegi aapko.\nCustomer: Wo Ofloxacin hai available?\nEmployee: Haan ji, 200 mein hai.\nCustomer: Kya rate hai?\nCustomer: Wohi hai, ye toh same aapka jo purana tha abhi.\nCustomer: Kitna?\nCustomer: ₹105.\nCustomer: ₹105, chalo ye daal do 30 box.\nCustomer: Kitne?\nCustomer: 30 box daal do, 30. 30.\nCustomer: Ye batao aap.\nCustomer: Haan ji.\nCustomer: Immigreen nahi laga, aapke paas stock mein abhi ya jaldi uth jayega?\nCustomer: Ab aa raha hai, bas ye aaya tha aur khatam ho gaya. Aapke jo ye kitne karte hain, ek minute.\nCustomer: 72 ka case hai, 7 case bache hue hain. Aapke jo rakhe hain, maine lag se.\nCustomer: Baaki saara khatam.\nCustomer: Chalo 10 hi daal dio, haan 10 hi daal dio aur 25 kya, ek se bhi daal dio.\nCustomer: 10 nahi hai, 7 hi hain sir ye.\nCustomer: 7 hi bache hain.\nCustomer: 7, pata nahi 6 case hain, 6 aise hi hain kuch.\nCustomer: Are sir, kam na karo, inko kam na karo aap.\nCustomer: 7 into 72, bola tha 504 piece aayenge, aapko 7 case hain.\nCustomer: Chalo yeh daal do aap, saare ke saare.\nCustomer: Ismeon ke bhi aapne kam daale.\nCustomer: Spongcure kitna chahiye aapko? Aapne kaha hi tha ye kitne gaye the? Itne gaye the, dilwa diye the saare hi.\nCustomer: Nahi, ab, ab nahi dilwaayi ho, ab toh ye ye kal jaan do thode se.\nCustomer: Aayega toh aayegi, nahi, ab plants toh aayega.\nCustomer: Haan, Immigreen toh laga hua hai dobarah, Spongcure dekhna padega mujhe aaj nahi hai.\nCustomer: Spongcure bhi laga hua hai.\nCustomer: Haan, koi nahi.\nCustomer: Chalo jitne hain utne daal dio.\nCustomer: Immigreen hi hai, bas aapka 504 piece daal diye maine jo the ye 7 case bache.\nCustomer: Ye daal diye.\nCustomer: Bheju fir ye bill aapko?\nCustomer: Haan, bilkul bhej dijiye.\nCustomer: O-Z daal di jani ho?\nCustomer: Haan ji.\nCustomer: O-Z daal de 10 box ismein.\nCustomer: O-Z?\nCustomer: Haan.\nCustomer: O-Z ka rate sahi kar liyo sir.\nCustomer: Wohi hai sir, abhi toh O-Z ka.\nCustomer: Jo aapko abhi lagaya tha pichle bill mein hi.\nCustomer: Woh 190 tha na wo?\nCustomer: 190, 180 nahi.\nCustomer: Are sir, aur bada diye.\nCustomer: Badhaaye hi nahi, sir, yehi chal raha hai rate abhi jo aapko pichla gaya tha, main to kuch cheda hi nahi abhi. Kitne dabbe karne hain, 10?\nCustomer: Haan, 10 hi kar do.\nCustomer: theek hai.\nCustomer: Wo pichle bill ke kitne the, 7000?\nCustomer: Kaun sa?\nCustomer: Pichle din gaye the na, jo 7000 hi the na wo, ya 6000 bik the?\nCustomer: 7000 kuch hain.\nCustomer: Haan, 7000 hain, chalo main daalunga aaj daal dunga, abhi thodi der mein unko main, iska reh jayega, iska mande mein daal dunga main, jitne bhi honge ye.\nCustomer: Wo toh dekh lena, thoda 7000 se upar hi karwa dena, 10-15000 jitne hain, nikalwane mein aasaani rehti hai fir.\nCustomer: Haan, jitne bhi mere paas honge, utne main daal dunga.\nCustomer: Jaldi nikal jata hai stock, nahi to fir hamare ko bhi kal ke upar baat chali jaati hai, bas isiliye aapko keh raha hoon.\nCustomer: Aise kar bas, dekar mujhe koshish karke yeh sab rakhwaunga, bas 5-4 din ki toh koi badi baat nahi hai, jo ye naya maal aa raha hai na, iska sab cash hi rahega.\nCustomer: theek hai sir?\nCustomer: Haan, iska cash hi rahega, tension na lo.\nCustomer: Bas ye hai 5-4 din ka agar mujhe mil jayega, fir party ke paise ekthe ho jayenge.\nCustomer: Theek hai sir.\nCustomer: Theek hai, theek hai.\nCustomer: Fir ye iska bill bhej do aap.\nCustomer: Main bhej raha hoon, main fir aaj toh karwaoge na pichle kuch toh payment.\nCustomer: Kya keh rahe ho?\nCustomer: Main kuch toh payment karwaoge na iski?\nCustomer: Haan, haan.\nCustomer: Theek hai, main bhej raha hoon bill aapko.",
@@ -37,7 +37,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "HOT",
     durationSec: 593,
     territory: "Unspecified",
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261014_103804.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261014_113857": {
     transcript: "Employee: Hello?\nCustomer: Ji sir. Haanji sir.\nEmployee: Isse D wale rehne dijiye, tariff me kya rakha hai abhi?\nCustomer: Nahi D wala hai bhi nahi.\nHan LS wala nahi hai kya woh LS? Tariff me?\nEmployee: LS toh khareed hi aapka.\nHan LS hi dena hai, mere ko aapne bill me D wala chadhaya hai.\nEmployee: Ek minute dekhta hu.\nCustomer: Achha.\nHan.\nEk minute.\nTheek hai.\nEmployee: Karke bhej raha hu aapko na dobara se.\nCustomer: Haa.\nEmployee: Theek hai.",
@@ -45,7 +45,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Billing Inquiry","Product Correction"],
     sentiment: "WARM",
     durationSec: 39,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261014_113857.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261013_120706": {
     transcript: "Employee: Hello.\nCustomer: Hello.\nEmployee: Haan bhaiya, kaun bol raha hai?\nCustomer: Phone aapne kiya hai, aap batao kaun baat kar raha hai.\nEmployee: Kahan se bol rahe hain aap?\nCustomer: Haryana se baat kar raha hoon, Ambala se.\nEmployee: Ambala se?\nCustomer: Haan.\nEmployee: Haan ji.\nCustomer: Manish bol rahe hain.\nEmployee: Kya?\nCustomer: Manish bol rahe hain, aap aara se bol rahe hain?\nEmployee: Haryana se baat kar raha hoon na ki aara se.\nCustomer: Haryana se?\nEmployee: Ji.\nCustomer: Achha, chaliye theek hai, samajh gaye dekhte hain bhaiya kahan hai, aapka number save hai na.\nEmployee: Dawaiyon ka kaam karte ho kya aap?\nCustomer: Kya bole?\nEmployee: Medicine ka kaam karte ho aap?\nCustomer: Nahi, medical mein nahi karte, woh aapka number aaya hai isliye.\nEmployee: Kaat do fir phone.",
@@ -54,7 +54,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "DEAD",
     durationSec: 60,
     territory: "Ambala, Haryana",
-    contactName: "Call recording Munish Kumar Rai_261013_120706.m4a",
+    contactName: "Munish Kumar Rai",
   },
   "261013_110218": {
     transcript: "Employee: Hello? \n Customer: Haanji, aagya kya? \n Employee: Haanji? \n Customer: 9G aaya? \n Employee: 9G nahi aaya sir aapka. \n Customer: Main to kah tha monday tak aa jayega. \n Employee: Maine kaha tha ki do teen din lag jayenge usko aane mein. \n Customer: Oh, to kab tak aa jayega? \n Employee: Sir kabhi bhi aa jayega ab to. Wo chahe aaj aa jaye chahe kal aa jaye. Jab aa ke bataunga main aapko jab wo phone dega mere paas. \n Customer: Aur yeh bilti aapne nahi bheja hai? \n Employee: Bilti bhej raha hu main na aapko, bhool gaya main. \n Customer: Aap bilti bhejo aur jaise 9G aata hai, humko must requirement hai, hai na? \n Employee: theek hai main bilti bhej raha hu aapko baad mein. \n Customer: Okay theek hai.",
@@ -62,7 +62,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["🔥 Hot Lead","Product Inquiry","Pending Dispatch"],
     sentiment: "HOT",
     durationSec: 60,
-    contactName: "Call recording Rajesh Kumar Pandey - Jhumritliya Indiamart Existing_261013_110218.m4a",
+    contactName: "Rajesh Kumar Pandey - Jhumritliya Indiamart",
   },
   "261012_112822": {
     transcript: "Employee: Hello.\nCustomer: Hello.\nEmployee: Ha, hello.\nCustomer: Good morning Kesrox sir.\nEmployee: Sab badhiya, aap kaise ho?\nCustomer: Main bhi theek hu, ban raha hai koi order aapka?\nEmployee: Haan ji haan ji, bhej denge, thoda banaya hai.\nCustomer: Achha, bhej do fir aaj hi bhej do.\nEmployee: Haan ji, wo payment bhi bhejta hu, pahunchne mein bhi toh time lagta hai na.\nCustomer: Haan ji haan ji haan ji.\nEmployee: theek hai sir, theek.",
@@ -70,7 +70,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["🔥 Hot Lead","⚡ Warm Lead"],
     sentiment: "HOT",
     durationSec: 60,
-    contactName: "Call recording Bijay 2 Koochbehar_261012_112822.m4a",
+    contactName: "Bijay 2 Koochbehar",
   },
   "261012_142918": {
     transcript: "Employee: Hello? \n Customer: Hello. \n Employee: Good afternoon, sir. \n Customer: Mam, good afternoon. \n Employee: Ha, sir, wo jo payment hai, aaj payment aaya hai. Payment ye jo new wali invoice pe mention hai, usi pe dalwa de? \n Customer: Haan ji, purani to clear ho gayi na, aap us bank account pe use mat karna. \n Employee: Haan, purana clear hai. Abhi jo new wala hai, to main ye jo aapne nayi invoice pe mention hai, usi pe dalwa dete hain? \n Customer: Haan ji, haan ji, usi pe hi mam, jo bill mein mention hai. \n Employee: Chaliye, theek hai. ICICI wala account hai na? \n Customer: Haan ji, matlab jo abhi aapne recently dala hai na, usi mein mention hai wo to. \n Employee: Haan ji, theek hai mam. \n Customer: Chaliye, ok.",
@@ -79,7 +79,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "HOT",
     durationSec: 60,
     territory: "Not Specified",
-    contactName: "Call recording Gomti Chemist Mrs Durgesh [Existing] Jhansi Up_261012_142918.m4a",
+    contactName: "Gomti Chemist Mrs Durgesh Jhansi Up",
   },
   "261010_132347": {
     transcript: "Employee: Hello? \n Customer: Hello, good afternoon sir. \n Employee: Very good afternoon, sir. Kaise ho? Badiya. \n Customer: Main puch raha tha aap se ki yeh Castorcal jo tablet hai, jo aap lete ho... \n Customer: yeh aapko aur requirement hoegi abhi 15-10 din baad kuch, matlab phir toh main box rakhun kyunki 70 dabbe the mere paas koi le raha tha inko na saare hi. \n Customer: Ya woh date thik hai iski? 1 January hai yeh toh 27 ki. \n Customer: Haan phir toh nikal do inhe aap. \n Employee: Nahi chalega na aapke paas toh yeh? \n Customer: Nahi, kyunki aage na... kyunki ab toh le hi liya na aapne 20 toh. \n Customer: Haan, phir aage bhi ho jayega phir. \n Customer: Koi hai aur chhota expiry ho jayega. \n Customer: Haan, main kaha nahi toh phir rakhun main 5-10 dabbe aapke liye nahi toh phir nikal doon. \n Employee: Haan, nahi koi nahi nikal do isko. \n Customer: Theek.",
@@ -88,7 +88,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 60,
     territory: "Not specified",
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261010_132347.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261010_165914": {
     transcript: "Employee: Hello\nCustomer: Hello\nEmployee: Ji sir, namaskar.\nCustomer: Namaskar sir, kaise ho?\nEmployee: Badhiya aap batao.\nEmployee: Aur suniye...\nCustomer: ...\nEmployee: Abhi aaya hai kya ye?\nCustomer: Hanju utar raha hai abhi to na.\nEmployee: Achha, nikal jayega aaj?\nCustomer: Aaj to nahi, Monday nikalega.\nEmployee: Are sir aaj nikalwa dete, Monday Monday party hai usko chala jayega.\nCustomer: Monday nikal paega.\nEmployee: Bas thi.\nCustomer: Aaj bol raha tha\nEmployee: Thoda pehle utaata na ye, aa gaya hota 12:00 baje fir to nikal bhi dete.\nEmployee: Aur kya kya hai?\nCustomer: Aur baki to Cefrodin aaya hai, iske sath aur Qolex L hai, thoda Cefrosteen bhi aaya hai.\nEmployee: Aur ek wo aaya, Cefroline.\nCustomer: Wo aane hai, sir agle gedhe mein aenge wo na, abhi bane nahi.\nEmployee: Achha.\nCustomer: Chalo isko karaiyo aap, Monday mein kar lenge phir baat.\nEmployee: Hanji hanji.\nCustomer: theek hai sir, theek hai.",
@@ -96,7 +96,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Stock Dispatch","Product Inquiry"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261010_165914.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261009_102657": {
     transcript: "Employee: Haan good morning. \n Customer: Haan ji. \n Employee: Chauhan sir nahi hai kya? \n Customer: Woh abhi bahar gaye hue hai, aate hai toh baat karwati hu. \n Employee: Mera main Macroland Distributor se bol raha hu Vardhman se. \n Customer: Koi baat nahi, woh aate hai phir main baat karwati hu. \n Employee: Suniye na mera baat toh baat toh nahi sun raha hai. Haan ji bolo. \n Customer: Woh phone nahi utha raha tha, MD sir bhi phone nahi utha raha tha. Mera galti ho gaya gaya aapse business karke. Monday se bol raha hai ki mera maal booking ho gaya, woh gaya. Woh bill bhi nahi de raha. \n Customer: Sir main unke ghar se baat kar rahi hu, mujhe office ka kuch nahi pata. \n Employee: Theek hai.",
@@ -105,7 +105,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "HOT",
     durationSec: 60,
     territory: "Vardhman",
-    contactName: "Call recording Kalyani Distributor Burdwan Westbengal (Existing)_261009_102657.m4a",
+    contactName: "Kalyani Distributor Burdwan Westbengal",
   },
   "261009_110715": {
     transcript: "Employee: Good morning sir. \n Customer: Hello, sir busy busy the kya sir aap? \n Employee: Haan ji ji sir, good morning. Kaise ho aap? \n Customer: Aam, main theek hoon, aap aap theek hai? \n Employee: Haan ji, theek hai sir. \n Customer: A, last night bhai, thoda sa bike accident hua tha, to a, mera leg thoda a, shayad kuch hua hai. Jaunga doctor ke paas. \n Employee: Aapka accident ho gaya? \n Customer: Haan, bike, bike accident hai, chhota mota. Kutta na, kutta, kutta, matlab kya bolun, a, kutta ghus gaya tha, andar, bike ke andar. \n Employee: Achcha. \n Customer: Aapka jo saaman nikla hua tha, tha na, mujhe sir idea hi nahi hai uska, mujhe office mein se bhi bola tha ki nikal gaya hai saaman. Aapka, koi bility bheji nahi, unhone apne usko MD sir ko complaint nahi kari aapne? \n Employee: Mam, main to koi complaint nahi kiya. \n Customer: Haan ji. \n Employee: Main to yahi, ji, sir, koi mera baat, baat-sheet hua to, wo to phone nahi utha raha tha. A, last, a, shayad wo mere se phone uthaya tha, evening par. Unse aise se baat hua tha, bola aapka nikal jayega, Chauhan sir, wo ye sab dekhta hai, Chauhan sir se, a, baat-sheet kar lo, to aapka phone nahi. \n Customer: Are main wahi batana chah raha hoon sir, aapko ki jo Kesrox mein saaman available hota hai na, uski meri guarantee hai, ki main nikalwa dunga. Ab jo saaman hai hi nahi mere paas, pata hi nahi mujhe, ki wo syrup kahan pe hai, nikalwa diya inone, nahi nikalwaja, agar ek din main chutti le loon, to, wo to unki headache hai na sir, wo, ab wo phone hi nahi uthate. \n Customer: Ab batao ki bande ko kaise pata lage, usme, galti meri nikal jayegi. Unko manage hi karna chahiye, to khud hi. \n Employee: Achcha, mam, sir, sumin, sumin sir, lectulose nahi mila hai aapka? \n Customer: A, sir, mere ko yahi nahi pata na, abhi saaman ka hai kahan, aapka kya hai, kya nahi hai, main chutti pe hi tha. \n Customer: Achcha, achcha. \n Customer: Ah, abhi tak koi khabar nahi mila to? \n Customer: Nahi, sir. \n Customer: Ah, should be, ye ser, lectulose should be, should be, ye booking kar dijiye, sir. Lectulose jab aayega, tab, a, de denge sir. \n Customer: Achcha, nahi, to aur kya order hai aapka lectulose ke alawa? \n Customer: Un chijo mein, jo aapne invest kiya tha, status 10 box hai, a, aisa karo, aap mujhe WhatsApp kar do, main office ja ke dekhta hoon ek baar na. \n Customer: Theek hai, theek hai. Lectulose, lectulose ka a, aa sakta hai sir ji. \n Customer: Sir, mujhe idea nahi hai, main aisi jhoot bol doon aapko ki kal aa jayega, parso aa jayega. \n Customer: Achcha, achcha, nahi. \n Customer: Mujhe pata hi nahi hai, abhi kuch bhi. \n Customer: ND sir ne humko bola tha, lectulose aapka, matlab, humne vyavastha kar diya hai, wo bhi nikal jayega. ND sir ne bola tha, isliye bolo, Chauhan sir se aap baat, baat kar lo, wo dekhta hai, theek hai. \n Customer: Haan, wahan hum bol dete hain, sir, wo phir main bolunga aapko. \n Customer: Bas, kuch aise hi hisaab kitab hai. \n Customer: theek hai, suniye, suniye sir ji, aapka, aapke paas jo hai, main wo bhi bhej deta hoon, pic ka object, a, wo, order is, reorder kar dena. \n Customer: aap mujhe bhej do, ek baar bhej do aap na, main dekhta hoon. \n Customer: Karwaata hoon. \n Customer: Aaj, aaj booking kar dena. \n Customer: theek hai, theek hai. \n Customer: Okay.",
@@ -114,7 +114,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 194,
     territory: "Not specified",
-    contactName: "Call recording Kalyani Distributor Burdwan Westbengal (Existing)_261009_110715.m4a",
+    contactName: "Kalyani Distributor Burdwan Westbengal",
   },
   "261008_104855": {
     transcript: "Employee: Hello? \n Customer: Hello. \n Employee: Ha ji sir. \n Customer: Good morning. \n Employee: Karwai nahi na aapne payment iski? \n Customer: Haan haan main kara raha hoon thodi der mein. \n Employee: theek hai kara dena. \n Customer: Nikalwa deta hoon aapne wo. \n Employee: Kal to pack hi hua tha abhi leke ja raha hai ladka utaar raha hai isko. \n Customer: Accha accha. \n Employee: Haan koi nahi. \n Customer: theek hai.",
@@ -123,7 +123,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "HOT",
     durationSec: 26,
     territory: "Not Specified",
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261008_104855.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261008_135130": {
     transcript: "Employee: Hello? \n Customer: haan ji sir. \n Employee: Jo ye bill pe QR code hai ye is wale par dalenge to kahan jayenge paise? \n Customer: Is wale pe to nayi wale account pe hi hai na bill mein to? \n Employee: Haan jo ye hai 12/9/2026 ka hai ye. \n Customer: 12 do \n Employee: 12/9, 12/9/2026 bill aapka? \n Customer: Haan haan ye bill hai mere paas, ispe QR code hai ispe dal dun? \n Employee: Mujhe pata nahi na 12/26 ko kaun sa gaya hua hai aapka? Ek minute. \n Customer: Dekh leta hu. \n Employee: Haan check karke batao, ek minute line pe rehna. \n Customer: 12 haan 12 September ko gaya tha 20,265 wala. \n Employee: Haan haan, haan isi pe kar do jo scanner hai. \n Customer: 19,300 ka hai ye. \n Employee: Kaun sa? Haan 20,265, sahi keh rahi, haan ji. \n Customer: Thik hai ispe kar dun? \n Employee: Kar do kar do, isi pe kar do. Thik hai, nikal gaya tha order? \n Customer: Haan ji teen tera case bane hue hain aapke. \n Employee: Nikal gaya? \n Customer: To kal ya parso aa jayenge. \n Employee: Haan aaj leke aao, aaj book ho gaye honge aapke aate abilities. \n Customer: Kya keh rahe ho? \n Employee: Main keh raha hu aaj leke gaya tha, aaj nikal gaya hoga aapka waha se. \n Customer: Haan aaj nikalwao fir kal se hi rahega. \n Employee: Nahi nahi chala gaya hamare yahan se to, 13 dabbe bane hain. \n Customer: Wo add karne ke liye kehte hain, aese kilo pehra waghera wo kar diye. \n Employee: Wo sab kuch add kar diya tha aapke bill mein reh gaya tha bas add karna. \n Customer: Chal theek hai fir bill bhej do mere ko aap. \n Employee: bhej diya maine do bar bhej diya aapko. \n Customer: Theek hai.",
@@ -131,7 +131,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["🔥 Hot Lead","Payment Discussion","Order Dispatched"],
     sentiment: "HOT",
     durationSec: 94,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261008_135130.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261007_120706": {
     transcript: "Employee: Hello. \n Customer: Hello. \n Employee: Haan ji sir. \n Customer: Haan Vaibhav. \n Employee: Ji sir. Good afternoon, kaise ho? \n Customer: Brain Tonic hai? \n Employee: Brain tonic toh nahi hai sir abhi. \n Customer: Toh banwa nahi rahe kya tum? \n Employee: Aaya tha sir abhi. Dobara aane wala hai. \n Customer: Kab? \n Employee: isi week aa jayega. \n Customer: Mujhe bata dena jab aa jaye. \n Employee: Theek hai sir, kitna chahiye aapko? \n Customer: Le lunga teen chaar case. \n Employee: Theek hai sir. \n Customer: Aur Lycoceuro hai? \n Employee: Haan ji Lycoceuro toh hai. \n Customer: Lycoceuro le lunga, DS, Pento DSR hai? \n Employee: Pento nahi hoga sir, Rab hai. \n Customer: Aur Omiprazole Domperidone? \n Employee: Woh 20mg mein hai Omipra. \n Customer: Banwa nahi rahe ye? \n Employee: Raw material hi nahi mil raha sir piche se. \n Customer: Achha. Khatam hua hua hai Omipra ka na. \n Employee: Chalo toh mujhe phone kar dena tum. \n Customer: Theek hai sir. \n Employee: Theek hai? \n Customer: Okay.",
@@ -139,7 +139,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Stock Inquiry","Follow-up Required"],
     sentiment: "WARM",
     durationSec: 65,
-    contactName: "Call recording Dr Saurabh Muzaffarnagar Up_261007_120706.m4a",
+    contactName: "Dr Saurabh Muzaffarnagar Up",
   },
   "261007_115605": {
     transcript: "Employee: Hello? Good morning, sir. \n Customer: Good morning ji. Kaise ho sir? \n Employee: Sab badhiya, aap bataiye. Good evening sir. \n Customer: Haan ji. \n Employee: Nahi yeh order bhejaya hai, dekhyo. \n Customer: WhatsApp kara kya aapne? \n Employee: Abhi tak kiya hai? Ek minute dekh raha hun main. \n Customer: Hmm. \n Employee: Spondikur toh hai. \n Customer: Spondikur. \n Employee: 1.5 gram. \n Customer: Hai? Aa gaya, Spondikur toh aaya hua hai. \n Employee: Pantobin injection aayega. \n Customer: Bas yeh, yeh nahi hai hamare paas, kya hai yeh aapka? \n Customer: Yeh, Etoroxib 15 dabbe hai jo yeh chod ke baaki sara mil jayega. \n Employee: Hai nahi yeh? \n Customer: Yeh jo teesre number pe hai na, Etoroxib 90 mg yeh chod ke baaki sab mil jayega. \n Employee: Koi nahi, koi nahi aur batao aur naya kya hai? \n Customer: Baaki toh sara mil jayega sir aapko. \n Customer: Nahi, isse lag bhi hai kya kuch aapke paas? \n Customer: Aur lag toh kuch nahi hai sir. \n Customer: Nahi toh maine aapko bheja hi hai, isse lag kya hai aur naya product? \n Customer: Wohi aayega kya teesra maine jo size diya hai, Lyco, Lycopin aayega bheja hai maine aapko Lycopin? \n Customer: Lycopin nahi bheja aapne. \n Customer: Bhejawa. Ek minute main aapko print photo mein bhej deta hu aap unme se dekh lo. \n Customer: Chalo haan, bhej do chalo. \n Customer: Theek hai sir.",
@@ -147,7 +147,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Order Follow-up"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261007_115605.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261006_152302": {
     transcript: "Employee: Hello.\nCustomer: Hello.\nHanji ma'am.\nEmployee: Very good afternoon, sir.\nCustomer: Good afternoon, ma'am.\nHanji sir, aapne kuch din mein bataya nahi ki aaya product hamara ki nahi aaya abhi tak?\nEmployee: Kaun sa ma'am? Aapko kaun sa product chahiye?\nCustomer: Short chal raha hai hamara, Defcort bhi nahi hai, protein powder bhi nahi hai.\nEmployee: Deflaza cort toh aapka maine kaha tha na ki October month end mein aayega, October mein.\nCustomer: Nahi toh yeh October hi toh chal raha hai.\nEmployee: Achcha month end mein aayega ma'am woh.\nCustomer: Pehle leke aate the na.\nEmployee: Woh Deflaza cort bhi tabhi aayega.\nCustomer: Deflaza cort ki baat kar rahi hu na main.\nEmployee: Aur protein powder?\nCustomer: Protein powder bana hua hai ma'am? Aapko isi week mein mil jayega.\nCustomer: Matlab aayega hi nahi abhi?\nEmployee: Isi week mein mil jayega aapko, bana hua hai.\nEmployee: Protein powder.\nCustomer: Toh aap mujhe thoda sa bata toh diye kyunki hamara product toh stop ho gaya hai abhi ki hum apna dusra launch bhi nahi kar sakte hain kyunki uska substitute la ke de de.\nEmployee: Woh abhi ready ho chuka hai wahan pe na par aaya nahi samne isliye nahi utaya aapko, maine kaha ek baar aa jaye uske baad utau.\nCustomer: Mujhe na Ext Tablet ka bhi order lagana hai, mujhe Ext bhi nahi.\nEmployee: Ext toh hai ma'am jab marzi laga do aap, tablets hai.\nCustomer: Haan toh fir wahi hai na ki mujhe 10 box mangane ho toh main baar-baar thodi na yeh karungi ki 10 abhi manga liye fir uske baad yeh order, ek saath order laga deti hu na fir main.\nEmployee: Zyme tablet dekh lo, yeh kya hai Zymc syrup dekh lo iske saath protein powder. Chalo aap protein powder tak ruk jao ma'am, isi week mil jayega aapko.\nCustomer: theek hai, toh jaise aap aa jata hai, mujhe kya Deflaza cort bhi mera continue hai lekin mera short chal raha hai abhi.\nEmployee: Deflaza toh ma'am thoda time lagega.\nCustomer: Paka aa jayega na ki main dusra mangau fir?\nEmployee: Aa jayega ma'am.\nCustomer: Chalye theek hai.",
@@ -155,7 +155,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["🔥 Hot Lead","Product Shortage Inquiry","Repeat Customer"],
     sentiment: "HOT",
     durationSec: 113,
-    contactName: "Call recording Gomti Chemist Mrs Durgesh [Existing] Jhansi Up_261006_152302.m4a",
+    contactName: "Gomti Chemist Mrs Durgesh Jhansi Up",
   },
   "261006_133210": {
     transcript: "Employee: Hello.\nCustomer: Ji sir.\nEmployee: Sir booking nahi hua abhi tak?\nCustomer: Kal nahi kiya gaya tha aap ka saman sir sham ko.\nEmployee: Abhi bilti nahi bheja.\nCustomer: Ha, maine mangwaya hi tha usse na sir main a chutti pe tha, main bol deta hu usko dobara na bhej raha hai aapko.\nEmployee: Aaj aaj milega bilti?\nCustomer: Haan ji, de dunga sir aaj hi.\nEmployee: Konsa konsa courier se kiya tha, delivery se?\nCustomer: Delivery se hi ha.\nEmployee: Thik hai sir ji, bilti bhej thoda bhej dena sir.\nCustomer: Thik hai sir.",
@@ -163,7 +163,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Logistics Follow-up","Bill Dispatch Pending"],
     sentiment: "WARM",
     durationSec: 30,
-    contactName: "Call recording Kalyani Distributor Burdwan Westbengal (Existing)_261006_133210.m4a",
+    contactName: "Kalyani Distributor Burdwan Westbengal",
   },
   "261005_161012": {
     transcript: "Employee: Hello? Kon?\nCustomer: Aur keta ji? Kon baat kar raha hai?\nEmployee: Main wholesaler wala bol raha hai bhai ji, main dukan wala.\nCustomer: Kon hai?\nEmployee: Jo Rajanagar the, wholesale ki dukan nahi hai kya? Biscuit taadi.\nCustomer: Namkin biscuit wala bolta hai.\nEmployee: Ye Rampur mode pe?\nCustomer: Rajanagar bhai ji.\nEmployee: Kaun sa Rajanagar bhai? Kahan pe phone milaya aapne?\nCustomer: Yaar.",
@@ -172,7 +172,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 60,
     territory: "Rajanagar",
-    contactName: "Call recording Jamal Ansari_261005_161012.m4a",
+    contactName: "Jamal Ansari",
   },
   "261005_110753": {
     transcript: "Employee: Good morning sir. \n Customer: Hello. \n Employee: Ha good morning sir. \n Customer: Ji good morning kaise ho sir? \n Employee: Haan sir theek hu sir. Bol raha hai ki sir good booking nahi hua abhi tak? \n Customer: Sir hua hi nahi booking aapka na. Actually jo ladka pickup karne aata hai uska accident hua hai woh aaya hi nahi hai. \n Employee: Maal toh available hai na sab? Goods toh available hai? \n Customer: Haan ji haan ji. \n Employee: Toh dusre transport mein de dijiye na sir, aap kab se bol raha woh sir, delivery mera urgent hai sir. \n Customer: Toh delivery mein de dein kya sir? \n Employee: Haan de dijiye sir de dijiye sir. \n Customer: Aaj evening mein le jayega sir woh na. \n Employee: Theek hai sir theek hai sir.",
@@ -180,7 +180,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Urgent Delivery","Transport Issue"],
     sentiment: "WARM",
     durationSec: 44,
-    contactName: "Call recording Kalyani Distributor Burdwan Westbengal (Existing)_261005_110753.m4a",
+    contactName: "Kalyani Distributor Burdwan Westbengal",
   },
   "261003_111520": {
     transcript: "Employee: Hello? \nCustomer: Haan ji. \nEmployee: Good morning. \nCustomer: Good morning sir. \nCustomer: Bataiye. \nEmployee: Haan ji. \nEmployee: Woh Rahul sir kidhar hain? \nCustomer: Kya keh rahe ho sir? \nEmployee: Woh Rahul sir kidhar hain? \nCustomer: Woh toh abhi chutti pe hain, woh Monday ke baad aayenge. \nEmployee: Toh order aaya kuch nahi aapko? \nCustomer: Haan ji, abhi nahi aaya, jo aapko medicine chahiye hai na. \nCustomer: Kab tak aayega? Maine toh bola tha ek-do din mein aa jayega, 10-15 din ho gaye tab se kaise? \nEmployee: Hmm, so meri toh baat hui nahi hai manufacturer se, aap ek baar jab sir aayenge, main unse baat karwa dungi toh bata denge woh aapko. \nCustomer: theek hai na. \nEmployee: Haan ji. \nCustomer: Chalo. \nEmployee: Theek.",
@@ -188,7 +188,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Pending Order Inquiry","Follow-up Required"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_261003_111520.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "261003_110849": {
     transcript: "Employee: Hello? \n Customer: Ha hello. \n Employee: Hello. \n Customer: Theis sir mai apka dawa dekh rha tha add Facebook pe. \n Employee: Haan ji. \n Customer: To ye kitna saal ka bacha to ye use kar sakta hai? \n Employee: Aap wholesale ke liye chahiye aapko ya fir aap personal use ke liye keh rhe ho sir? \n Customer: Hm. \n Employee: Aapko ghar ke istemaal ke liye chahiye aapko ya fir wholesale ya retail ka medical shop hai aapki? Kisliye chahiye aapko? \n Customer: Mujhe chahiye matlab ye apne ghar ke liye istemaal ke liye. \n Employee: Oh wo to sir aapko chemist se hi milega aaspas se na. Hum aise personal use ke liye nahi de paate. \n Customer: Jankari to de hi sakte hain. \n Employee: Haan ji haan ji bataiye kya jankari chahiye aapko? \n Customer: Jankari yehi ki kitna saal ka bacha tak isko use kar sakta hai? \n Employee: Sir mujhe ye nahi pata na sir aap konsi dawai dekh rhe ho wahan pe? Aur waise to aap bhaiya to batao kya dawai hai? \n Customer: Uspe likha hota hai aap online search kar lo sir isse acha to. \n Employee: Aapko thoda aur zyada pata lag jayega achi tarah. \n Customer: Cefamol MF hai? \n Employee: Hain? \n Customer: Cefamol MF. \n Employee: Hello. \n Customer: Ji ji. \n Employee: Cefamol MF hai? \n Customer: Ek minute sir. \n Customer: Cefamol MF bata rhe ho na aap? \n Employee: Haan sir. Kis aap ye sir bukhar hai kya bache ko ya fir kuch aur hai aap kis cheez ke liye istemaal kar rhe ho isko paracetamol hai ye dawai. \n Customer: Paracetamol bukhar hai. \n Employee: Haan ji to de sakte ho aap ye. \n Customer: Ek saal se che saal tak ke bache se upar jis marzi ko do. Kitne saal ka hai bacha? \n Customer: Bacha to saal ka hai. \n Employee: De do sir koi baat nahi. Thik hai. \n Customer: Sir pehle tod diye the pehle se, pee hi nahi sakti dawai ko. \n Employee: Aapko doctor ne aapko doctor ne wahi hogi na sir iske kitni deni hai, us hisab se dena na vajan ke hisab se hoti hai na. \n Customer: Haan haan ji. \n Employee: De do sir ye bukhar ke liye hi hoti hai.",
@@ -196,7 +196,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Retail Customer"],
     sentiment: "WARM",
     durationSec: 172,
-    contactName: "Call recording IndiaMART Buyer_261003_110849.m4a",
+    contactName: "IndiaMART Buyer",
   },
   "261002_141705": {
     transcript: "Savi: Hello.\nCustomer: Hello.\nSavi: Haan ji sir.\nCustomer: Wo aapko call lag gaya na. Sorry, sorry. Main unko call laga raha tha. Rukiye.\nSavi: Kin ko?",
@@ -204,7 +204,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["💀 Dead Lead","Wrong Number"],
     sentiment: "DEAD",
     durationSec: 10,
-    contactName: "Call recording Dr Armindi Real_261002_141705.m4a",
+    contactName: "Dr Armindi Real",
   },
   "261002_112904": {
     transcript: "Employee: Ji sir. \n Customer: haan ji, namaskar sir. \n Employee: Kya haal-chaal hai sir? \n Customer: theek hain, aap batao. \n Employee: Haan, theek hoon main, aap batao. \n Customer: Are bhaiya, maine to item aapko 16 likha hai, aapne banaya kitna hai? \n Employee: Jo nahi hai sir, woh nahi add kara isme na. \n Customer: Ek-do item hi ho gaye jo add nahi kara, 16 item hai, teen item ye \n Employee: 23 banaye hai sir. \n Customer: Kya? \n Employee: Humne aapko order 23 bheja hai, 23 item aapne 16 ki 14 banaye hain. \n Customer: To yehi hain sir mere paas to, aapne pata nahi kya kya likha hua usme. \n Employee: Awaaz saaf hai sir, network me jayiye ki aawaaz aap se saaf baat ho. \n Customer: Network me hi hoon sir main to. \n Employee: Haan? \n Customer: Jo nahi add kara na sir, woh hai nahi hamare paas. \n Employee: Kya sir? \n Customer: Catrovit nahi hai? \n Employee: Sun lijiye na. \n Customer: Panta nahi hai? \n Employee: Meri baat suniye sir. \n Customer: Main jo bol raha hoon meri baat suniye aaram se. \n Employee: Aur is rate se, aise rate badhayenge na, to hum maal nahi le payenge Sriman. \n Customer: Rate maine aapko bahut kam diye hain, baaki duniya se. \n Employee: Nahi nahi, suniye, maal aata nahi hai kya sir? Maal aap se vyavhar hai, sambandh hai sir, main, main, meri baat samajhiye, main kya bol raha hoon. \n Customer: Kaun sa rate badhaya hai aap le to batao aap, kaun sa rate badhaya aapko? \n Employee: Multivitamin ₹115 mein kabhi nahi le sakta hoon. \n Customer: Woh hata dete hain sir, hamara bahut mahanga hai. \n Employee: Haan? \n Customer: Bahut mahanga hai hamara na. \n Employee: Hata dete hain sir, phir line hi bach raha hai usme to kuch bhi. \n Customer: Nahi sir, to aakhir ye kaun si baat hai ki woh hata deta hoon, ya hata deta hoon? Aakhir ₹115 nahi loonga na, maan lijiye 95 aata tha, to ₹100 laga, 95-95 ka sir, ₹112 aaya hai mujhe to ye monopack. Main kaise hataoon isko? ₹112 aaya hai mere ko monopack ab woh. \n Employee: Are theek hai, MRP kya hai sir? \n Customer: MRP aapki \n Employee: Kholiye, usko kholiye, ek-ek cheez, ek-ek cheez ki deal ho jaye, baat ho jaye to kaam ho. \n Customer: 1450 hai sir MRP. \n Employee: Haan? \n Customer: 1450. \n Employee: 1350. \n Customer: 1450. \n Employee: 1600 \n Customer: 1400 sir, 1400. \n Employee: Aapki aawaaz kyun nahi aa rahi hai sir, barabar? \n Customer: Hello. \n Employee: 1400 keh raha hoon sir, main 1400, 1600 nahi. \n Customer: To 1400 to pehle bhi tha sir. \n Employee: Hello. \n Customer: Haan ji. \n Employee: 1400 pehle bhi tha Sriman. \n Customer: 1400 sir aap bhi bill kholo na sir. \n Employee: Haan? \n Customer: Main keh raha hoon ₹1450 MRP hai. \n Customer: Haan, to pehle bhi ₹1450 tha sir, to 95 hi aa rahi thi. \n Employee: To rate bhi to badhe hain na sir, 95 aa raha hoga. \n Customer: Nahi to aa raha hai na sir, suniye na aapke kitne dino baad aa raha hai, tab se main kai companiyon ka manga ke becha hoon, to 95 ki jagah ₹100 laga lijiye. \n Customer: Ab ₹12 matlab main ghata khaoon iske liye aap ye keh rahe ho. \n Employee: ₹100 laga lijiye sir. \n Customer: Nahi hoga sir, ₹112 mein aaya hua hai, main kaise de doon aapko ₹100 mein? \n Customer: To aakhir meri baat nahi rakhenge? \n Employee: Kaise rakhein sir, baat rakhne wali bhi to honi chahiye, ₹112 mein maine mal ko ban ke aa raha hai, main loss mein kaise bechun usko? \n Customer: Maine, main, main hi milta hoon aap se, permanent wholesale ka kaam chalta hai, main hi milta hoon aapko rate sir badhane ke liye itna. \n Customer: Rate bar, sir ye badh ke hi aaya hua hai, isliye nahi ban raha tha, pehle hi pata tha sabko ki 126 ka mal tha. \n Employee: Meri baat suniye na, Kesro zinc aap 105 se laga lijiye. \n Customer: Nahi sir ₹112 last aaya hua hai, ₹115 mein bechhenge. \n Customer: Nahi nahi, 105 laga lijiye, hamari baat, hamari izzat kariye na. \n Customer: Sir, izzat to kar hi rahe hain, izzat nahi kari hoti to kaise kaam kar rahe hote? \n Customer: Aawaz wawa rukhiye, kaat ke karta hoon sir, aapki aawaaz saaf nahi aa rahi hai, ek minute.",
@@ -212,7 +212,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Price Negotiation","Rate Dispute"],
     sentiment: "WARM",
     durationSec: 228,
-    contactName: "Call recording Jai Maha Laxmi Medical [Existing] Bhupinder Deoria Up_261002_112904.m4a",
+    contactName: "Jai Maha Laxmi Medical Bhupinder Deoria Up",
   },
   "261001_151004": {
     transcript: "Employee: Good afternoon, sir. \n Customer: Good afternoon. \n Employee: Sab theek chal raha hai? Bol rahe the jo Omid hai pehle Omid abhi nahi aaya sir? \n Customer: Woh kab aayega sir, yeh bahut din ho gaya hai. \n Employee: Haan sir, MD sir ko aap ek baar phone karke poocho ya toh product kab aayenge. Woh mere ko do case lagega sir ji. \n Customer: 200 box lagega do case. \n Employee: theek hai sir, koi baat nahi, jab aayega fir batata hu main aapko na. \n Customer: Theek hai, bol rahe hai sir jo jo QR code hai aapka bill mein, ICICI Bank jo naya diya tha wohi toh hai aapka account? \n Employee: Haan ji, haan ji wohi hai. \n Customer: Toh mera toh paas me xi mobile hai toh woh scanner se de denge kya woh bill mein jo QR code hai? \n Employee: Haan ji agar bill mein jo QR hai woh scan ho raha hai, usse kar do aap payment, woh bhi same hi hai. Kar do aap uss pe. \n Customer: Koi dikkat nahi hoga toh? \n Employee: Nahi, nahi, koi dikkat nahi hai, kar do aap. \n Customer: Main woh hi bol raha hai, isiliye hum nahi kiya hai. ₹7000, ₹7000 hai toh hum kar dete hai aapko. Kar do, kar do sir. \n Employee: Haan bol rahe hai sir jo Omid hai kab aayega toh aapko bataiyega haan, hum. \n Customer: Haan ji, haan ji, jaise aayega toh main batata hu aapko na, sabse pehle aapko hi doonga. \n Employee: Company ne hum order nahi diya hai isliye aapko Omid jo pehle aaya tha na woh sab party log woh wala hi mang raha hai. \n Customer: Achcha, achcha, koi baat nahi sir, main karwata hu yeh. \n Employee: theek hai, aaphi kar deta hai aapko. \n Customer: theek hai, bhej de, screenshot bhej dena sir. \n Employee: theek hai sir ji, okay ji thank you.",
@@ -220,7 +220,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Payment Follow-up"],
     sentiment: "WARM",
     durationSec: 85,
-    contactName: "Call recording Paul Medicine Raiganj Existing_261001_151004.m4a",
+    contactName: "Paul Medicine Raiganj",
   },
   "261001_115656": {
     transcript: "Employee: Hello.\nCustomer: Haan ji sir, good morning.\nEmployee: Good morning sir, returning bill bill bhej raha hu apko saman nikal gaya tha kal apka na, toh return ke liye mana kar rahe the sir na ki purane company se bill kaat denge next hoega koi. Baki jaise bhi hoga bata dunga main return ka bhi hua toh. woh baahar gaye hue hai na panch.\nCustomer: theek hai toh mera bill se usme minus kar dijiyega baki aap jo jo kijiye ga aap apna samajh.",
@@ -228,7 +228,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Bill Adjustment","Stock Return"],
     sentiment: "WARM",
     durationSec: 36,
-    contactName: "Call recording Raj Laxmi Medico Shravan (Existing) Nawada Bihar_261001_115656.m4a",
+    contactName: "Raj Laxmi Medico Shravan Nawada Bihar",
   },
   "260930_135817": {
     transcript: "Employee: Hello.\nCustomer: Hello. Good afternoon, sir.\nEmployee: Haan ji, good afternoon. Kaise ho?\nCustomer: Hum toh badhiya, aap kaise ho?\nEmployee: Badiya. Woh sir, maine phone kiya tha aapko ki kuch product aaye hue hain naye na, hamare paas.\nCustomer: Bhejiyega, WhatsApp pe.\nEmployee: Achcha, WhatsApp karu aapko?\nCustomer: Haan ji, haan ji, WhatsApp pe.\nEmployee: theek hai. Aap aap WhatsApp kijiye, main dekh ke bolta hu, theek hai?\nCustomer: Theek hai.",
@@ -236,7 +236,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","WhatsApp Follow-up"],
     sentiment: "WARM",
     durationSec: 26,
-    contactName: "Call recording Bijay 2 Koochbehar_260930_135817.m4a",
+    contactName: "Bijay 2 Koochbehar",
   },
   "260930_095859": {
     transcript: "Employee: Hello.\nCustomer: Hello.\nEmployee: Bhaiya namaskar.\nCustomer: Ji namaskar.\nEmployee: Bhaiya gaana Balooni cargo mo se boli tha hai.\nCustomer: Kahan se Balooni?\nEmployee: Haan Balooni cargo Faizabad Faizabad se.\nCustomer: Faizabad se transport se ji.\nEmployee: Ayodhya se.\nCustomer: Ji ji ji.\nEmployee: Achcha acha haan ji.\nCustomer: Ji aapne maal bheja hai shanti pharmaceuticals.\nEmployee: Ah pahunch gaya aapke paas ye?\nCustomer: Ji ji ji ji.\nEmployee: Main bol deta hoon usko na, ispe wo hai, payment leni hai abhi na humne.\nCustomer: Achcha.\nEmployee: Main bhej raha hoon unko, aaj aajayenge aapke paas lene na.\nCustomer: Kahan pe aana hai?\nEmployee: Unka contact number de dijiye hum unko bata denge.\nCustomer: Chalo main de raha hoon aapko.\nEmployee: Haan unko maloom hai.\nCustomer: Text bhej raha hoon main aapko na.\nEmployee: Ji text bhejo na, theek hai, okay.\nCustomer: theek hai sir.",
@@ -245,7 +245,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 60,
     territory: "Faizabad / Ayodhya",
-    contactName: "Call recording Dharmendra_260930_095859.m4a",
+    contactName: "Dharmendra",
   },
   "260929_102319": {
     transcript: "Employee: Hello? \n Customer: Ji sir ji, namaste. \n Employee: Ji namaskar sir, kaise ho? \n Customer: Sab badhiya, sir, aap kaise hain? Main bhi theek hoon. \n Employee: Ye keh rahe the ki pahle aapka Liyco-Kero chhota strip tha, to koi like nahi kar sakta kya bada strip mein aur Monocarto-on mein banaye ki chhota chhota hai? \n Customer: Nahi sir, bada hi hai Monopack aa raha hai ab toh. \n Employee: Nahi nahi, Monopack mein chhota bhi ek aa raha hai doosre companyyon ka. Mere paas jis tarah aapka K27 hai na, \n Customer: Haan, same wohi hai. \n Employee: Achha, us tarah ka hai. \n Customer: Haan ji. \n Employee: Achha, iska batch kya hai sir? \n Customer: July 2028. \n Employee: Achha, kya rupya pad raha hai sir? \n Customer: 120 ka dabba hai sir. \n Employee: Nahi sir, hamara rukhiye, photo bhejta hoon. Liyco-Kero aata hai, bahut bikta hai. Bada, main dikha raha hoon, ek minute line par rahiye. To hamara ye aata hai 100 rupaye mein, to lagataar ye bikta bhi hai, log doosra lete nahi hain, matlab koi bhi deta hoon na, toh kehte hain, nahi nahi, humko wahi chahiye. Humko dikha raha hai matlab. \n Customer: Dekhiye, \n Employee: Photo bhej raha hoon. \n Customer: Bhej do. \n Employee: Line par rahiye, sir. \n Customer: Aur dekhiye gaya aur dekhiye, ye dono Monocarto-on mein dekhiye, ye chhota mein hai, ye iska strip chhota hai, ye aur iska bada hai, dono ka strip bhi bhej raha hoon, dikha raha hoon. Haan, itna hi size hai hamare iska bhi. Dekhiye, ye bada hai aur iska strip, strip bheja hoon niche aur iska strip, ye chhota strip mein hai, Monocarto-on, dekhiye, itna hi hai hamara sir. \n Customer: Chhota wala hai? \n Employee: Haan, yehi hai. \n Customer: Oh ho, aur ye Liyco-Yog ke jaisa nahi hai kya? Matlab K2-7 ke barabar nahi hai kya aapka strip? \n Employee: K2-7 ke barabar toh strip hai. \n Customer: Achha, haan, jo bheja hoon, life pack, ki life pack hai, woh chhota hai. \n Employee: Nahi, chhoti hai, chhoti hai ye strip. \n Customer: Aapki chhoti hai? \n Employee: Haan ji. \n Customer: Oh ho, toh aap chhod dijiye, hum isi liye phone kiye ki Liyco-Yog jo hai na, bada hai mera. Ye doosre number pe bheja hoon, jo aapne utna nahi aata hai sir, ye. Haan han? \n Customer: Utna hi hai, chhota hi hai ye. \n Employee: Haan, toh yehi na, Liyco-Yog mera Girika-l K2-7 jo aap Kesro-Kal K2-7 dete hain na, haan han, utna bada strip ka woh Liyco-Yog hai aur Life pack plus jo hai, woh bahut chhoti hai. \n Customer: Woh chhoti nahi, hamari medium hai. Par uske K2 K2-7 jitni nahi hai par, \n Employee: Haan, toh utni nahi hai, toh hum samajh gaye, usse chhota hai aur K2-7 Kesro-Kal K2-7 ke barabar mera ye Liyco-Yog hai, jo bheja hoon. \n Customer: Achha, hoga sir, phir toh, Life pack toh utna nahi hai. \n Employee: Haan, Life pack chhoti hai, K2-7 se chhota hai patta hamara na? \n Customer: Haan, hum samajh gaye sir, samajh gaye aur sab bataiye, badhiya hai sir, keh rahe the sir, kuchh promotional material nahi aaya kya aapka? \n Employee: Abhi nahi aaya woh. \n Customer: Bataiye itne dino se jude hain, teen pad, diary, \n Employee: Aayega sir, next month hi aayega, woh laga ga aapko September ke baad hi aayega. \n Customer: Sir, sir, yaani, sirf chhod hi bol rahe hain, maan lijiye ki, aakhir dawa toh manga hi raha hoon, bech hi raha hoon, lekin, sir, ye toh hai nahi ki aap koi nahi de rahe, baakiyon ko de rahe hain, sab ke sath yaasi hai, ek hi barabar hai, ji ji ji, aayega toh zaroor denge, kab tak aane ki ummeed hai sir? \n Employee: Maximum month aayega sir. \n Customer: Achha, aur sab bataye, sab mangal hai? \n Employee: Haan haan ji, sab badhiya, aap batao. \n Customer: Theek hai, woh DSR aapka nahi hai, haan na? \n Employee: Rab DSR hai, achha teen DSR nahi hai, nahi, Omdi bhi nahi hai aapki? \n Customer: Nahi sir, Omdi bhi nahi hai. \n Employee: theek hai sir, order hota hai toh hum aapko batayenge. \n Customer: Theek hai sir, aur iska agar mangwate hain toh kya rate pad jayega, Liyco-Kero? \n Employee: 110 rupaye. \n Customer: Arre nahi bhai, 100 rupaye lagaiyega, mangwayenge toh, \n Customer: Chalo, de dena order, haan, 100 rupaye dhyan rakhiyega, baad mein mat badal dijiyega ki nahi ho payega sir, syrup toh aapka sab mehnga hi, 18 rupaye le raha hoon, jabki aur aur ka 15 aa raha hai. \n Employee: Theek hai.",
@@ -253,7 +253,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Price Negotiation"],
     sentiment: "WARM",
     durationSec: 322,
-    contactName: "Call recording Jai Maha Laxmi Medical [Existing] Bhupinder Deoria Up_260929_102319.m4a",
+    contactName: "Jai Maha Laxmi Medical Bhupinder Deoria Up",
   },
   "260929_154814": {
     transcript: "Employee: Good evening sir. \n Customer: Good evening sir. \n Employee: Wo naya account hum dekha hi nahi hai sir. \n Customer: Koi baat nahi, main na kal ya parso return kar denge sir, isko uss wale mein daal dena fir aap. \n Employee: Uss wale mein na? \n Customer: Haan ji. \n Employee: Thik hai thik hai. Hum dekha hi nahi hai wo samjha wahi hai wo to pehle jo deta raha na hum. \n Customer: Hmm. \n Employee: To usi mein de diya maine wo dekha hi nahi hai message. \n Customer: Thik hai sir. \n Employee: Nahi maine phone pe bhi kaha tha aapko koi baat nahi jab main return karwaunga na to aapko phone kar dunga kal ya parso. \n Customer: Haan thik hai return kar kar hatho hath phone kijiye ga hum hatho hath de denge theek hai. \n Employee: Theek hai sir. \n Customer: Aur kuch aur add ho jayega to add bhi karwa denge haan? \n Employee: Theek hai sir. \n Customer: Theek hai sir.",
@@ -262,7 +262,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 60,
     territory: "Not specified",
-    contactName: "Call recording Jayanta Sutradhar [Existing] Nagoan Assam INDIAMART_260929_154814.m4a",
+    contactName: "Jayanta Sutradhar Nagoan Assam INDIAMART",
   },
   "260928_133435": {
     transcript: "Employee: Hello?\nCustomer: Haan ji.\nEmployee: Sir se milne hai?\nCustomer: Nahi sir aaj sir chutti pe hai.\nEmployee: Achha aaj kaise chutti pe hai?\nCustomer: Haan ji.\nEmployee: Aaj kaise chutti pe hai unke?\nCustomer: Unhone chutti kari hai chutti hai nahi aaj.\nEmployee: Achha achha.\nCustomer: Haan ji.\nEmployee: Yeh confirm karna tha ki Sponcare wagera aa gaye hai?\nCustomer: Ah main pata karke aapko abhi message kar deti hu.\nEmployee: Kya keh rahe ho?\nCustomer: Main confirm karke aapko message kar deti hu.\nEmployee: Haan do teen item hai ek Sponcare aur ek woh hai Immigrant syrup.\nCustomer: Koi nahi main dekh leti hu.\nEmployee: Haan dekh ke batana aap.\nCustomer: Theek hai.",
@@ -270,7 +270,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Follow-up Required"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_260928_133435.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "260928_151141": {
     transcript: "Employee: Hello? \n Customer: Hello. \n Employee: Haan ji ma'am. \n Customer: Haan ji sir. \n Employee: Dekha hai aapne fir wo? \n Customer: Haan ji wo lunch time start ho gaya tha na, ek toh syrup tha aapka aur kya tha? \n Employee: Ek toh Immigrant tha, S-pon care tha. \n Customer: Immigrant aur S-pon care? \n Employee: S-pon care. \n Customer: Haan, ek hau wo Cashro Leev? \n Employee: Cashro Leev. \n Customer: Hmm. \n Employee: Okay. \n Customer: Kya quantities thi? \n Employee: Kya keh rahe ho? \n Customer: Quantity kya thi? \n Employee: Immigrant ki bhi 10 packet thi aur S-pon care ki bhi 10 packet thi. \n Customer: Okay. \n Employee: Aur Cashro Leev ki thi do packet. \n Customer: Theek. \n Employee: Main karke batau mere ko? Main karti hoon aapko message. \n Customer: Haan haan. \n Employee: Theek hai. \n Customer: Theek.",
@@ -278,7 +278,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Product Inquiry","Order Follow-up"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Drx Amit Saharanpur Veer Pharma (E)_260928_151141.m4a",
+    contactName: "Drx Amit Saharanpur Veer Pharma",
   },
   "260927_120057": {
     transcript: "Employee: Hello? \n Customer: Hello. \n Employee: Haan ji. \n Customer: Bhaiyya woh Niyaz dost ka parcel tha, Charpety ka medicine ka koi saman hoga. \n Employee: Haan, number deta hu sir aapko na, likh lo ek baar. \n Customer: Haan, chalo ek text message karke dijiye na. \n Employee: Chalo, main text kar raha hu aapko dekh lo. \n Customer: Haan? \n Employee: Text message kar raha hu, dekh lo aap. \n Customer: Theek hai, theek hai, theek hai, dijiye. \n Employee: Okay.",
@@ -287,7 +287,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 32,
     territory: "Charpety",
-    contactName: "Call recording Delhivery Logistics_260927_120057.m4a",
+    contactName: "Delhivery Logistics",
   },
   "260926_161109": {
     transcript: "Employee: Hello?\nCustomer: Hello.\nEmployee: Sir, good evening. main Chandigarh se baat kar raha tha Kasrox Pharma se.\nCustomer: Hmm.\nEmployee: Sir, Amoxycillin ke liye potassium aapki requirement thi. Sir, hai kya requirement aapko?\nHmm.\nHanji.\nCustomer: Quantity kya hai? 200 box banayenge.\nEmployee: Yeh aapko ready stock chahiye ya apna banwaoge sir third party mein, first party? \nCustomer: Third party ka toh rate sir 400 hai. 40 rupee strip, 10 into 10 aluminium blister pack ka.\nEmployee: Aur monopack kiya toh?\nCustomer: 20 rupee plus ho jayenge sir monopack mein sirf, baaki toh kuch nahi. 20 rupee lag jayega.\nHanji, 20 rupee extra ho jayenge monopack ke. 42 rupee strip padegi aapko. 42 mein woh bol do na.\nHanji, 200 box banwayenge.\nEmployee: Toh main aapko WhatsApp kar deta hu sir packing. Aapko 10 into 10 hi chahiye ya 10 into 6 ki chahiye?\nCustomer: 10 into 10 hi chahiye.\nEmployee: 10 into 10 hi chahiye na? Haan, wohi chalta hai sir zyada na 10 into 10 mein. Toh WHO ke under hi banega sir, GMP, WHO toh aapko main ek baar bhej deta hu aap dekh lena details waghera.\nCustomer: Thoda rate thoda kam kar dijiye, thoda mehnga.\nEmployee: Sir, maine banwane wala rate hi diya hai, nahi toh aapko market mein sir 440 se neeche 460 aise milega. Main ek baar hi mein aapko ye de diya ki koi aisa ho hi na up and down karna na pade.\nCustomer: Aur freight freight kya aap log denge?\nHanji.\nCustomer: Maal kaise aayega?\nEmployee: Kahan pe aana hai sir aapka? Yeh kahan ke liye area kya hai aapka?\nCustomer: Uttar Pradesh.\nEmployee: Kolkata?\nCustomer: Kolkata. Haan, toh hamara ready stock bhi jaata hai Vardhman mein sir, waise hi Kolkata. Toh woh toh aapka hi rehta hai na freight toh sir.\nCustomer: toh business hota hi hai mera. Mera toh beats and healthcare hai. toh hota hi hai.\nEmployee: Achha achha. Haan, woh aap third party banwa rahe ho na apna, hamara toh ready stock jaata hai. Toh sir freight toh aapka hi rehta hai usmein jo aane ka lagega aap log de dete ho na.\nCustomer: Ya mere se loge?\nEmployee: Haan, nahi, woh aapka hi rehta hai sir. Wahi toh main keh raha hoon na main company nahi pay karte na.\nHanji.\nCustomer: 200 box ka kitna kitna paisa lagta hai, lala chalta hai?\nEmployee: Do hi case banenge aapke, zyada se zyada 600 delivery se agar mangaoge, teen chaar din mein aapke paas pahunch jayega. Delivery se agar VRL transport se mangwate ho toh che saat din mein pahunchega, usme 350-400 lagenge aapke. Ek ek peti ya do peti?\nCustomer: Do peti hongi sir sirf.\nEmployee: theek hai aap bhejiye ab, ye jo fee hai bhejiye.\nEmployee: theek hai, main WhatsApp kar raha hu aapko sir ek baar na.\nEmployee: theek hai sir.",
@@ -296,7 +296,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "HOT",
     durationSec: 183,
     territory: "Kolkata, Uttar Pradesh",
-    contactName: "Call recording 8240447803_260926_161109.m4a",
+    contactName: "+91 82404 47803",
   },
   "260926_160604": {
     transcript: "Employee: Hello\nCustomer: Hello\nEmployee: Hmm bataiye\nCustomer: Sir good evening, Kesrox Pharma se baat kar raha tha Haryana Ambala se. Abhi requirement nahi hai, requirement nahi hai sir.\nEmployee: Toh list mein bhej do sir, in future ke liye kabhi ho toh bata dena.\nCustomer: Ji ji ji.\nEmployee: theek hai sir, dhanyawad.",
@@ -305,7 +305,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "COLD",
     durationSec: 16,
     territory: "Ambala, Haryana",
-    contactName: "Call recording 8858807623_260926_160604.m4a",
+    contactName: "+91 88588 07623",
   },
   "260925_150934": {
     transcript: "Employee: Hello\nCustomer: Hello sir.\nEmployee: Haan Vaibhav ji...\nCustomer: Haan ji.\nEmployee: Haan ji, lunch ho gaya kya?\nCustomer: Haan, bas sir abhi kare.\nEmployee: Achha achha, theek hai theek hai. Product nikal chuka hai kya sir?\nCustomer: Haan ji, evening me nikal jayenge.\nEmployee: Achha theek hai.",
@@ -314,7 +314,7 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     sentiment: "WARM",
     durationSec: 18,
     territory: "Not specified",
-    contactName: "Call recording Krishna Bannerjee [Existing] Hojai Assam_260925_150934.m4a",
+    contactName: "Krishna Bannerjee Hojai Assam",
   },
   "260925_160433": {
     transcript: "Employee: Hello?\nCustomer: Haan ji sir.\nEmployee: Bataiye. Wo tamor ek sir upar kya hua?\nCustomer: Wednesday ko mil jayega aapko sir.\nCustomer: Kaafi late ho raha hai.\nEmployee: Haan nahi wo Tarun sir ne baat kari thi na. Wednesday mil jayega aapko.\nCustomer: Kyunki maine ye hafte bola tha unhone ki hafte tak aa jayega.\nEmployee: Haan ji haan ji nahi wo baat chal rahi hai unki na. Main wo kal bhi bataya tha unhone Wednesday tak possible hai sir mil jayega.\nCustomer: Wednesday ko aana wo next week pura jayega.\nEmployee: Haan ji.\nCustomer: Koi product kaafi urgent tha.\nEmployee: Mil jayega sir.\nCustomer: Dekho na Monday ko ho sake toh, kyunki Wednesday ko aayega na toh teen din lag jayega idhar aane aane tak.\nEmployee: Haan Wednesday ko nikal payega sir, itna bhi bana nahi na kyunki wo.\nCustomer: Theek hai.\nEmployee: Haan ji.",
@@ -322,6 +322,6 @@ export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
     behaviorTags: ["⚡ Warm Lead","Urgent Delivery","Product Inquiry"],
     sentiment: "WARM",
     durationSec: 60,
-    contactName: "Call recording Navkar Enterprise Papu Jain Maharashtra Dombivali Pcd_260925_160433.m4a",
+    contactName: "Navkar Enterprise Papu Jain Maharashtra Dombivali Pcd",
   },
 };

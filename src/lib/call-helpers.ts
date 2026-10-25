@@ -177,3 +177,55 @@ export function classifyCallLead(call: {
   };
 }
 
+/**
+ * Sanitizes raw audio filenames and recorder logs into clean human-readable customer/party names.
+ * Example:
+ *   "Call recording Paul Medicine Raiganj Existing_261001_151004.m4a" -> "Paul Medicine Raiganj"
+ *   "Call recording Rajesh Kumar Pandey - Jhumritliya Indiamart Existing_261015_112145.m4a" -> "Rajesh Kumar Pandey - Jhumritliya Indiamart"
+ *   "Call recording 8240447803_260926_161109.m4a" -> "+91 82404 47803"
+ */
+export function cleanContactDisplayName(rawName?: string | null): string {
+  if (!rawName || !rawName.trim()) {
+    return "Customer / Lead";
+  }
+
+  let clean = rawName.trim();
+
+  // 1. Strip audio file extensions (.m4a, .mp3, .wav, .aac, .ogg)
+  clean = clean.replace(/\.(m4a|mp3|wav|aac|ogg)$/i, "");
+
+  // 2. Strip recorder prefixes like 'Call recording ', 'Call_', 'recording_'
+  clean = clean.replace(/^(call\s*recording\s*|call[_-]|recording[_-])/i, "");
+
+  // 3. Strip timestamp patterns like _261001_151004 or _20261001_151004 or _151004
+  clean = clean.replace(/[_\s]+\d{6}[_\s]+\d{6}.*$/i, "");
+  clean = clean.replace(/[_\s]+\d{8}[_\s]+\d{6}.*$/i, "");
+  clean = clean.replace(/_\d{6}$/i, "");
+
+  // 4. Strip trailing or bracketed Existing / New / (E) / (N) status indicators
+  clean = clean.replace(/[\s_-]+Existing(?=[\s_-]|$)/i, "");
+  clean = clean.replace(/[\s_-]+\[Existing\]/i, "");
+  clean = clean.replace(/[\s_-]+\(Existing\)/i, "");
+  clean = clean.replace(/[\s_-]+New(?=[\s_-]|$)/i, "");
+  clean = clean.replace(/[\s_-]+\(E\)/i, "");
+  clean = clean.replace(/[\s_-]+\(N\)/i, "");
+
+  // 5. Replace underscores with spaces
+  clean = clean.replace(/_/g, " ");
+
+  // 6. Normalize whitespace
+  clean = clean.replace(/\s+/g, " ").trim();
+
+  // 7. Format 10-digit phone numbers if that was the entire name
+  if (/^\d{10}$/.test(clean)) {
+    return `+91 ${clean.slice(0, 5)} ${clean.slice(5)}`;
+  }
+
+  if (!clean || ["recording", "call", "audio"].includes(clean.toLowerCase())) {
+    return "Customer / Lead";
+  }
+
+  return clean;
+}
+
+

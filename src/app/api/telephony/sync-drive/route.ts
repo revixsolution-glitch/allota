@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { analyzeAudioRecordingWithGemini } from "@/lib/gemini";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
+import { cleanContactDisplayName } from "@/lib/call-helpers";
 
 import { RECENT_VERIFIED_TRANSCRIPTS } from "@/lib/verified-transcripts";
 
@@ -420,7 +421,7 @@ async function handleSync(req: NextRequest) {
       ) {
         const nameMatch =
           f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
-        const contactName = analysis.contactName || (nameMatch ? nameMatch[1].trim() : "Prospective Client");
+        const contactName = cleanContactDisplayName(analysis.contactName || (nameMatch ? nameMatch[1].trim() : f.name));
         const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
         verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing, assignedRepName: f.assignedRepName });
       }
@@ -542,7 +543,7 @@ async function handleSync(req: NextRequest) {
       const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
       const nameMatch =
         f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
-      const contactName = nameMatch ? nameMatch[1].trim() : "Prospective Client";
+      const contactName = cleanContactDisplayName(nameMatch ? nameMatch[1].trim() : f.name);
 
       const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
       let callDate = new Date();

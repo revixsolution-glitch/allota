@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { cleanContactDisplayName } from "@/lib/call-helpers";
 import { AdminCallsView, CallFeedItem, RepSummaryItem } from "./AdminCallsView";
 
 export const dynamic = "force-dynamic";
@@ -121,13 +122,15 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
       c.aiSummary?.match(/(\+?91\d{10}|\b\d{10}\b)/)?.[0] ||
       null;
 
-    const targetName = c.client
+    const rawTargetName = c.client
       ? c.client.name
       : c.lead
       ? (c.lead.name || "Direct Party")
       : extractedPhone
       ? `Contact ${extractedPhone}`
       : "Direct Mobile Call";
+
+    const targetName = cleanContactDisplayName(rawTargetName);
 
     return {
       id: c.id,

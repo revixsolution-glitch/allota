@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { markWhatsAppAlertSent, toggleCallFollowUpFlag } from "@/lib/admin-actions";
-import { craftAiWhatsAppMissedMessage, classifyCallLead } from "@/lib/call-helpers";
+import { craftAiWhatsAppMissedMessage, classifyCallLead, cleanContactDisplayName } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
 import { GradientText } from "@/components/GradientText";
 
@@ -198,7 +198,7 @@ ALLOTA AI CALL INTELLIGENCE REPORT [CONFIDENTIAL]
 Reference ID: DOC-CALL-${call.id.slice(-8).toUpperCase()}
 Company: Allota AI
 Representative: ${call.repName} (${call.repPhone || "Field"})
-Contact Party: ${call.targetName} (${cleanPhone})
+Contact Party: ${cleanContactDisplayName(call.targetName)} (${cleanPhone})
 Date & Time: ${formatDate(call.occurredAt)} at ${formatTime(call.occurredAt)}
 Duration: ${formatDuration(call.durationSec)} (${call.missed ? "MISSED" : "CONNECTED"})
 AI Lead Verdict: ${leadVerdict.label} (${leadVerdict.reason})
@@ -368,7 +368,7 @@ Report generated via Allota AI Telephony Engine
     const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
 
     const text = craftAiWhatsAppMissedMessage({
-      leadName: call.targetName,
+      leadName: cleanContactDisplayName(call.targetName),
       repName: call.repName,
       companyName: call.companyName || companyName,
       division: call.leadDivision,
@@ -698,8 +698,8 @@ Report generated via Allota AI Telephony Engine
                                   </span>
                                 )}
                               </div>
-                              <h4 className="font-extrabold text-xs text-ink truncate">
-                                {c.targetName}
+                              <h4 className="font-extrabold text-xs text-ink truncate" title={cleanContactDisplayName(c.targetName)}>
+                                {cleanContactDisplayName(c.targetName)}
                               </h4>
                             </div>
                           </div>
@@ -817,43 +817,43 @@ Report generated via Allota AI Telephony Engine
 
                     {/* Metadata Strip */}
                     <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs">
-                      <div>
+                      <div className="min-w-0 overflow-hidden">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Field Representative
                         </span>
-                        <p className="font-extrabold text-slate-900 mt-0.5">
+                        <p className="font-extrabold text-slate-900 mt-0.5 truncate" title={activeEmbeddedCall.repName}>
                           {activeEmbeddedCall.repName}
                         </p>
                         {activeEmbeddedCall.repPhone && (
-                          <p className="font-mono text-[11px] text-slate-500">{activeEmbeddedCall.repPhone}</p>
+                          <p className="font-mono text-[11px] text-slate-500 truncate">{activeEmbeddedCall.repPhone}</p>
                         )}
                       </div>
 
-                      <div>
+                      <div className="min-w-0 overflow-hidden">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Customer / Lead
                         </span>
-                        <p className="font-extrabold text-slate-900 mt-0.5">
-                          {activeEmbeddedCall.targetName}
+                        <p className="font-extrabold text-slate-900 mt-0.5 truncate block" title={cleanContactDisplayName(activeEmbeddedCall.targetName)}>
+                          {cleanContactDisplayName(activeEmbeddedCall.targetName)}
                         </p>
-                        <p className="font-mono text-[11px] text-slate-500">
+                        <p className="font-mono text-[11px] text-slate-500 truncate">
                           {activeEmbeddedCall.targetPhone || "Direct Call"}
                         </p>
                       </div>
 
-                      <div>
+                      <div className="min-w-0 overflow-hidden">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Timestamp & Duration
                         </span>
-                        <p className="font-extrabold text-slate-900 mt-0.5">
+                        <p className="font-extrabold text-slate-900 mt-0.5 truncate">
                           {formatDate(activeEmbeddedCall.occurredAt)} • {formatTime(activeEmbeddedCall.occurredAt)}
                         </p>
-                        <p className="text-[11px] text-slate-600 font-bold">
+                        <p className="text-[11px] text-slate-600 font-bold truncate">
                           Talk Time: {formatDuration(activeEmbeddedCall.durationSec)}
                         </p>
                       </div>
 
-                      <div>
+                      <div className="min-w-0 overflow-hidden">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                           Connection Status
                         </span>
@@ -1139,7 +1139,7 @@ Report generated via Allota AI Telephony Engine
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <div>
                 <h3 className="text-sm font-extrabold text-ink">Follow-Up History</h3>
-                <p className="text-xs text-ink-muted mt-0.5">{activeEmbeddedCall.targetName}</p>
+                <p className="text-xs text-ink-muted mt-0.5 truncate">{cleanContactDisplayName(activeEmbeddedCall.targetName)}</p>
               </div>
               <button
                 type="button"

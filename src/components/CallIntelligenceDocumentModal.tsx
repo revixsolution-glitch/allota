@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { classifyCallLead } from "@/lib/call-helpers";
+import { classifyCallLead, cleanContactDisplayName } from "@/lib/call-helpers";
 
 export interface CallDocumentItem {
   id: string;
@@ -129,7 +129,7 @@ ALLOTA AI CALL INTELLIGENCE REPORT [CONFIDENTIAL]
 Reference ID: DOC-CALL-${activeCall.id.slice(-8).toUpperCase()}
 Company: ${companyName}
 Representative: ${currentRep}
-Contact Party: ${activeCall.targetName} (${cleanPhone})
+Contact Party: ${cleanContactDisplayName(activeCall.targetName)} (${cleanPhone})
 Date & Time: ${formatDate(activeCall.occurredAt)} at ${formatTime(activeCall.occurredAt)}
 Duration: ${formatDuration(activeCall.durationSec)} (${activeCall.missed ? "MISSED" : "CONNECTED"})
 Territory: ${activeCall.leadTerritory || "General"}
@@ -312,8 +312,8 @@ Report generated via Allota AI Telephony Engine
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <h4 className="font-extrabold text-xs text-slate-900 truncate">
-                              {c.targetName}
+                            <h4 className="font-extrabold text-xs text-slate-900 truncate" title={cleanContactDisplayName(c.targetName)}>
+                              {cleanContactDisplayName(c.targetName)}
                             </h4>
                             <span className={`rounded-full px-1.5 py-0.2 text-[8px] font-black shrink-0 ${classifyCallLead(c).badgeClass}`}>
                               {classifyCallLead(c).label}
@@ -383,43 +383,43 @@ Report generated via Allota AI Telephony Engine
 
                   {/* Metadata Table Grid */}
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs">
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Field Representative
                       </span>
-                      <p className="font-extrabold text-slate-900 mt-0.5">
+                      <p className="font-extrabold text-slate-900 mt-0.5 truncate" title={currentRep}>
                         {currentRep}
                       </p>
                       {activeCall.repPhone && (
-                        <p className="font-mono text-[11px] text-slate-500">{activeCall.repPhone}</p>
+                        <p className="font-mono text-[11px] text-slate-500 truncate">{activeCall.repPhone}</p>
                       )}
                     </div>
 
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Customer / Prospect
                       </span>
-                      <p className="font-extrabold text-slate-900 mt-0.5">
-                        {activeCall.targetName}
+                      <p className="font-extrabold text-slate-900 mt-0.5 truncate block" title={cleanContactDisplayName(activeCall.targetName)}>
+                        {cleanContactDisplayName(activeCall.targetName)}
                       </p>
-                      <p className="font-mono text-[11px] text-slate-500">
+                      <p className="font-mono text-[11px] text-slate-500 truncate">
                         {activeCall.targetPhone || "No Phone Logged"}
                       </p>
                     </div>
 
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Timestamp & Length
                       </span>
-                      <p className="font-extrabold text-slate-900 mt-0.5">
+                      <p className="font-extrabold text-slate-900 mt-0.5 truncate">
                         {formatDate(activeCall.occurredAt)} • {formatTime(activeCall.occurredAt)}
                       </p>
-                      <p className="text-[11px] text-slate-600 font-bold">
+                      <p className="text-[11px] text-slate-600 font-bold truncate">
                         Talk Time: {formatDuration(activeCall.durationSec)}
                       </p>
                     </div>
 
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
                         Call Outcome
                       </span>
