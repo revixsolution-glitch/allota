@@ -31,6 +31,9 @@ interface TenantSession {
   qrDataUrl: string | null;
   phone: string | null;
   authDir: string;
+  lastDisconnectCode?: number;
+  lastError?: string;
+  lastConnectedAt?: Date;
 }
 
 // STRICT TENANT ISOLATION: Each companyId has its own completely separate WhatsApp socket and storage
@@ -330,11 +333,16 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         session.phone = sock.user?.id ? sock.user.id.split(":")[0] : "Connected";
         session.status = "CONNECTED";
         session.qrDataUrl = null;
+        session.lastConnectedAt = new Date();
+        session.lastError = undefined;
+        session.lastDisconnectCode = undefined;
         console.log(`[Companion][Company: ${session.companyId}] 🎉 CONNECTED as: +${session.phone}`);
         await backupSessionToVault();
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-        console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode}`);
+        session.lastDisconnectCode = statusCode;
+        session.lastError = (lastDisconnect?.error as any)?.message || `Closed with code ${statusCode}`;
+        console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode} - ${session.lastError}`);
         const isRegistered = Boolean(sock?.authState?.creds?.registered);
 
         if (statusCode === DisconnectReason.loggedOut) {
@@ -792,6 +800,31 @@ app.get("/api/:companyId/status", (req, res) => {
   res.json({
     status: session.status,
     phone: session.phone,
+  });
+});
+
+app.get("/api/:companyId/debug", (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+  if (!session) {
+    return res.json({ found: false });
+  }
+
+  const filesCount = fs.existsSync(session.authDir) ? fs.readdirSync(session.authDir).length : 0;
+  const hasCreds = fs.existsSync(path.join(session.authDir, "creds.json"));
+
+  res.json({
+    found: true,
+    companyId: cleanId,
+    status: session.status,
+    phone: session.phone,
+    hasSock: Boolean(session.sock),
+    hasCreds,
+    authFilesCount: filesCount,
+    lastDisconnectCode: session.lastDisconnectCode,
+    lastError: session.lastError,
+    lastConnectedAt: session.lastConnectedAt,
   });
 });
 
