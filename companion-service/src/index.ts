@@ -48,6 +48,80 @@ interface ActiveLidLead {
 // In-memory tracker for active Meta Ad / LID leads awaiting callable phone numbers
 const activeLidLeads = new Map<string, ActiveLidLead>();
 
+// Direct cache mapping WhatsApp LIDs to real phone numbers synced from the device
+const lidToPnMap = new Map<string, string>();
+
+async function handleRealPhoneCaptured(
+  session: TenantSession,
+  lidJid: string,
+  rawPhone: string,
+  sourceNote: string
+) {
+  const digits = rawPhone.replace(/\D/g, "");
+  const clean10 = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits.slice(-10);
+  if (clean10.length !== 10) return;
+
+  const realPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+  lidToPnMap.set(lidJid, `91${clean10}`);
+
+  const lead = activeLidLeads.get(lidJid);
+  const senderName = lead?.senderName || "WhatsApp Prospect";
+
+  console.log(`[Real Phone Captured via ${sourceNote}][Company: ${session.companyId}] ${senderName} (${lidJid}) -> ${realPhone}`);
+
+  // 1. Update Allota CRM with the real callable phone number
+  try {
+    await fetch(ALLOTA_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId: session.companyId,
+        senderPhone: realPhone,
+        senderName,
+        messageText: `[Real Phone Disclosed via ${sourceNote}]: ${realPhone}\n[Inquiry]: ${lead?.initialInquiry || "Ad Lead"}`,
+        isFromMe: false,
+        isGroup: false,
+        hasAdReferral: true,
+        lidJid,
+      }),
+    });
+    console.log(`[CRM Upgraded] Lead ${senderName} updated with callable phone: ${realPhone}`);
+  } catch (err: any) {
+    console.warn("[CRM Real Phone Update Error]", err?.message);
+  }
+
+  // 2. High-priority dispatch to Savi on WhatsApp
+  const isKesrox =
+    session.companyId.includes("kesrox") ||
+    session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
+    session.companyId === "cmubi8zf6000004l8y45hhuds" ||
+    session.phone?.includes("7494809665");
+
+  if (isKesrox && session.sock) {
+    try {
+      const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+      const verifiedText =
+`🎯 *REAL CALLABLE NUMBER RECEIVED (KESROX)*
+
+👤 *Prospect:* ${senderName}
+📞 *Real Phone:* ${realPhone}
+⚡ *Source:* ${sourceNote}
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Click to Call:* tel:+91${clean10}
+👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
+
+      await session.sock.sendMessage(saviJid, { text: verifiedText });
+      console.log(`[Lead Real Phone Dispatched] Sent ${realPhone} to Savi for Kesrox`);
+    } catch (fwdErr: any) {
+      console.warn("[Forward Real Phone Error]", fwdErr?.message);
+    }
+  }
+
+  if (lead) {
+    lead.resolvedPhone = realPhone;
+  }
+}
+
 const AD_KEYWORDS = [
   "pcd",
   "franchise",
@@ -258,6 +332,37 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       }
     });
 
+    // Direct device sync listeners to catch real phone numbers as WhatsApp syncs them from primary phone
+    sock.ev.on("chats.phoneNumberShare", async ({ lid, jid }: any) => {
+      console.log(`[WhatsApp Device Event: chats.phoneNumberShare] LID ${lid} -> PN ${jid}`);
+      const cleanPhone = String(jid || "").replace(/\D/g, "");
+      if (cleanPhone.length >= 10) {
+        await handleRealPhoneCaptured(session, lid, cleanPhone, "WhatsApp Native Device Share");
+      }
+    });
+
+    sock.ev.on("contacts.upsert", (contacts: any[]) => {
+      for (const c of contacts) {
+        if (c.lid && (c.id || c.jid)) {
+          const pn = String(c.id || c.jid).replace(/\D/g, "");
+          if (pn.length >= 10 && !pn.includes("lid")) {
+            lidToPnMap.set(c.lid, pn);
+          }
+        }
+      }
+    });
+
+    sock.ev.on("contacts.update", (updates: any[]) => {
+      for (const u of updates) {
+        if (u.lid && (u.id || u.jid)) {
+          const pn = String(u.id || u.jid).replace(/\D/g, "");
+          if (pn.length >= 10 && !pn.includes("lid")) {
+            lidToPnMap.set(u.lid, pn);
+          }
+        }
+      }
+    });
+
     sock.ev.on("messages.upsert", async ({ messages, type }: any) => {
       if (type !== "notify") return;
 
@@ -380,15 +485,34 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 
         const senderName = msg.pushName || "Prospect Lead";
 
-        // Check if message text or non-LID JID directly yields a 10-digit Indian phone
-        const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+        // Check 1: Did WhatsApp protocol expose senderPn directly on the message node?
+        const senderPn = (msg.key as any).senderPn || (msg.key as any).participantPn;
         let realNumber: string | null = null;
-        if (textPhoneMatch) {
-          realNumber = textPhoneMatch[1];
-        } else if (!jid.endsWith("@lid") && jid.includes("@s.whatsapp.net")) {
-          const directPhone = jid.replace(/\D/g, "");
-          if (directPhone.startsWith("91") && directPhone.length === 12) {
-            realNumber = directPhone.slice(2);
+
+        if (senderPn) {
+          const cleanPn = String(senderPn).replace(/\D/g, "");
+          if (cleanPn.length >= 10) {
+            realNumber = cleanPn.startsWith("91") && cleanPn.length === 12 ? cleanPn.slice(2) : cleanPn.slice(-10);
+            lidToPnMap.set(jid, `91${realNumber}`);
+          }
+        }
+
+        // Check 2: Has this LID already been resolved from device contacts/sync?
+        if (!realNumber && lidToPnMap.has(jid)) {
+          const mappedPn = lidToPnMap.get(jid)!;
+          realNumber = mappedPn.startsWith("91") && mappedPn.length === 12 ? mappedPn.slice(2) : mappedPn.slice(-10);
+        }
+
+        // Check 3: Check if message text or non-LID JID directly yields a 10-digit Indian phone
+        if (!realNumber) {
+          const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+          if (textPhoneMatch) {
+            realNumber = textPhoneMatch[1];
+          } else if (!jid.endsWith("@lid") && jid.includes("@s.whatsapp.net")) {
+            const directPhone = jid.replace(/\D/g, "");
+            if (directPhone.startsWith("91") && directPhone.length === 12) {
+              realNumber = directPhone.slice(2);
+            }
           }
         }
 
@@ -470,15 +594,20 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             console.warn("[CRM Ingest Preliminary Error]", e?.message);
           }
 
-          // 2. Send instant polite qualification auto-reply to prospect
+          // 2. Send native 1-tap "Share Phone Number" prompt button + polite text prompt
           if (session.sock) {
+            try {
+              // Send native WhatsApp 1-tap phone share request
+              await session.sock.sendMessage(jid, { requestPhoneNumber: true } as any);
+            } catch {}
+
             try {
               const autoPrompt =
 `Namaste ${senderName}! 🙏
 
 Thank you for reaching out to *Kesrox Healthcare* for PCD Pharma Franchise.
 
-To share our complete *Product Catalogue, Monopoly Price List & Territory Vacancies* with you, please reply with your:
+Please tap the *"Share Phone Number"* button above or reply with your:
 1. 📱 *Calling / WhatsApp Mobile Number*
 2. 📍 *City & State*
 
