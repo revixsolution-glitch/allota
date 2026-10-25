@@ -275,10 +275,38 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           continue;
         }
 
-        const senderPhone = jid.replace(/@s\.whatsapp\.net/, "");
+        let senderPhone = jid.replace(/@s\.whatsapp\.net/, "");
         const senderName = msg.pushName || "Prospect Lead";
 
-        console.log(`[Lead Detected][Company: ${session.companyId}] Prospect: ${senderName} (+${senderPhone})`);
+        // Resolve Meta Ad LID (Linked Identity) to real Phone Number
+        if (jid.endsWith("@lid") || (senderPhone.length > 13 && !senderPhone.startsWith("91"))) {
+          const altJid = msg.key.remoteJidAlt || (msg as any).senderPn || (msg as any).participantPn;
+          if (altJid && !altJid.includes("@lid")) {
+            senderPhone = altJid.replace(/@.*$/, "");
+          } else {
+            try {
+              const mappedPn = await session.sock?.signalRepository?.lidMapping?.getPNForLID?.(jid);
+              if (mappedPn && !mappedPn.includes("@lid")) {
+                senderPhone = mappedPn.replace(/@.*$/, "");
+              }
+            } catch {}
+          }
+        }
+
+        // Check if customer explicitly typed a 10-digit Indian phone in the inquiry text
+        const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+        if (textPhoneMatch && (senderPhone.includes("@lid") || senderPhone.length > 12)) {
+          senderPhone = `91${textPhoneMatch[1]}`;
+        }
+
+        const isMaskedLid = senderPhone.length > 12 && !senderPhone.startsWith("91");
+        const displayPhone = isMaskedLid
+          ? `Meta Ad ID: ${senderPhone} (Name: ${senderName})`
+          : (senderPhone.startsWith("91") && senderPhone.length === 12
+              ? `+91 ${senderPhone.slice(2, 7)} ${senderPhone.slice(7)}`
+              : `+${senderPhone}`);
+
+        console.log(`[Lead Detected][Company: ${session.companyId}] Prospect: ${senderName} (${displayPhone})`);
 
         // 1. Ingest into Allota CRM strictly for this company
         try {
@@ -287,7 +315,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               companyId: session.companyId,
-              senderPhone: `+${senderPhone}`,
+              senderPhone: displayPhone,
               senderName,
               messageText: rawText,
               isFromMe: false,
@@ -309,14 +337,19 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         if (isKesrox && session.sock) {
           try {
             const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+            const phoneAction = !isMaskedLid && senderPhone.startsWith("91")
+              ? `https://wa.me/${senderPhone.replace(/\D/g, "")}`
+              : `Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}" to view phone number`;
+
             const forwardText =
 `🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
-📞 *Phone:* +${senderPhone}
+📞 *Phone:* ${displayPhone}
 💬 *Inquiry:* "${rawText}"
 ⚡ *Source:* ${hasAdReferral ? "Meta Ad Click" : "Direct WhatsApp Inquiry"}
-🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Direct Action:* ${phoneAction}`;
 
             await session.sock.sendMessage(saviJid, { text: forwardText });
             console.log(`[Lead Forwarded] Sent to Savi (+${SAVI_PHONE}) for Kesrox`);
