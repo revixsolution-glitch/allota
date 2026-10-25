@@ -37,17 +37,34 @@ const AD_INTENT_KEYWORDS = [
  */
 export async function GET() {
   try {
-    const settings = await prisma.companySettings.findMany({
-      where: {
-        whatsappCompanionCreds: { not: null },
-      },
-      select: {
-        companyId: true,
-        whatsappCompanionPhone: true,
-        whatsappCompanionCreds: true,
-      },
-    });
-    return NextResponse.json({ success: true, tenants: settings });
+    const [settings, recentLeads] = await Promise.all([
+      prisma.companySettings.findMany({
+        where: {
+          whatsappCompanionCreds: { not: null },
+        },
+        select: {
+          companyId: true,
+          whatsappCompanionPhone: true,
+          whatsappCompanionCreds: true,
+        },
+      }),
+      prisma.lead.findMany({
+        where: {
+          companyId: "cmubi8zf6000004l8y45hhuds",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          name: true,
+          phoneNumber: true,
+          source: true,
+          createdAt: true,
+          inquiryDetails: true,
+        },
+      }),
+    ]);
+    return NextResponse.json({ success: true, tenants: settings, recentLeads });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message }, { status: 500 });
   }
