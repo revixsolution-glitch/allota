@@ -191,8 +191,14 @@ export async function POST(req: NextRequest) {
                 (await pickNextEmployeeForSource(routed.companyId, LeadSource.WHATSAPP)) ||
                 (await pickNextEmployeeForSource(routed.companyId, LeadSource.META));
 
+              const combinedContext = `${referral?.headline || ""} ${referral?.body || ""} ${messageText}`.toLowerCase();
+              const isPcdExplicit = combinedContext.includes("pcd") || combinedContext.includes("franchise") || combinedContext.includes("monopoly");
+              const isThirdPartyExplicit = combinedContext.includes("third party") || combinedContext.includes("3rd party") || combinedContext.includes("manufacturing") || combinedContext.includes("monthly qty") || combinedContext.includes("batch");
+              const isKesrox = routed.companyId === "cmubi8zf6000004l8y45hhuds" || routed.companyId === "cmub4ssdx00000u8oqlqc62e0";
+              const determinedDivision = (isKesrox && !isPcdExplicit) || isThirdPartyExplicit ? "THIRD_PARTY" : (isPcdExplicit ? "PCD_FRANCHISE" : "THIRD_PARTY");
+
               const inquiryDetails = isAd
-                ? `Inquiry via Click-to-WhatsApp Ad.\nAd Headline: ${referral.headline || "N/A"}\nMessage: "${messageText}"`
+                ? `Inquiry via Click-to-WhatsApp Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Manufacturing" : "PCD Franchise"}).\nAd Headline: ${referral.headline || "N/A"}\nMessage: "${messageText}"`
                 : `WhatsApp Direct Inquiry:\n"${messageText}"`;
 
               const newLead = await prisma.lead.create({
@@ -201,8 +207,8 @@ export async function POST(req: NextRequest) {
                   name: senderName,
                   phoneNumber: formattedPhone,
                   source: LeadSource.WHATSAPP,
-                  sourceTag,
-                  division: "PCD_FRANCHISE",
+                  sourceTag: isAd ? `Meta WhatsApp Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Mfg" : "PCD Franchise"})` : sourceTag,
+                  division: determinedDivision,
                   status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
                   assignedEmployeeId: autoAssignedEmployeeId,
                   inquiryDetails,
@@ -420,6 +426,12 @@ export async function POST(req: NextRequest) {
           );
 
           // 4. Ingest new verified lead into CRM Lead Center
+          const leadContext = `${JSON.stringify(fieldData)} ${formId || ""}`.toLowerCase();
+          const isPcdExplicit = leadContext.includes("pcd") || leadContext.includes("franchise") || leadContext.includes("monopoly");
+          const isThirdPartyExplicit = leadContext.includes("third party") || leadContext.includes("3rd party") || leadContext.includes("manufacturing") || leadContext.includes("monthly qty") || leadContext.includes("batch");
+          const isKesrox = routed.companyId === "cmubi8zf6000004l8y45hhuds" || routed.companyId === "cmub4ssdx00000u8oqlqc62e0";
+          const determinedDivision = (isKesrox && !isPcdExplicit) || isThirdPartyExplicit ? "THIRD_PARTY" : (isPcdExplicit ? "PCD_FRANCHISE" : "THIRD_PARTY");
+
           const newLead = await prisma.lead.create({
             data: {
               companyId: routed.companyId,
@@ -428,11 +440,11 @@ export async function POST(req: NextRequest) {
               city,
               state,
               source: LeadSource.META,
-              sourceTag: `Meta Lead Ad (Form: ${formId || "Direct"})`,
-              division: "PCD_FRANCHISE",
+              sourceTag: `Meta Lead Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Mfg" : "PCD Franchise"}) (Form: ${formId || "Direct"})`,
+              division: determinedDivision,
               status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
               assignedEmployeeId: autoAssignedEmployeeId,
-              inquiryDetails: `Facebook / Instagram PCD Inquiry. Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`,
+              inquiryDetails: `Meta Leadgen Form (${determinedDivision === "THIRD_PARTY" ? "Third-Party Manufacturing" : "PCD Franchise"}). Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`,
               rawPayload: leadData,
             },
           });

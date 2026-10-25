@@ -216,6 +216,7 @@ function getOrCreateTenantSession(companyId: string): TenantSession {
 
 async function startTenantSocket(companyId: string): Promise<TenantSession> {
   const session = getOrCreateTenantSession(companyId);
+  const cleanId = sanitizeCompanyId(companyId);
 
   // Close existing socket if open
   if (session.sock) {
@@ -225,23 +226,44 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
     session.sock = null;
   }
 
-  // PERMANENT ZERO-STALE GUARD: If session is not fully registered and authenticated,
-  // automatically purge any leftover partial pre-keys so WhatsApp gets a 100% pristine cryptographic handshake.
-  if (fs.existsSync(session.authDir)) {
-    const credsPath = path.join(session.authDir, "creds.json");
-    let isFullyRegistered = false;
-    if (fs.existsSync(credsPath)) {
-      try {
-        const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
-        isFullyRegistered = Boolean(creds?.registered && creds?.me?.id);
-      } catch {}
+  // 1. Check if authDir already has a registered valid creds.json
+  const credsPath = path.join(session.authDir, "creds.json");
+  let isFullyRegistered = false;
+  if (fs.existsSync(credsPath)) {
+    try {
+      const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+      isFullyRegistered = Boolean(creds?.registered && creds?.me?.id);
+    } catch {}
+  }
+
+  // 2. If not found on local disk, ALWAYS hydrate from PostgreSQL database vault FIRST!
+  if (!isFullyRegistered) {
+    try {
+      console.log(`[Socket Init] Attempting PostgreSQL session vault restoration for ${cleanId}...`);
+      const res = await fetch(ALLOTA_WEBHOOK_URL);
+      if (res.ok) {
+        const data = await res.json();
+        const tenant = data?.tenants?.find((t: any) => t.companyId === cleanId);
+        if (tenant?.whatsappCompanionCreds) {
+          restoreSessionFilesFromMap(session.authDir, tenant.whatsappCompanionCreds);
+          if (fs.existsSync(credsPath)) {
+            const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+            isFullyRegistered = Boolean(creds?.registered && creds?.me?.id);
+            console.log(`[Socket Init] Successfully restored PostgreSQL session keys for ${cleanId}. Registered: ${isFullyRegistered}`);
+          }
+        }
+      }
+    } catch (vaultErr: any) {
+      console.warn(`[Socket Init Vault Warning]`, vaultErr?.message);
     }
-    if (!isFullyRegistered) {
-      try {
-        fs.rmSync(session.authDir, { recursive: true, force: true });
-        fs.mkdirSync(session.authDir, { recursive: true });
-      } catch {}
-    }
+  }
+
+  // Only if after checking Postgres it is still completely unauthenticated/corrupt, clean wipe for fresh scan
+  if (!isFullyRegistered && fs.existsSync(session.authDir)) {
+    try {
+      fs.rmSync(session.authDir, { recursive: true, force: true });
+      fs.mkdirSync(session.authDir, { recursive: true });
+    } catch {}
   }
 
   try {
@@ -315,8 +337,9 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode}`);
         const isRegistered = Boolean(sock?.authState?.creds?.registered);
 
-        if (statusCode === DisconnectReason.loggedOut || !isRegistered) {
-          // If unauthenticated or explicitly logged out: clean wipe completely
+        if (statusCode === DisconnectReason.loggedOut) {
+          // If explicitly logged out from device settings: clean wipe
+          console.log(`[Companion][Company: ${session.companyId}] Explicitly logged out from device.`);
           try {
             fs.rmSync(session.authDir, { recursive: true, force: true });
             fs.mkdirSync(session.authDir, { recursive: true });
@@ -325,8 +348,9 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           session.sock = null;
           session.status = "NOT_CONNECTED";
         } else {
-          // Genuine registered connection that dropped on network blip: auto-reconnect
-          session.status = "AWAITING_SCAN";
+          // Registered connection dropped due to network blip / server deploy: auto-reconnect
+          session.status = "NOT_CONNECTED";
+          console.log(`[Companion][Company: ${session.companyId}] Network drop (code: ${statusCode}). Auto-reconnecting in 3s...`);
           setTimeout(() => startTenantSocket(session.companyId), 3000);
         }
       }
@@ -362,6 +386,56 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         }
       }
     });
+
+    function detectDivision(rawText: string, contextInfo?: any): {
+      division: "THIRD_PARTY" | "PCD_FRANCHISE";
+      label: string;
+      emoji: string;
+      greetingType: string;
+      offerDetails: string;
+    } {
+      const adTitle = contextInfo?.externalAdReply?.title || "";
+      const adBody = contextInfo?.externalAdReply?.body || "";
+      const combined = `${rawText} ${adTitle} ${adBody}`.toLowerCase();
+
+      const isPcdExplicit =
+        combined.includes("pcd") ||
+        combined.includes("franchise") ||
+        combined.includes("monopoly") ||
+        combined.includes("distributor");
+
+      const isThirdPartyExplicit =
+        combined.includes("third party") ||
+        combined.includes("third-party") ||
+        combined.includes("3rd party") ||
+        combined.includes("manufacturing") ||
+        combined.includes("monthly qty") ||
+        combined.includes("batch") ||
+        combined.includes("contract") ||
+        combined.includes("oem");
+
+      // Since Kesrox active Meta Ad campaign is Third Party Manufacturing,
+      // any ad lead unless explicitly asking for PCD franchise monopoly is Third Party Manufacturing
+      const isThirdParty = isThirdPartyExplicit || !isPcdExplicit;
+
+      if (isThirdParty) {
+        return {
+          division: "THIRD_PARTY",
+          label: "THIRD-PARTY MANUFACTURING",
+          emoji: "🏭",
+          greetingType: "Third-Party Pharma Manufacturing",
+          offerDetails: "WHO-GMP Manufacturing Approvals, Product List, Batch Sizes & Commercial Quotations",
+        };
+      } else {
+        return {
+          division: "PCD_FRANCHISE",
+          label: "PCD FRANCHISE",
+          emoji: "🏢",
+          greetingType: "PCD Pharma Franchise",
+          offerDetails: "complete Product Catalogue, Monopoly Price List & Territory Vacancies",
+        };
+      }
+    }
 
     sock.ev.on("messages.upsert", async ({ messages, type }: any) => {
       if (type !== "notify") return;
@@ -483,6 +557,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           continue;
         }
 
+        const divMeta = detectDivision(rawText, contextInfo);
         const senderName = msg.pushName || "Prospect Lead";
 
         // Check 1: Did WhatsApp protocol expose senderPn directly on the message node?
@@ -519,7 +594,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         if (realNumber) {
           // SCENARIO A: REAL NUMBER KNOWN IMMEDIATELY
           const formattedPhone = `+91 ${realNumber.slice(0, 5)} ${realNumber.slice(5)}`;
-          console.log(`[Lead Detected with Real Phone][Company: ${session.companyId}] ${senderName} (${formattedPhone})`);
+          console.log(`[Lead Detected with Real Phone][Company: ${session.companyId}] ${senderName} (${formattedPhone}) - ${divMeta.label}`);
 
           // 1. Ingest into CRM
           try {
@@ -530,6 +605,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
                 companyId: session.companyId,
                 senderPhone: formattedPhone,
                 senderName,
+                division: divMeta.division,
                 messageText: rawText,
                 isFromMe: false,
                 isGroup: false,
@@ -545,25 +621,25 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (isKesrox && session.sock) {
             try {
               const forwardText =
-`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+`🚨 *NEW ${divMeta.label} LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
 📞 *Real Phone:* ${formattedPhone}
 💬 *Inquiry:* "${rawText}"
-⚡ *Source:* ${hasAdReferral ? "Meta Ad Click" : "Direct WhatsApp Inquiry"}
+⚡ *Source:* Meta Click-to-WhatsApp Ad (${divMeta.emoji} ${divMeta.label})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
 👉 *Click to Call:* tel:+91${realNumber}
 👉 *Click to WhatsApp:* https://wa.me/91${realNumber}`;
 
               await session.sock.sendMessage(saviJid, { text: forwardText });
-              console.log(`[Lead Forwarded] Sent real phone ${formattedPhone} to Savi for Kesrox`);
+              console.log(`[Lead Forwarded] Sent real phone ${formattedPhone} to Savi for Kesrox (${divMeta.label})`);
             } catch (fwdErr: any) {
               console.warn("[Forward Error]", fwdErr?.message);
             }
           }
         } else {
           // SCENARIO B: MASKED META AD LID — Instant Polite Auto-Prompt to Retrieve Number
-          console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid}) — Auto-prompting for mobile number...`);
+          console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid}) — Auto-prompting for ${divMeta.label}...`);
 
           // Register in tracker
           activeLidLeads.set(jid, {
@@ -583,6 +659,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
                 companyId: session.companyId,
                 senderPhone: `Awaiting Phone (${senderName})`,
                 senderName,
+                division: divMeta.division,
                 messageText: rawText,
                 isFromMe: false,
                 isGroup: false,
@@ -605,16 +682,16 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
               const autoPrompt =
 `Namaste ${senderName}! 🙏
 
-Thank you for reaching out to *Kesrox Healthcare* for PCD Pharma Franchise.
+Thank you for reaching out to *Kesrox Healthcare* for *${divMeta.greetingType}*.
 
-Please tap the *"Share Phone Number"* button above or reply with your:
+To share our ${divMeta.offerDetails} with you, please tap the *"Share Phone Number"* button above or reply with your:
 1. 📱 *Calling / WhatsApp Mobile Number*
 2. 📍 *City & State*
 
 Our Director will assist you right away!`;
 
               await session.sock.sendMessage(jid, { text: autoPrompt });
-              console.log(`[Auto-Prompt Sent] Asked prospect ${senderName} for real mobile number.`);
+              console.log(`[Auto-Prompt Sent] Asked prospect ${senderName} for real mobile number (${divMeta.label}).`);
             } catch (pErr: any) {
               console.warn("[Auto-Prompt Send Error]", pErr?.message);
             }
@@ -624,18 +701,18 @@ Our Director will assist you right away!`;
           if (isKesrox && session.sock) {
             try {
               const initialNotice =
-`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+`🚨 *NEW ${divMeta.label} LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
 📞 *Phone:* ⏳ *Awaiting Prospect's Mobile No.*
 💬 *Inquiry:* "${rawText}"
-⚡ *Source:* Meta Ad Click
+⚡ *Source:* Meta Click-to-WhatsApp Ad (${divMeta.emoji} ${divMeta.label})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-🤖 *Bot Action:* Instant auto-reply sent requesting mobile number & city. The moment they reply, real callable number will land here!
+🤖 *Bot Action:* Instant auto-reply sent for ${divMeta.greetingType}. The moment they reply, real callable number will land here!
 👉 *Kesrox WhatsApp:* Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`;
 
               await session.sock.sendMessage(saviJid, { text: initialNotice });
-              console.log(`[Lead Forwarded] Sent initial awaiting-phone notice to Savi for Kesrox`);
+              console.log(`[Lead Forwarded] Sent initial awaiting-phone notice to Savi for Kesrox (${divMeta.label})`);
             } catch (fwdErr: any) {
               console.warn("[Forward Error]", fwdErr?.message);
             }
@@ -745,7 +822,31 @@ app.post("/api/:companyId/connect", async (req, res) => {
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
   const session = await startTenantSocket(cleanId);
-  res.json({ success: true, status: session.status });
+  res.json({ success: true, status: session.status, phone: session.phone });
+});
+
+// Force-restore session directly from PostgreSQL vault
+app.post("/api/:companyId/restore", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = getOrCreateTenantSession(cleanId);
+
+  try {
+    const r = await fetch(ALLOTA_WEBHOOK_URL);
+    if (r.ok) {
+      const data = await r.json();
+      const tenant = data?.tenants?.find((t: any) => t.companyId === cleanId);
+      if (tenant?.whatsappCompanionCreds) {
+        restoreSessionFilesFromMap(session.authDir, tenant.whatsappCompanionCreds);
+        console.log(`[Manual Restore] Hydrated PostgreSQL keys for ${cleanId}`);
+        const started = await startTenantSocket(cleanId);
+        return res.json({ success: true, status: started.status, phone: started.phone });
+      }
+    }
+    return res.status(404).json({ error: "No vaulted keys found in PostgreSQL" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Official 8-Digit Pairing Code generation (Phone-based linking without camera QR scan)
@@ -884,18 +985,18 @@ app.post("/api/:companyId/forward-past-leads", async (req, res) => {
 
   for (const lead of pastLeads) {
     const text =
-`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+`🚨 *NEW THIRD-PARTY MANUFACTURING LEAD (KESROX)*
 
 👤 *Prospect:* ${lead.name}
 📞 *Phone:* ${lead.phone}
 💬 *Inquiry:* "${lead.inquiry}"
-⚡ *Source:* Meta Click-to-WhatsApp Ad
+⚡ *Source:* Meta Click-to-WhatsApp Ad (🏭 Third-Party Mfg)
 🕒 *Received:* ${lead.time}
 👉 *Direct Action:* ${lead.action}`;
 
     try {
       await session.sock.sendMessage(saviJid, { text });
-      console.log(`[Lead Forwarded to Savi] Dispatched ${lead.name}`);
+      console.log(`[Lead Forwarded to Savi] Dispatched ${lead.name} as Third-Party Manufacturing`);
       await new Promise((r) => setTimeout(r, 1200));
     } catch (e: any) {
       console.warn("Error forwarding lead to Savi:", e?.message);
@@ -937,8 +1038,8 @@ app.post("/api/:companyId/prompt-pending-leads", async (req, res) => {
         await session.sock.sendMessage(t.jid, { requestPhoneNumber: true } as any);
       } catch {}
 
-      // 2. Send polite prompt text
-      const prompt = `Namaste ${t.name}! 🙏\n\nThank you for reaching out to *Kesrox Healthcare* regarding PCD Pharma Franchise.\n\nTo share our complete *Product Catalogue, Monopoly Price List & Profit Margins* with you, please tap the *"Share Phone Number"* button above or reply with your:\n1. 📱 *Calling / WhatsApp Mobile Number*\n2. 📍 *City & State*\n\nOur team will assist you right away!`;
+      // 2. Send polite prompt text for Third Party Manufacturing
+      const prompt = `Namaste ${t.name}! 🙏\n\nThank you for reaching out to *Kesrox Healthcare* regarding *Third-Party Pharma Manufacturing*.\n\nTo share our complete *WHO-GMP Manufacturing Approvals, Product List, Batch Sizes & Commercial Quotations* with you, please tap the *"Share Phone Number"* button above or reply with your:\n1. 📱 *Calling / WhatsApp Mobile Number*\n2. 📍 *City & State*\n\nOur team will assist you right away!`;
       await session.sock.sendMessage(t.jid, { text: prompt });
       results.push({ name: t.name, jid: t.jid, status: "PROMPTED_SUCCESS" });
     } catch (err: any) {

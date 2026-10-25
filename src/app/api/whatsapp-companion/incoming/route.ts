@@ -37,6 +37,23 @@ const AD_INTENT_KEYWORDS = [
  */
 export async function GET() {
   try {
+    // Auto-reclassify any active Meta Ad leads for Kesrox to Third-Party Manufacturing
+    await prisma.lead.updateMany({
+      where: {
+        companyId: "cmubi8zf6000004l8y45hhuds",
+        OR: [
+          { name: { contains: "Renjith" } },
+          { name: { contains: "A K DRUGS" } },
+          { inquiryDetails: { contains: "Monthly qty" } },
+          { phoneNumber: { in: ["+136391149277265", "+77588651323577"] } },
+        ],
+      },
+      data: {
+        division: "THIRD_PARTY",
+        sourceTag: "Meta Click-to-WhatsApp Ad (Third-Party Mfg)",
+      },
+    });
+
     const [settings, recentLeads] = await Promise.all([
       prisma.companySettings.findMany({
         where: {
@@ -58,7 +75,9 @@ export async function GET() {
           id: true,
           name: true,
           phoneNumber: true,
+          division: true,
           source: true,
+          sourceTag: true,
           createdAt: true,
           inquiryDetails: true,
         },
@@ -184,10 +203,16 @@ export async function POST(request: Request) {
       const updatedInquiry = `${existing.inquiryDetails || ""}\n[Update]: ${messageText}`.trim();
       const needsPhoneUpgrade = !isAwaitingPhone && Boolean(existing.phoneNumber?.includes("Awaiting"));
 
+      const cleanLower = `${cleanText} ${body.sourceTag || ""}`.toLowerCase();
+      const isPcdExplicit = cleanLower.includes("pcd") || cleanLower.includes("franchise") || cleanLower.includes("monopoly");
+      const isThirdPartyExplicit = cleanLower.includes("third party") || cleanLower.includes("3rd party") || cleanLower.includes("monthly qty") || cleanLower.includes("manufacturing") || cleanLower.includes("batch");
+      const determinedDivision = body.division || (isPcdExplicit && !isThirdPartyExplicit ? "PCD_FRANCHISE" : "THIRD_PARTY");
+
       await prisma.lead.update({
         where: { id: existing.id },
         data: {
           phoneNumber: needsPhoneUpgrade ? formattedPhone : existing.phoneNumber,
+          division: determinedDivision,
           inquiryDetails: updatedInquiry,
           updatedAt: new Date(),
         },
@@ -219,14 +244,19 @@ export async function POST(request: Request) {
       select: { id: true, name: true },
     });
 
+    const cleanLower = `${cleanText} ${body.sourceTag || ""}`.toLowerCase();
+    const isPcdExplicit = cleanLower.includes("pcd") || cleanLower.includes("franchise") || cleanLower.includes("monopoly");
+    const isThirdPartyExplicit = cleanLower.includes("third party") || cleanLower.includes("3rd party") || cleanLower.includes("monthly qty") || cleanLower.includes("manufacturing") || cleanLower.includes("batch");
+    const determinedDivision = body.division || (isPcdExplicit && !isThirdPartyExplicit ? "PCD_FRANCHISE" : "THIRD_PARTY");
+
     const newLead = await prisma.lead.create({
       data: {
         companyId,
         name: senderName || "WhatsApp Prospect",
         phoneNumber: formattedPhone,
         source: LeadSource.WHATSAPP,
-        sourceTag: hasAdReferral ? "Meta Click-to-WhatsApp Ad" : "WhatsApp Ad Inquirer",
-        division: "PCD_FRANCHISE",
+        sourceTag: hasAdReferral ? `Meta Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Mfg" : "PCD Franchise"})` : "WhatsApp Ad Inquirer",
+        division: determinedDivision,
         status: defaultEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: defaultEmployee?.id || null,
         inquiryDetails: lidJid ? `[LID: ${lidJid}]\n${messageText || "Initiated ad inquiry on WhatsApp."}` : (messageText || "Initiated ad inquiry on WhatsApp."),
