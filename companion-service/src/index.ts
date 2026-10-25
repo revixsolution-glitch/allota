@@ -489,4 +489,34 @@ app.post("/api/:companyId/disconnect", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Allota Multi-Tenant WhatsApp Companion Service on port ${PORT}`);
   restoreAllSavedSessions();
+
+  // 24/7 KEEP-ALIVE WATCHDOG & SELF-PING
+  const RENDER_PUBLIC_URL = process.env.RENDER_EXTERNAL_URL || "https://allota-whatsapp-companion.onrender.com";
+
+  // 1. Self-ping every 8 minutes to prevent Render Free Tier from ever sleeping
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${RENDER_PUBLIC_URL}/health`);
+      if (res.ok) {
+        console.log(`[Keep-Alive] 24/7 Self-ping OK at ${new Date().toLocaleTimeString("en-IN")}`);
+      }
+    } catch (err: any) {
+      console.warn(`[Keep-Alive Warning]`, err?.message);
+    }
+  }, 8 * 60 * 1000);
+
+  // 2. Health Watchdog every 2 minutes: ensures any registered socket that dropped gets auto-reconnected
+  setInterval(async () => {
+    for (const [companyId, session] of tenantSessions.entries()) {
+      if (session.status !== "CONNECTED" && fs.existsSync(path.join(session.authDir, "creds.json"))) {
+        try {
+          const creds = JSON.parse(fs.readFileSync(path.join(session.authDir, "creds.json"), "utf8"));
+          if (creds?.registered && creds?.me?.id) {
+            console.log(`[Watchdog] Auto-reconnecting dropped session for company: ${companyId}`);
+            await startTenantSocket(companyId);
+          }
+        } catch {}
+      }
+    }
+  }, 2 * 60 * 1000);
 });
