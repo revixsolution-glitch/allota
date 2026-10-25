@@ -1,0 +1,21 @@
+name: 24/7 Render & WhatsApp Companion Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render Free Tier from 15-minute sleep
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Companion Service
+        run: |
+          echo "Pinging Render WhatsApp Companion Service..."
+          curl -s -f https://allota-whatsapp-companion.onrender.com/health || echo "Render ping returned warning"
+
+      - name: Ping Allota Vercel Keep-Alive
+        run: |
+          echo "Pinging Vercel Keep-Alive Gateway..."
+          curl -s -f https://allota.vercel.app/api/companion-keepalive || echo "Vercel ping returned warning"
