@@ -40,6 +40,10 @@ export function WhatsAppCompanionSection({
 
   // Live Pop-up Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [pairingMethod, setPairingMethod] = useState<"code" | "qr">("code");
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
@@ -96,27 +100,47 @@ export function WhatsAppCompanionSection({
     return () => clearInterval(interval);
   }, [qrModalOpen, qrDataUrl]);
 
-  // Single Click Action: Connect WhatsApp (Opens official QR pop-up)
-  async function handleConnectWhatsApp() {
-    setError(null);
-    setQrModalOpen(true);
+  async function fetchPairingCode(customPhone?: string) {
+    setCodeLoading(true);
+    setQrError(null);
+    try {
+      const rawTarget = customPhone || phone;
+      const cleanTarget = rawTarget ? rawTarget.replace(/\D/g, "") : "917494809665";
+      const fullTarget = cleanTarget.startsWith("91") && cleanTarget.length === 12 ? cleanTarget : `91${cleanTarget}`;
+
+      const res = await fetch("/api/whatsapp-companion/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "code", phone: fullTarget }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate pairing code.");
+
+      if (data.status === "CONNECTED" || data.alreadyRegistered) {
+        setStatus("CONNECTED");
+        if (data.phone) setConnectedPhone(data.phone);
+        setQrModalOpen(false);
+      } else if (data.pairingCode) {
+        setPairingCode(data.pairingCode);
+      }
+    } catch (err: any) {
+      setQrError(err?.message || "Failed to generate pairing code. Please try again.");
+    } finally {
+      setCodeLoading(false);
+    }
+  }
+
+  async function fetchQrCode() {
     setQrLoading(true);
     setQrError(null);
-    setQrDataUrl(null);
-    setJustConnected(false);
-
     try {
       const res = await fetch("/api/whatsapp-companion/pair", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "qr" }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to initiate WhatsApp connection.");
-      }
+      if (!res.ok) throw new Error(data.error || "Failed to load live QR code.");
 
       if (data.status === "CONNECTED" || data.alreadyRegistered) {
         setStatus("CONNECTED");
@@ -129,6 +153,20 @@ export function WhatsAppCompanionSection({
       setQrError(err?.message || "Failed to load live QR code. Please try again.");
     } finally {
       setQrLoading(false);
+    }
+  }
+
+  // Single Click Action: Connect WhatsApp (Opens official modal)
+  async function handleConnectWhatsApp() {
+    setError(null);
+    setQrModalOpen(true);
+    setQrError(null);
+    setJustConnected(false);
+
+    if (pairingMethod === "code") {
+      await fetchPairingCode();
+    } else {
+      await fetchQrCode();
     }
   }
 
@@ -256,10 +294,10 @@ export function WhatsAppCompanionSection({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base">
-                    Scan WhatsApp QR Code
+                    Connect WhatsApp
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Point your phone camera to connect
+                    Choose 8-digit code or QR camera scan
                   </p>
                 </div>
               </div>
@@ -270,6 +308,41 @@ export function WhatsAppCompanionSection({
                 className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition cursor-pointer"
               >
                 ✕
+              </button>
+            </div>
+
+            {/* TAB SELECTOR: 8-DIGIT CODE (RECOMMENDED) VS QR CODE */}
+            <div className="flex rounded-2xl bg-slate-100 p-1 border border-line text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setPairingMethod("code");
+                  if (!pairingCode) fetchPairingCode();
+                }}
+                className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  pairingMethod === "code"
+                    ? "bg-white text-emerald-700 shadow-xs font-extrabold"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <span>📱 8-Digit Code</span>
+                <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-black">
+                  Recommended
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPairingMethod("qr");
+                  if (!qrDataUrl) fetchQrCode();
+                }}
+                className={`flex-1 py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  pairingMethod === "qr"
+                    ? "bg-white text-emerald-700 shadow-xs font-extrabold"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                <span>📷 Scan QR</span>
               </button>
             </div>
 
@@ -286,14 +359,6 @@ export function WhatsAppCompanionSection({
                   Closing pop-up...
                 </p>
               </div>
-            ) : qrLoading ? (
-              <div className="py-12 text-center space-y-4">
-                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
-                <p className="text-xs font-bold text-slate-700">
-                  Loading WhatsApp QR Code...
-                </p>
-                <p className="text-[10px] text-slate-400">Takes about 2 to 3 seconds</p>
-              </div>
             ) : qrError ? (
               <div className="py-6 text-center space-y-4">
                 <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-800">
@@ -301,11 +366,81 @@ export function WhatsAppCompanionSection({
                 </div>
                 <button
                   type="button"
-                  onClick={handleConnectWhatsApp}
+                  onClick={() => (pairingMethod === "code" ? fetchPairingCode() : fetchQrCode())}
                   className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
                 >
                   Retry
                 </button>
+              </div>
+            ) : pairingMethod === "code" ? (
+              <div className="space-y-4 text-center">
+                <div className="rounded-3xl p-5 bg-gradient-to-b from-emerald-50/50 to-teal-50/30 border border-emerald-500/30 space-y-3">
+                  <p className="text-xs font-bold text-slate-700">
+                    Enter this 8-digit code in WhatsApp on your phone:
+                  </p>
+
+                  {codeLoading ? (
+                    <div className="py-6 flex flex-col items-center gap-2">
+                      <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
+                      <span className="text-xs text-slate-500 font-medium">Requesting code from WhatsApp...</span>
+                    </div>
+                  ) : pairingCode ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="font-mono text-3xl sm:text-4xl font-black tracking-widest text-emerald-700 bg-white px-5 py-3 rounded-2xl border-2 border-emerald-500 shadow-md">
+                        {pairingCode.length === 8
+                          ? `${pairingCode.slice(0, 4)} - ${pairingCode.slice(4)}`
+                          : pairingCode}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pairingCode);
+                          setCopiedCode(true);
+                          setTimeout(() => setCopiedCode(false), 2000);
+                        }}
+                        className="rounded-xl border border-emerald-200 bg-white p-3 text-xs font-bold text-emerald-700 hover:bg-emerald-50 shadow-xs transition cursor-pointer"
+                        title="Copy Code"
+                      >
+                        {copiedCode ? "✓ Copied" : "📋 Copy"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fetchPairingCode()}
+                      className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                    >
+                      Generate 8-Digit Code
+                    </button>
+                  )}
+
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Waiting for phone confirmation...</span>
+                  </div>
+                </div>
+
+                {/* Steps */}
+                <div className="rounded-2xl bg-slate-50 border border-line p-4 text-left text-xs space-y-1.5">
+                  <p className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider mb-1">
+                    How to enter code on your phone:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1.5 text-slate-600 font-medium">
+                    <li>Open <strong>WhatsApp</strong> on your primary phone.</li>
+                    <li>Go to <strong>Settings</strong> (iPhone) or <strong>3 dots</strong> (Android) ➔ <strong>Linked Devices</strong>.</li>
+                    <li>Tap <strong>Link a Device</strong>.</li>
+                    <li>At the bottom of the camera screen, tap <strong className="text-emerald-700">"Link with phone number instead"</strong>.</li>
+                    <li>Enter the 8-digit code shown above.</li>
+                  </ol>
+                </div>
+              </div>
+            ) : qrLoading ? (
+              <div className="py-12 text-center space-y-4">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+                <p className="text-xs font-bold text-slate-700">
+                  Loading WhatsApp QR Code...
+                </p>
+                <p className="text-[10px] text-slate-400">Takes about 2 to 3 seconds</p>
               </div>
             ) : qrDataUrl ? (
               <div className="space-y-4 text-center">

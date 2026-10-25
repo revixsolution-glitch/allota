@@ -171,7 +171,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       auth: state,
       printQRInTerminal: false,
       logger: pino({ level: "silent" }) as any,
-      browser: Browsers.macOS("Chrome"),
+      browser: ["Mac OS", "Chrome", "130.0.0.0"],
       syncFullHistory: false,
       generateHighQualityLinkPreview: false,
       keepAliveIntervalMs: 15000,
@@ -429,6 +429,48 @@ app.post("/api/:companyId/connect", async (req, res) => {
   const cleanId = sanitizeCompanyId(companyId);
   const session = await startTenantSocket(cleanId);
   res.json({ success: true, status: session.status });
+});
+
+// Official 8-Digit Pairing Code generation (Phone-based linking without camera QR scan)
+app.post("/api/:companyId/pair-code", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const rawPhone = req.body?.phone || req.query?.phone || "917494809665";
+  const cleanPhone = String(rawPhone).replace(/\D/g, "");
+  const fullPhone = cleanPhone.startsWith("91") && cleanPhone.length === 12 ? cleanPhone : `91${cleanPhone}`;
+
+  if (fullPhone.length < 10) {
+    return res.status(400).json({ error: "Invalid phone number format" });
+  }
+
+  let session = tenantSessions.get(cleanId);
+  if (!session || !session.sock || session.status === "NOT_CONNECTED") {
+    session = await startTenantSocket(cleanId);
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+
+  if (session.sock?.authState?.creds?.registered) {
+    return res.json({
+      success: true,
+      alreadyRegistered: true,
+      status: "CONNECTED",
+      phone: session.phone || fullPhone,
+    });
+  }
+
+  try {
+    const pairingCode = await session.sock.requestPairingCode(fullPhone);
+    console.log(`[Companion][Company: ${cleanId}] 8-digit pairing code issued for ${fullPhone}: ${pairingCode}`);
+    return res.json({
+      success: true,
+      pairingCode,
+      phone: fullPhone,
+      status: "AWAITING_PAIRING_CODE",
+    });
+  } catch (err: any) {
+    console.error("Pairing code error:", err);
+    return res.status(500).json({ error: err?.message || "Failed to generate pairing code" });
+  }
 });
 
 // Trigger a live test lead for verification
