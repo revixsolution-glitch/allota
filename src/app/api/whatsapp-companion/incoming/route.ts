@@ -63,6 +63,10 @@ export async function GET() {
           companyId: true,
           whatsappCompanionPhone: true,
           whatsappCompanionCreds: true,
+          metaAccessToken: true,
+          metaPageId: true,
+          metaAdAccountId: true,
+          metaWabaId: true,
         },
       }),
       prisma.lead.findMany({

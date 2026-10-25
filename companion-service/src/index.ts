@@ -910,7 +910,7 @@ app.post("/api/:companyId/update-lead-phone", async (req, res) => {
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
   const session = tenantSessions.get(cleanId);
-  const { name, phone, inquiry } = req.body;
+  const { name, phone, inquiry, headline, division, isUpdate } = req.body;
 
   if (!phone || !name) {
     return res.status(400).json({ error: "name and phone are required" });
@@ -919,6 +919,8 @@ app.post("/api/:companyId/update-lead-phone", async (req, res) => {
   const cleanDigits = String(phone).replace(/\D/g, "");
   const clean10 = cleanDigits.startsWith("91") && cleanDigits.length === 12 ? cleanDigits.slice(2) : cleanDigits.slice(-10);
   const formatted = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+  const divLabel = division === "PCD_FRANCHISE" ? "PCD FRANCHISE" : "THIRD-PARTY MANUFACTURING";
+  const divEmoji = division === "PCD_FRANCHISE" ? "🏢" : "🏭";
 
   // 1. Update Allota CRM
   try {
@@ -929,7 +931,7 @@ app.post("/api/:companyId/update-lead-phone", async (req, res) => {
         companyId: cleanId,
         senderPhone: formatted,
         senderName: name,
-        division: "THIRD_PARTY",
+        division: division || "THIRD_PARTY",
         messageText: inquiry || "Meta Ad Lead Updated with Phone Number",
         isFromMe: false,
         isGroup: false,
@@ -944,13 +946,15 @@ app.post("/api/:companyId/update-lead-phone", async (req, res) => {
   if (session?.sock) {
     try {
       const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+      const updateBadge = isUpdate ? " (REPEAT INQUIRY)" : "";
+      const headlineLine = headline ? `📢 *Ad Headline:* ${headline}\n` : "";
       const text =
-`🚨 *NEW THIRD-PARTY MANUFACTURING LEAD (KESROX)*
+`🚨 *NEW ${divLabel} LEAD (KESROX)${updateBadge}*
 
-👤 *Prospect:* ${name}
+👤 *Prospect Name:* ${name}
 📞 *Real Phone:* ${formatted}
-💬 *Inquiry:* "${inquiry || "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N"}"
-⚡ *Source:* Meta Click-to-WhatsApp Ad (🏭 Third-Party Mfg)
+${headlineLine}💬 *Inquiry Details:* "${inquiry || "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N"}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad (${divEmoji} ${divLabel})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
@@ -964,6 +968,54 @@ app.post("/api/:companyId/update-lead-phone", async (req, res) => {
 
   res.json({ success: true, name, phone: formatted });
 });
+
+// Dedicated forward-lead endpoint for instant notification to Savi
+app.post(["/api/:companyId/forward-lead", "/forward-lead"], async (req, res) => {
+  const companyId = req.params?.companyId || req.body?.companyId || "cmubi8zf6000004l8y45hhuds";
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+  const { name, phone, clean10: explicitClean10, inquiry, headline, division, isUpdate } = req.body;
+
+  if (!phone || !name) {
+    return res.status(400).json({ error: "name and phone are required" });
+  }
+
+  const cleanDigits = String(phone).replace(/\D/g, "");
+  const clean10 = explicitClean10 || (cleanDigits.startsWith("91") && cleanDigits.length === 12 ? cleanDigits.slice(2) : cleanDigits.slice(-10));
+  const formatted = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+  const divLabel = division === "PCD_FRANCHISE" ? "PCD FRANCHISE" : "THIRD-PARTY MANUFACTURING";
+  const divEmoji = division === "PCD_FRANCHISE" ? "🏢" : "🏭";
+
+  if (session?.sock) {
+    try {
+      const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+      const updateBadge = isUpdate ? " (REPEAT INQUIRY)" : "";
+      const headlineLine = headline ? `📢 *Ad Headline:* ${headline}\n` : "";
+      const text =
+`🚨 *NEW ${divLabel} LEAD (KESROX)${updateBadge}*
+
+👤 *Prospect Name:* ${name}
+📞 *Real Phone:* ${formatted}
+${headlineLine}💬 *Inquiry Details:* "${inquiry || "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N"}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad (${divEmoji} ${divLabel})
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Click to Call:* tel:+91${clean10}
+👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
+
+      await session.sock.sendMessage(saviJid, { text });
+      console.log(`[Lead Forwarded to Savi] Dispatched ${name} (${formatted}) via forward-lead`);
+      return res.json({ success: true, forwardedTo: saviJid, phone: formatted });
+    } catch (waErr: any) {
+      console.warn("[Dispatch to Savi Error]", waErr?.message);
+      return res.status(500).json({ error: waErr?.message });
+    }
+  }
+
+  return res.status(503).json({ error: "WhatsApp companion is not connected for this company" });
+});
+
+// Trigger a live test lead for verification
+app.post("/api/:companyId/test-lead", async (req, res) => {
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
   const session = tenantSessions.get(cleanId);
