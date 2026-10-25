@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, backedUp: true });
     }
 
-    const { companyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral } = body;
+    const { companyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral, lidJid } = body;
 
     // 1. Strict Security Filter: Never process outbound or group chats
     if (!companyId || !senderPhone || isFromMe || isGroup) {
@@ -142,14 +142,19 @@ export async function POST(request: Request) {
 
     const cleanText = String(messageText || "").trim().toLowerCase();
 
-    // 2. Format phone to clean +91 format
-    const digits = senderPhone.replace(/\D/g, "");
-    if (digits.length < 10) {
-      return NextResponse.json({ success: true, ignored: true, reason: "INVALID_PHONE" });
+    // 2. Format phone to clean +91 format or preserve pending state
+    const isAwaitingPhone = String(senderPhone).includes("Awaiting Phone");
+    let formattedPhone = senderPhone;
+
+    if (!isAwaitingPhone) {
+      const digits = senderPhone.replace(/\D/g, "");
+      if (digits.length < 10) {
+        return NextResponse.json({ success: true, ignored: true, reason: "INVALID_PHONE" });
+      }
+      formattedPhone = digits.startsWith("91") && digits.length === 12
+        ? `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`
+        : `+${digits}`;
     }
-    const formattedPhone = digits.startsWith("91") && digits.length === 12
-      ? `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`
-      : `+${digits}`;
 
     // 3. Verify company exists
     const company = await prisma.company.findUnique({
@@ -161,21 +166,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    // 4. Check if sender is ALREADY a tracked lead in the CRM
+    // 4. Check if sender is ALREADY a tracked lead in the CRM (by phone, by LID, or awaiting lead)
     const existing = await prisma.lead.findFirst({
       where: {
         companyId,
-        phoneNumber: formattedPhone,
+        OR: [
+          { phoneNumber: formattedPhone },
+          ...(lidJid ? [{ inquiryDetails: { contains: lidJid } }] : []),
+          ...(!isAwaitingPhone && senderName ? [{ name: senderName, phoneNumber: { contains: "Awaiting" } }] : []),
+        ],
       },
-      select: { id: true, name: true, inquiryDetails: true },
+      select: { id: true, name: true, phoneNumber: true, inquiryDetails: true },
     });
 
     if (existing) {
-      // It is an ongoing conversation with an existing lead
-      const updatedInquiry = `${existing.inquiryDetails || ""}\n[Follow-up]: ${messageText}`.trim();
+      // It is an ongoing conversation with an existing lead, or real phone received for awaiting lead
+      const updatedInquiry = `${existing.inquiryDetails || ""}\n[Update]: ${messageText}`.trim();
+      const needsPhoneUpgrade = !isAwaitingPhone && Boolean(existing.phoneNumber?.includes("Awaiting"));
+
       await prisma.lead.update({
         where: { id: existing.id },
         data: {
+          phoneNumber: needsPhoneUpgrade ? formattedPhone : existing.phoneNumber,
           inquiryDetails: updatedInquiry,
           updatedAt: new Date(),
         },
@@ -183,7 +195,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        action: "UPDATED",
+        action: needsPhoneUpgrade ? "UPGRADED_PHONE" : "UPDATED",
         leadId: existing.id,
       });
     }
@@ -217,7 +229,7 @@ export async function POST(request: Request) {
         division: "PCD_FRANCHISE",
         status: defaultEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: defaultEmployee?.id || null,
-        inquiryDetails: messageText || "Initiated ad inquiry on WhatsApp.",
+        inquiryDetails: lidJid ? `[LID: ${lidJid}]\n${messageText || "Initiated ad inquiry on WhatsApp."}` : (messageText || "Initiated ad inquiry on WhatsApp."),
       },
     });
 

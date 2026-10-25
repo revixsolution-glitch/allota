@@ -36,6 +36,18 @@ interface TenantSession {
 // STRICT TENANT ISOLATION: Each companyId has its own completely separate WhatsApp socket and storage
 const tenantSessions = new Map<string, TenantSession>();
 
+interface ActiveLidLead {
+  companyId: string;
+  senderName: string;
+  initialInquiry: string;
+  firstSeenAt: Date;
+  promptSent: boolean;
+  resolvedPhone?: string;
+}
+
+// In-memory tracker for active Meta Ad / LID leads awaiting callable phone numbers
+const activeLidLeads = new Map<string, ActiveLidLead>();
+
 const AD_KEYWORDS = [
   "pcd",
   "franchise",
@@ -264,6 +276,97 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         const cleanText = rawText.trim().toLowerCase();
         if (!cleanText) continue;
 
+        const isKesrox =
+          session.companyId.includes("kesrox") ||
+          session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
+          session.companyId === "cmubi8zf6000004l8y45hhuds" ||
+          session.phone?.includes("7494809665");
+
+        const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+
+        // 1. REVERSE LOOKUP / ONGOING CONVERSATION: Check if this is an answer from a prospect awaiting real phone number
+        if (activeLidLeads.has(jid)) {
+          const lead = activeLidLeads.get(jid)!;
+          const phoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+
+          if (phoneMatch) {
+            const clean10 = phoneMatch[1];
+            const realPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+            lead.resolvedPhone = realPhone;
+
+            console.log(`[Real Phone Captured] Prospect ${lead.senderName} (${jid}) provided callable number: ${realPhone}`);
+
+            // A. Update Allota CRM with the real phone number
+            try {
+              await fetch(ALLOTA_WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  companyId: session.companyId,
+                  senderPhone: realPhone,
+                  senderName: lead.senderName,
+                  messageText: `[Real Phone Provided]: ${rawText}\n[Initial Inquiry]: ${lead.initialInquiry}`,
+                  isFromMe: false,
+                  isGroup: false,
+                  hasAdReferral: true,
+                  lidJid: jid,
+                }),
+              });
+              console.log(`[CRM Upgraded] Lead ${lead.senderName} upgraded to real phone: ${realPhone}`);
+            } catch (err: any) {
+              console.warn("[CRM Real Phone Update Error]", err?.message);
+            }
+
+            // B. High-Priority Direct Alert to Savi with 1-tap call & WhatsApp links
+            if (isKesrox && session.sock) {
+              try {
+                const verifiedText =
+`🎯 *REAL CALLABLE NUMBER RECEIVED (KESROX)*
+
+👤 *Prospect:* ${lead.senderName}
+📞 *Real Phone:* ${realPhone}
+💬 *Prospect Reply:* "${rawText}"
+⚡ *Source:* Meta Ad Lead
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Click to Call:* tel:+91${clean10}
+👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
+
+                await session.sock.sendMessage(saviJid, { text: verifiedText });
+                console.log(`[Lead Real Phone Dispatched] Sent callable phone ${realPhone} to Savi`);
+              } catch (fwdErr: any) {
+                console.warn("[Forward Real Phone Error]", fwdErr?.message);
+              }
+            }
+
+            // C. Courteous acknowledgment to the prospect on WhatsApp
+            try {
+              await session.sock.sendMessage(jid, {
+                text: `Dhanyavaad ${lead.senderName}! 🙏 We have received your contact number (${realPhone}). Our team will connect with you shortly.`
+              });
+            } catch {}
+
+            continue;
+          } else {
+            // Prospect replied with text without a phone number (e.g. city name or inquiry)
+            console.log(`[Follow-up from LID Lead][${lead.senderName}]: ${rawText}`);
+            if (isKesrox && session.sock) {
+              try {
+                const replyNotice =
+`💬 *PROSPECT REPLY UPDATE (KESROX)*
+
+👤 *Prospect:* ${lead.senderName}
+💬 *Message:* "${rawText}"
+⏳ *Status:* Still awaiting 10-digit mobile number.
+👉 *Chat on Kesrox Phone:* Search "${lead.senderName}" in WhatsApp`;
+
+                await session.sock.sendMessage(saviJid, { text: replyNotice });
+              } catch {}
+            }
+            continue;
+          }
+        }
+
+        // 2. NEW INCOMING INQUIRY: Privacy firewall guard
         const contextInfo =
           msg.message?.extendedTextMessage?.contextInfo ||
           msg.message?.imageMessage?.contextInfo;
@@ -275,86 +378,138 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           continue;
         }
 
-        let senderPhone = jid.replace(/@s\.whatsapp\.net/, "");
         const senderName = msg.pushName || "Prospect Lead";
 
-        // Resolve Meta Ad LID (Linked Identity) to real Phone Number
-        if (jid.endsWith("@lid") || (senderPhone.length > 13 && !senderPhone.startsWith("91"))) {
-          const altJid = msg.key.remoteJidAlt || (msg as any).senderPn || (msg as any).participantPn;
-          if (altJid && !altJid.includes("@lid")) {
-            senderPhone = altJid.replace(/@.*$/, "");
-          } else {
-            try {
-              const mappedPn = await session.sock?.signalRepository?.lidMapping?.getPNForLID?.(jid);
-              if (mappedPn && !mappedPn.includes("@lid")) {
-                senderPhone = mappedPn.replace(/@.*$/, "");
-              }
-            } catch {}
+        // Check if message text or non-LID JID directly yields a 10-digit Indian phone
+        const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+        let realNumber: string | null = null;
+        if (textPhoneMatch) {
+          realNumber = textPhoneMatch[1];
+        } else if (!jid.endsWith("@lid") && jid.includes("@s.whatsapp.net")) {
+          const directPhone = jid.replace(/\D/g, "");
+          if (directPhone.startsWith("91") && directPhone.length === 12) {
+            realNumber = directPhone.slice(2);
           }
         }
 
-        // Check if customer explicitly typed a 10-digit Indian phone in the inquiry text
-        const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
-        if (textPhoneMatch && (senderPhone.includes("@lid") || senderPhone.length > 12)) {
-          senderPhone = `91${textPhoneMatch[1]}`;
-        }
+        if (realNumber) {
+          // SCENARIO A: REAL NUMBER KNOWN IMMEDIATELY
+          const formattedPhone = `+91 ${realNumber.slice(0, 5)} ${realNumber.slice(5)}`;
+          console.log(`[Lead Detected with Real Phone][Company: ${session.companyId}] ${senderName} (${formattedPhone})`);
 
-        const isMaskedLid = senderPhone.length > 12 && !senderPhone.startsWith("91");
-        const displayPhone = isMaskedLid
-          ? `Meta Ad ID: ${senderPhone} (Name: ${senderName})`
-          : (senderPhone.startsWith("91") && senderPhone.length === 12
-              ? `+91 ${senderPhone.slice(2, 7)} ${senderPhone.slice(7)}`
-              : `+${senderPhone}`);
-
-        console.log(`[Lead Detected][Company: ${session.companyId}] Prospect: ${senderName} (${displayPhone})`);
-
-        // 1. Ingest into Allota CRM strictly for this company
-        try {
-          await fetch(ALLOTA_WEBHOOK_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              companyId: session.companyId,
-              senderPhone: displayPhone,
-              senderName,
-              messageText: rawText,
-              isFromMe: false,
-              isGroup: false,
-              hasAdReferral,
-            }),
-          });
-          console.log(`[Lead Ingested] Saved to Allota CRM for ${session.companyId}.`);
-        } catch (e: any) {
-          console.warn("[CRM Ingest Error]", e?.message);
-        }
-
-        // 2. Forward to Savi on WhatsApp if company is Kesrox (by companyId or official phone 7494809665)
-        const isKesrox =
-          session.companyId.includes("kesrox") ||
-          session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
-          session.companyId === "cmubi8zf6000004l8y45hhuds" ||
-          session.phone?.includes("7494809665");
-        if (isKesrox && session.sock) {
+          // 1. Ingest into CRM
           try {
-            const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
-            const phoneAction = !isMaskedLid && senderPhone.startsWith("91")
-              ? `https://wa.me/${senderPhone.replace(/\D/g, "")}`
-              : `Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}" to view phone number`;
+            await fetch(ALLOTA_WEBHOOK_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                companyId: session.companyId,
+                senderPhone: formattedPhone,
+                senderName,
+                messageText: rawText,
+                isFromMe: false,
+                isGroup: false,
+                hasAdReferral,
+                lidJid: jid,
+              }),
+            });
+          } catch (e: any) {
+            console.warn("[CRM Ingest Error]", e?.message);
+          }
 
-            const forwardText =
+          // 2. Forward to Savi with 1-tap call & WhatsApp links
+          if (isKesrox && session.sock) {
+            try {
+              const forwardText =
 `🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
-📞 *Phone:* ${displayPhone}
+📞 *Real Phone:* ${formattedPhone}
 💬 *Inquiry:* "${rawText}"
 ⚡ *Source:* ${hasAdReferral ? "Meta Ad Click" : "Direct WhatsApp Inquiry"}
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-👉 *Direct Action:* ${phoneAction}`;
+👉 *Click to Call:* tel:+91${realNumber}
+👉 *Click to WhatsApp:* https://wa.me/91${realNumber}`;
 
-            await session.sock.sendMessage(saviJid, { text: forwardText });
-            console.log(`[Lead Forwarded] Sent to Savi (+${SAVI_PHONE}) for Kesrox`);
-          } catch (fwdErr: any) {
-            console.warn("[Forward Error]", fwdErr?.message);
+              await session.sock.sendMessage(saviJid, { text: forwardText });
+              console.log(`[Lead Forwarded] Sent real phone ${formattedPhone} to Savi for Kesrox`);
+            } catch (fwdErr: any) {
+              console.warn("[Forward Error]", fwdErr?.message);
+            }
+          }
+        } else {
+          // SCENARIO B: MASKED META AD LID — Instant Polite Auto-Prompt to Retrieve Number
+          console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid}) — Auto-prompting for mobile number...`);
+
+          // Register in tracker
+          activeLidLeads.set(jid, {
+            companyId: session.companyId,
+            senderName,
+            initialInquiry: rawText,
+            firstSeenAt: new Date(),
+            promptSent: true,
+          });
+
+          // 1. Save preliminary lead in CRM
+          try {
+            await fetch(ALLOTA_WEBHOOK_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                companyId: session.companyId,
+                senderPhone: `Awaiting Phone (${senderName})`,
+                senderName,
+                messageText: rawText,
+                isFromMe: false,
+                isGroup: false,
+                hasAdReferral,
+                lidJid: jid,
+              }),
+            });
+          } catch (e: any) {
+            console.warn("[CRM Ingest Preliminary Error]", e?.message);
+          }
+
+          // 2. Send instant polite qualification auto-reply to prospect
+          if (session.sock) {
+            try {
+              const autoPrompt =
+`Namaste ${senderName}! 🙏
+
+Thank you for reaching out to *Kesrox Healthcare* for PCD Pharma Franchise.
+
+To share our complete *Product Catalogue, Monopoly Price List & Territory Vacancies* with you, please reply with your:
+1. 📱 *Calling / WhatsApp Mobile Number*
+2. 📍 *City & State*
+
+Our Director will assist you right away!`;
+
+              await session.sock.sendMessage(jid, { text: autoPrompt });
+              console.log(`[Auto-Prompt Sent] Asked prospect ${senderName} for real mobile number.`);
+            } catch (pErr: any) {
+              console.warn("[Auto-Prompt Send Error]", pErr?.message);
+            }
+          }
+
+          // 3. Forward clear status to Savi WITHOUT any fake/masked numbers
+          if (isKesrox && session.sock) {
+            try {
+              const initialNotice =
+`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+
+👤 *Prospect:* ${senderName}
+📞 *Phone:* ⏳ *Awaiting Prospect's Mobile No.*
+💬 *Inquiry:* "${rawText}"
+⚡ *Source:* Meta Ad Click
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+🤖 *Bot Action:* Instant auto-reply sent requesting mobile number & city. The moment they reply, real callable number will land here!
+👉 *Kesrox WhatsApp:* Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`;
+
+              await session.sock.sendMessage(saviJid, { text: initialNotice });
+              console.log(`[Lead Forwarded] Sent initial awaiting-phone notice to Savi for Kesrox`);
+            } catch (fwdErr: any) {
+              console.warn("[Forward Error]", fwdErr?.message);
+            }
           }
         }
       }
