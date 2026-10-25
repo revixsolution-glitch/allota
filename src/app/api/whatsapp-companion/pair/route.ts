@@ -51,17 +51,29 @@ export async function POST(request: Request) {
     const mode = body.mode || (body.phone ? "code" : "qr");
     const rawPhone = String(body.phone || "").trim();
 
-    // 1. If companion microservice is already running and CONNECTED, report status directly
+    // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
     const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
     if (companionHost) {
       try {
-        const remoteRes = await fetch(`${companionHost}/api/${companyId}/status`, { cache: "no-store" });
-        if (remoteRes.ok) {
-          const remoteData = await remoteRes.json();
-          if (remoteData.status === "CONNECTED") {
+        if (mode === "code") {
+          const remoteRes = await fetch(`${companionHost}/api/${companyId}/pair-code`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: rawPhone || "917494809665" }),
+            cache: "no-store",
+          });
+          if (remoteRes.ok) {
+            const remoteData = await remoteRes.json();
+            return NextResponse.json(remoteData);
+          }
+        } else {
+          const remoteRes = await fetch(`${companionHost}/api/${companyId}/qr`, { cache: "no-store" });
+          if (remoteRes.ok) {
+            const remoteData = await remoteRes.json();
             return NextResponse.json({
               success: true,
-              status: "CONNECTED",
+              status: remoteData.status,
+              qrCode: remoteData.qrCode,
               phone: remoteData.phone,
             });
           }
