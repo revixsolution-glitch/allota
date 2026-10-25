@@ -683,31 +683,8 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             console.warn("[CRM Ingest Preliminary Error]", e?.message);
           }
 
-          // 2. Send native 1-tap "Share Phone Number" prompt button + polite text prompt
-          if (session.sock) {
-            try {
-              // Send native WhatsApp 1-tap phone share request
-              await session.sock.sendMessage(jid, { requestPhoneNumber: true } as any);
-            } catch {}
-
-            try {
-              const autoPrompt =
-`Namaste ${senderName}! 🙏
-
-Thank you for reaching out to *Kesrox Healthcare* for *${divMeta.greetingType}*.
-
-To share our ${divMeta.offerDetails} with you, please tap the *"Share Phone Number"* button above or reply with your:
-1. 📱 *Calling / WhatsApp Mobile Number*
-2. 📍 *City & State*
-
-Our Director will assist you right away!`;
-
-              await session.sock.sendMessage(jid, { text: autoPrompt });
-              console.log(`[Auto-Prompt Sent] Asked prospect ${senderName} for real mobile number (${divMeta.label}).`);
-            } catch (pErr: any) {
-              console.warn("[Auto-Prompt Send Error]", pErr?.message);
-            }
-          }
+          // User requirement: Do NOT send automated message asking for phone number in chat
+          console.log(`[Meta Ad Lead][Company: ${session.companyId}] ${senderName} (${jid}) received.`);
 
           // 3. Forward clear status to Savi WITHOUT any fake/masked numbers
           if (isKesrox && session.sock) {
@@ -928,8 +905,65 @@ app.post("/api/:companyId/pair-code", async (req, res) => {
   }
 });
 
-// Trigger a live test lead for verification
-app.post("/api/:companyId/test-lead", async (req, res) => {
+// Update a lead with their real phone number, update CRM, and dispatch directly to Savi
+app.post("/api/:companyId/update-lead-phone", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+  const { name, phone, inquiry } = req.body;
+
+  if (!phone || !name) {
+    return res.status(400).json({ error: "name and phone are required" });
+  }
+
+  const cleanDigits = String(phone).replace(/\D/g, "");
+  const clean10 = cleanDigits.startsWith("91") && cleanDigits.length === 12 ? cleanDigits.slice(2) : cleanDigits.slice(-10);
+  const formatted = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+
+  // 1. Update Allota CRM
+  try {
+    await fetch(ALLOTA_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId: cleanId,
+        senderPhone: formatted,
+        senderName: name,
+        division: "THIRD_PARTY",
+        messageText: inquiry || "Meta Ad Lead Updated with Phone Number",
+        isFromMe: false,
+        isGroup: false,
+        hasAdReferral: true,
+      }),
+    });
+  } catch (err: any) {
+    console.warn("[CRM Update Error]", err?.message);
+  }
+
+  // 2. Dispatch to Savi on WhatsApp
+  if (session?.sock) {
+    try {
+      const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+      const text =
+`🚨 *NEW THIRD-PARTY MANUFACTURING LEAD (KESROX)*
+
+👤 *Prospect:* ${name}
+📞 *Real Phone:* ${formatted}
+💬 *Inquiry:* "${inquiry || "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N"}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad (🏭 Third-Party Mfg)
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Click to Call:* tel:+91${clean10}
+👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
+
+      await session.sock.sendMessage(saviJid, { text });
+      console.log(`[Dispatched to Savi] ${name} -> ${formatted}`);
+    } catch (waErr: any) {
+      console.warn("[Dispatch to Savi Error]", waErr?.message);
+    }
+  }
+
+  res.json({ success: true, name, phone: formatted });
+});
   const { companyId } = req.params;
   const cleanId = sanitizeCompanyId(companyId);
   const session = tenantSessions.get(cleanId);
