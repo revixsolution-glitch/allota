@@ -493,7 +493,7 @@ app.listen(PORT, () => {
   // 24/7 KEEP-ALIVE WATCHDOG & SELF-PING
   const RENDER_PUBLIC_URL = process.env.RENDER_EXTERNAL_URL || "https://allota-whatsapp-companion.onrender.com";
 
-  // 1. Self-ping every 8 minutes to prevent Render Free Tier from ever sleeping
+  // 1. High-frequency self-ping every 3 minutes to keep Render Free Tier 100% awake 24/7
   setInterval(async () => {
     try {
       const res = await fetch(`${RENDER_PUBLIC_URL}/health`);
@@ -503,7 +503,7 @@ app.listen(PORT, () => {
     } catch (err: any) {
       console.warn(`[Keep-Alive Warning]`, err?.message);
     }
-  }, 8 * 60 * 1000);
+  }, 3 * 60 * 1000);
 
   // 2. Health Watchdog every 2 minutes: ensures any registered socket that dropped gets auto-reconnected
   setInterval(async () => {
