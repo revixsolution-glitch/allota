@@ -221,9 +221,12 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
   const session = getOrCreateTenantSession(companyId);
   const cleanId = sanitizeCompanyId(companyId);
 
-  // Close existing socket if open
+  // Close existing socket cleanly without triggering loop listeners
   if (session.sock) {
     try {
+      session.sock.ev.removeAllListeners("connection.update");
+      session.sock.ev.removeAllListeners("creds.update");
+      session.sock.ev.removeAllListeners("messages.upsert");
       session.sock.end(undefined);
     } catch {}
     session.sock = null;
@@ -317,6 +320,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
     });
 
     sock.ev.on("connection.update", async (update: any) => {
+      if (session.sock !== sock) return; // Ignore events from old superseded sockets
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
