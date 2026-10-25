@@ -6,6 +6,7 @@ services:
     dockerContext: companion-service
     plan: free
     region: singapore
+    autoDeploy: false
     envVars:
       - key: PORT
         value: 10000
@@ -14,4 +15,4 @@ services:
       - key: SAVI_PHONE
         value: 917889107964
       - key: COMPANY_ID
-        value: cmub4ssdx00000u8oqlqc62e0
+        value: cmubi8zf6000004l8y45hhuds

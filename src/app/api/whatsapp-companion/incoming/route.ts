@@ -63,6 +63,29 @@ export async function POST(request: Request) {
         ? (typeof body.sessionMap === "string" ? body.sessionMap : JSON.stringify(body.sessionMap))
         : (typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds));
 
+      // VAULT INTEGRITY GUARD: Strict verification of genuine Baileys cryptographic key material.
+      // Refuse to overwrite if the payload is a dummy probe, empty object, or lacks cryptographic keys.
+      let isValidPayload = false;
+      try {
+        const parsed = typeof credsData === "string" ? JSON.parse(credsData) : credsData;
+        if (parsed && typeof parsed === "object") {
+          const hasMultiFileCreds = parsed["creds.json"] && (
+            parsed["creds.json"].includes("noiseKey") ||
+            parsed["creds.json"].includes("registrationId") ||
+            parsed["creds.json"].includes("signedIdentityKey")
+          );
+          const hasSingleCreds = parsed.noiseKey || parsed.registrationId || parsed.signedIdentityKey;
+          isValidPayload = Boolean(hasMultiFileCreds || hasSingleCreds);
+        }
+      } catch {
+        isValidPayload = false;
+      }
+
+      if (!isValidPayload) {
+        console.warn(`[Vault Integrity Guard] Blocked attempt to overwrite session for ${body.companyId} with invalid/empty credentials.`);
+        return NextResponse.json({ error: "Payload rejected: Missing valid cryptographic Baileys session keys." }, { status: 400 });
+      }
+
       const updated = await prisma.companySettings.updateMany({
         where: { companyId: body.companyId },
         data: {
