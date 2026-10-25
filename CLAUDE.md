@@ -29,3 +29,9 @@
 
 ### RULE 4: PRE-DEPLOYMENT SAFETY ENFORCEMENT
 - `scripts/check-tenant-safety.mjs` must run on every build to guarantee no fail-open company filters or hardcoded secrets are committed.
+
+### RULE 5: ZERO LEAD LOSS & SESSION PERSISTENCE LAWS
+- **Permanent Database Vaulting**: All WhatsApp companion sessions, authentication tokens, and cryptographic keys must be dual-written to PostgreSQL database vaults (`CompanySettings.whatsappCompanionCreds`) on every `creds.update` and `connection.open`. Never rely on ephemeral server disks.
+- **Fail-Safe DB Upsert**: Never use `updateMany` alone for session backups without an explicit `create` fallback. Silent updates of 0 rows destroy sessions on reboot.
+- **24/7 Keep-Alive Guarantee**: Background microservices that process real-time incoming leads (such as Baileys companion daemons on Render) must never sleep. Always enforce multi-layer external keep-alive heartbeats (e.g. GitHub Actions, self-pings every 3 minutes, and watchdog auto-reconnects).
+- **Lead Ingestion First**: Always persist incoming leads into PostgreSQL CRM tables (`Lead`) before attempting external alerts or WhatsApp forwarding. If forwarding fails, the lead must still be 100% visible in the CRM dashboard.
