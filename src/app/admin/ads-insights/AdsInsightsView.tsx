@@ -221,12 +221,6 @@ export function AdsInsightsView({
       <section className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-7 neo-panel border border-line">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                Official Meta Marketing API Connected
-              </span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-ink">
               Ads <GradientText>Intelligence Desk</GradientText>
             </h1>
