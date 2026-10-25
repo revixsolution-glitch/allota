@@ -139,6 +139,25 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
     session.sock = null;
   }
 
+  // PERMANENT ZERO-STALE GUARD: If session is not fully registered and authenticated,
+  // automatically purge any leftover partial pre-keys so WhatsApp gets a 100% pristine cryptographic handshake.
+  if (fs.existsSync(session.authDir)) {
+    const credsPath = path.join(session.authDir, "creds.json");
+    let isFullyRegistered = false;
+    if (fs.existsSync(credsPath)) {
+      try {
+        const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
+        isFullyRegistered = Boolean(creds?.registered && creds?.me?.id);
+      } catch {}
+    }
+    if (!isFullyRegistered) {
+      try {
+        fs.rmSync(session.authDir, { recursive: true, force: true });
+        fs.mkdirSync(session.authDir, { recursive: true });
+      } catch {}
+    }
+  }
+
   try {
     const { state, saveCreds } = await useMultiFileAuthState(session.authDir);
     const { version } = await fetchLatestBaileysVersion().catch(() => ({
@@ -208,16 +227,20 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
         console.log(`[Companion][Company: ${session.companyId}] Closed with status: ${statusCode}`);
-        session.status = statusCode === DisconnectReason.loggedOut ? "NOT_CONNECTED" : "AWAITING_SCAN";
-        if (statusCode === DisconnectReason.loggedOut) {
+        const isRegistered = Boolean(sock?.authState?.creds?.registered);
+
+        if (statusCode === DisconnectReason.loggedOut || !isRegistered) {
+          // If unauthenticated or explicitly logged out: clean wipe completely
           try {
             fs.rmSync(session.authDir, { recursive: true, force: true });
             fs.mkdirSync(session.authDir, { recursive: true });
           } catch {}
           session.phone = null;
           session.sock = null;
+          session.status = "NOT_CONNECTED";
         } else {
-          // Reconnect automatically on network blip
+          // Genuine registered connection that dropped on network blip: auto-reconnect
+          session.status = "AWAITING_SCAN";
           setTimeout(() => startTenantSocket(session.companyId), 3000);
         }
       }
