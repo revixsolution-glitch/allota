@@ -800,9 +800,12 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
     return res.status(400).json({ error: "WhatsApp is not connected for this company" });
   }
 
-  const senderName = "Dr. Rajesh Sharma (PCD Test Lead)";
-  const senderPhone = "919876543210";
-  const rawText = "Namaste, I saw your Meta Ad. Interested in Kesrox PCD Pharma franchise monopoly rights and product catalogue for Ambala district.";
+  const senderName = req.body?.name || "Dr. Rajesh Sharma (PCD Test Lead)";
+  const senderPhone = req.body?.phone || "919876543210";
+  const rawText = req.body?.inquiry || "Namaste, I saw your Meta Ad. Interested in Kesrox PCD Pharma franchise monopoly rights and product catalogue for Ambala district.";
+  const source = req.body?.source || "Meta Click-to-WhatsApp Ad (Test Lead)";
+  const displayPhone = req.body?.displayPhone || (senderPhone.startsWith("91") && senderPhone.length === 12 ? `+91 ${senderPhone.slice(2, 7)} ${senderPhone.slice(7)}` : `+${senderPhone}`);
+  const directAction = req.body?.directAction || (senderPhone.startsWith("91") ? `https://wa.me/${senderPhone}` : `Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`);
 
   // 1. Ingest into Allota CRM
   try {
@@ -811,7 +814,7 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         companyId: session.companyId,
-        senderPhone: `+${senderPhone}`,
+        senderPhone: displayPhone,
         senderName,
         messageText: rawText,
         isFromMe: false,
@@ -819,7 +822,7 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
         hasAdReferral: true,
       }),
     });
-    console.log(`[Test Lead Ingested] Saved to Allota CRM for ${session.companyId}`);
+    console.log(`[Lead Ingested] Saved to Allota CRM for ${session.companyId}`);
   } catch (e: any) {
     console.warn("CRM test error:", e?.message);
   }
@@ -831,23 +834,75 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
 `🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
-📞 *Phone:* +${senderPhone}
+📞 *Phone:* ${displayPhone}
 💬 *Inquiry:* "${rawText}"
-⚡ *Source:* Meta Click-to-WhatsApp Ad (Test Lead)
-🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+⚡ *Source:* ${source}
+🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Direct Action:* ${directAction}`;
 
     await session.sock.sendMessage(saviJid, { text: forwardText });
-    console.log(`[Test Lead Forwarded] Successfully sent via WhatsApp to Savi (+${SAVI_PHONE})!`);
+    console.log(`[Lead Forwarded] Successfully sent via WhatsApp to Savi (+${SAVI_PHONE})!`);
 
     return res.json({
       success: true,
       forwardedTo: `+${SAVI_PHONE}`,
-      lead: { name: senderName, phone: senderPhone, inquiry: rawText },
+      lead: { name: senderName, phone: displayPhone, inquiry: rawText },
     });
   } catch (err: any) {
     console.error("Failed to forward test message to Savi:", err);
     return res.status(500).json({ error: err?.message || "Failed to send WhatsApp message" });
   }
+});
+
+// Forward existing captured ad leads directly to Savi in clean standard format
+app.post("/api/:companyId/forward-past-leads", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+
+  if (!session || !session.sock || session.status !== "CONNECTED") {
+    return res.status(400).json({ error: "WhatsApp is not connected for this company" });
+  }
+
+  const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+  const pastLeads = [
+    {
+      name: "A K DRUGS AGENCY",
+      phone: "⏳ Awaiting Mobile Number (Bot Auto-Prompt Sent)",
+      inquiry: "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N",
+      time: "07:19 PM",
+      action: "Open WhatsApp on Kesrox Phone ➔ Chat 'A K DRUGS AGENCY'",
+    },
+    {
+      name: "Renjith C",
+      phone: "⏳ Awaiting Mobile Number (Bot Auto-Prompt Sent)",
+      inquiry: "Hi Kesrox! Product: __ | Monthly qty: __ | Drug Licence/GST: Y/N - Please send the details",
+      time: "07:26 PM",
+      action: "Open WhatsApp on Kesrox Phone ➔ Chat 'Renjith C'",
+    },
+  ];
+
+  for (const lead of pastLeads) {
+    const text =
+`🚨 *NEW PCD FRANCHISE LEAD (KESROX)*
+
+👤 *Prospect:* ${lead.name}
+📞 *Phone:* ${lead.phone}
+💬 *Inquiry:* "${lead.inquiry}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad
+🕒 *Received:* ${lead.time}
+👉 *Direct Action:* ${lead.action}`;
+
+    try {
+      await session.sock.sendMessage(saviJid, { text });
+      console.log(`[Lead Forwarded to Savi] Dispatched ${lead.name}`);
+      await new Promise((r) => setTimeout(r, 1200));
+    } catch (e: any) {
+      console.warn("Error forwarding lead to Savi:", e?.message);
+    }
+  }
+
+  return res.json({ success: true, forwardedCount: pastLeads.length });
 });
 
 // Prompt existing captured ad leads who only have an LID to provide their real callable phone number
