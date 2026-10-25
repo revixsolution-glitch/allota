@@ -697,7 +697,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 💬 *Inquiry:* "${rawText}"
 ⚡ *Source:* Meta Click-to-WhatsApp Ad (${divMeta.emoji} ${divMeta.label})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-🤖 *Bot Action:* Instant auto-reply sent for ${divMeta.greetingType}. The moment they reply, real callable number will land here!
+⚡ *Status:* Logged in Allota CRM. Click below to chat directly with prospect on WhatsApp.
 👉 *Kesrox WhatsApp:* Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`;
 
               await session.sock.sendMessage(saviJid, { text: initialNotice });
