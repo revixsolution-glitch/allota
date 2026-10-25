@@ -5,6 +5,7 @@ import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLeadActiveStatus } from "@/lib/admin-actions";
 import { GradientText } from "@/components/GradientText";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -34,18 +35,32 @@ function buildAiReason(lead: {
 export default async function DeadLeadsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ employeeId?: string }>;
+  searchParams?: Promise<{ employeeId?: string; range?: string; from?: string; to?: string }>;
 }) {
-  const employeeId = (await searchParams)?.employeeId || "";
+  const resolvedParams = searchParams ? await searchParams : {};
+  const employeeId = resolvedParams.employeeId || "";
+  const dateFilter = parseDashboardDateFilter(
+    resolvedParams.range,
+    resolvedParams.from,
+    resolvedParams.to
+  );
+
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
   const companyScope = scopeToCompany(activeCompanyId);
+
+  const dateWhere = dateFilter.start && dateFilter.end
+    ? { updatedAt: { gte: dateFilter.start, lte: dateFilter.end } }
+    : dateFilter.start
+    ? { updatedAt: { gte: dateFilter.start } }
+    : {};
 
   const [deadLeads] = await Promise.all([
     prisma.lead.findMany({
       where: {
         status: LeadStatus.NOT_INTERESTED,
         ...companyScope,
+        ...dateWhere,
         ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
       },
       include: {

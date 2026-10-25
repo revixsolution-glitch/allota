@@ -10,7 +10,12 @@ export const metadata = {
   description: "Live Meta Ads Manager performance, WhatsApp inquiries, and cost analytics.",
 };
 
-export default async function AdsInsightsPage() {
+interface PageProps {
+  searchParams?: Promise<{ range?: string; from?: string; to?: string }>;
+}
+
+export default async function AdsInsightsPage(props: PageProps) {
+  await props.searchParams;
   const session = await getSession();
   if (!session || (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN")) {
     redirect("/login");

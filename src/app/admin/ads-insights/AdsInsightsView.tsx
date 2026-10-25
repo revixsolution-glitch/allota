@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { GradientText } from "@/components/GradientText";
 import { AdsInsightsRefreshButton } from "@/components/AdsInsightsRefreshButton";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 export interface SimpleCampaign {
   id: string;
@@ -56,6 +58,18 @@ export function AdsInsightsView({
   lastSyncedAt?: string | null;
   hasAdAccountId?: boolean;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const globalRange = searchParams.get("range") || "all_time";
+  const globalFrom = searchParams.get("from") || "";
+  const globalTo = searchParams.get("to") || "";
+
+  const parsedGlobalDate = useMemo(() => {
+    return parseDashboardDateFilter(globalRange, globalFrom, globalTo);
+  }, [globalRange, globalFrom, globalTo]);
+
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [dateFilter, setDateFilter] = useState<DateFilter>("ALL_TIME");
   const [customStartDate, setCustomStartDate] = useState<string>("");
@@ -79,7 +93,7 @@ export function AdsInsightsView({
   // Reset page whenever any filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, dateFilter, customStartDate, customEndDate, searchQuery, sortBy]);
+  }, [statusFilter, dateFilter, customStartDate, customEndDate, searchQuery, sortBy, globalRange, globalFrom, globalTo]);
 
   // Filtered & Sorted Campaigns
   const filteredCampaigns = useMemo(() => {
@@ -97,8 +111,15 @@ export function AdsInsightsView({
           if (!matchesName && !matchesId) return false;
         }
 
-        // 3. Date Range Filter
-        if (dateFilter !== "ALL_TIME" && c.startDate) {
+        // 3. Global Navbar Date Filter (from ?range= in URL)
+        if (parsedGlobalDate.start && c.startDate) {
+          const campTime = new Date(c.startDate).getTime();
+          if (campTime < parsedGlobalDate.start.getTime()) return false;
+          if (parsedGlobalDate.end && campTime > parsedGlobalDate.end.getTime()) return false;
+        }
+
+        // 4. In-page Date Range Filter (if user selected local pill while global is all_time)
+        if (parsedGlobalDate.preset === "all_time" && dateFilter !== "ALL_TIME" && c.startDate) {
           const campDate = new Date(c.startDate).getTime();
           const now = Date.now();
 
@@ -156,6 +177,7 @@ export function AdsInsightsView({
     const isFiltered =
       statusFilter !== "ALL" ||
       dateFilter !== "ALL_TIME" ||
+      parsedGlobalDate.preset !== "all_time" ||
       searchQuery.trim().length > 0;
 
     const totalSpend = filteredCampaigns.reduce((acc, c) => acc + c.spend, 0);
@@ -248,17 +270,26 @@ export function AdsInsightsView({
           {/* Executive KPI Scorecards Strip (Dynamic with Filter Scope) */}
           <div>
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-ink-faint">
-                {filteredMetrics.isFiltered
-                  ? `Filtered Metrics (${filteredMetrics.count} of ${allCampaigns.length} Campaigns)`
-                  : "All-Time Overview"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-ink-faint">
+                  {filteredMetrics.isFiltered
+                    ? `Filtered Metrics (${filteredMetrics.count} of ${allCampaigns.length} Campaigns)`
+                    : "All-Time Overview"}
+                </span>
+                {parsedGlobalDate.preset !== "all_time" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 border border-teal-200 text-[11px] font-bold text-teal-800">
+                    <span>📅 {parsedGlobalDate.label}</span>
+                  </span>
+                )}
+              </div>
               {filteredMetrics.isFiltered && (
                 <button
                   onClick={() => {
                     setStatusFilter("ALL");
                     setDateFilter("ALL_TIME");
                     setSearchQuery("");
+                    router.push(pathname);
+                    router.refresh();
                   }}
                   className="text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
                 >

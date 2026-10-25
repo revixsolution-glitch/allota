@@ -4,29 +4,77 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardDatePreset } from "@/lib/date-filters";
 
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setCookie(name: string, value: string, days = 7) {
+  if (typeof document === "undefined") return;
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Lax`;
+}
+
+function removeCookie(name: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=;path=/;max-age=0;SameSite=Lax`;
+}
+
 export function GlobalDateFilter() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const rangeParam = (searchParams.get("range") as DashboardDatePreset) || "all_time";
-  const fromParam = searchParams.get("from") || "";
-  const toParam = searchParams.get("to") || "";
+  const urlRange = searchParams.get("range") as DashboardDatePreset | null;
+  const urlFrom = searchParams.get("from") || "";
+  const urlTo = searchParams.get("to") || "";
 
-  const [selectedPreset, setSelectedPreset] = useState<DashboardDatePreset>(rangeParam);
-  const [fromDate, setFromDate] = useState<string>(fromParam);
-  const [toDate, setToDate] = useState<string>(toParam);
+  // Get active preset: URL query has highest priority, then cookie, then default 'all_time'
+  const savedCookiePreset = (typeof window !== "undefined" ? getCookie("allota_date_range") : null) as DashboardDatePreset | null;
+  const effectivePreset: DashboardDatePreset = urlRange || savedCookiePreset || "all_time";
+
+  const [selectedPreset, setSelectedPreset] = useState<DashboardDatePreset>(effectivePreset);
+  const [fromDate, setFromDate] = useState<string>(urlFrom || (typeof window !== "undefined" ? getCookie("allota_date_from") || "" : ""));
+  const [toDate, setToDate] = useState<string>(urlTo || (typeof window !== "undefined" ? getCookie("allota_date_to") || "" : ""));
   const [showCustomModal, setShowCustomModal] = useState<boolean>(false);
 
   const customModalRef = useRef<HTMLDivElement>(null);
 
   // Sync state when URL params change
   useEffect(() => {
-    setSelectedPreset(rangeParam);
-    setFromDate(fromParam);
-    setToDate(toParam);
-  }, [rangeParam, fromParam, toParam]);
+    if (urlRange) {
+      setSelectedPreset(urlRange);
+      setFromDate(urlFrom);
+      setToDate(urlTo);
+      // Store in cookie so other pages inherit this selection
+      setCookie("allota_date_range", urlRange);
+      if (urlFrom) setCookie("allota_date_from", urlFrom);
+      if (urlTo) setCookie("allota_date_to", urlTo);
+    } else {
+      // If URL has no range param, check if user had a saved active filter in cookie
+      const cookiePreset = getCookie("allota_date_range") as DashboardDatePreset | null;
+      if (cookiePreset && cookiePreset !== "all_time") {
+        setSelectedPreset(cookiePreset);
+        const cookieFrom = getCookie("allota_date_from") || "";
+        const cookieTo = getCookie("allota_date_to") || "";
+        setFromDate(cookieFrom);
+        setToDate(cookieTo);
+
+        // Auto-apply saved date filter to the current page so it works across all pages
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("range", cookiePreset);
+        if (cookieFrom) params.set("from", cookieFrom);
+        if (cookieTo) params.set("to", cookieTo);
+
+        const qs = params.toString();
+        router.replace(`${pathname}?${qs}`);
+      } else {
+        setSelectedPreset("all_time");
+      }
+    }
+  }, [pathname, urlRange, urlFrom, urlTo]);
 
   // Click outside listener to close custom date modal
   useEffect(() => {
@@ -52,6 +100,18 @@ export function GlobalDateFilter() {
     }
 
     setShowCustomModal(false);
+
+    // Save selection in cookie for cross-page persistence
+    if (val === "all_time") {
+      removeCookie("allota_date_range");
+      removeCookie("allota_date_from");
+      removeCookie("allota_date_to");
+    } else {
+      setCookie("allota_date_range", val);
+      removeCookie("allota_date_from");
+      removeCookie("allota_date_to");
+    }
+
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (val === "all_time") {
@@ -64,7 +124,9 @@ export function GlobalDateFilter() {
         params.delete("to");
       }
       const qs = params.toString();
-      router.push(qs ? `${pathname}?${qs}` : pathname);
+      const targetUrl = qs ? `${pathname}?${qs}` : pathname;
+      router.push(targetUrl);
+      router.refresh();
     });
   }
 
@@ -73,6 +135,11 @@ export function GlobalDateFilter() {
     if (!fromDate && !toDate) return;
 
     setShowCustomModal(false);
+
+    setCookie("allota_date_range", "custom");
+    if (fromDate) setCookie("allota_date_from", fromDate);
+    if (toDate) setCookie("allota_date_to", toDate);
+
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("range", "custom");
@@ -83,6 +150,7 @@ export function GlobalDateFilter() {
 
       const qs = params.toString();
       router.push(`${pathname}?${qs}`);
+      router.refresh();
     });
   }
 

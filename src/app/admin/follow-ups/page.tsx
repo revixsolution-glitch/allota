@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeViaRelation } from "@/lib/auth";
 import { GradientText } from "@/components/GradientText";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 
 function dayBounds(d: Date) {
   const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -12,15 +13,29 @@ function dayBounds(d: Date) {
 export default async function FollowUpsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ employeeId?: string }>;
+  searchParams?: Promise<{ employeeId?: string; range?: string; from?: string; to?: string }>;
 }) {
-  const employeeId = (await searchParams)?.employeeId || "";
+  const resolvedParams = searchParams ? await searchParams : {};
+  const employeeId = resolvedParams.employeeId || "";
+  const dateFilter = parseDashboardDateFilter(
+    resolvedParams.range,
+    resolvedParams.from,
+    resolvedParams.to
+  );
+
   const session = await getSession();
   const activeCompanyId = getActiveCompanyId(session);
+
+  const dateWhere = dateFilter.start && dateFilter.end
+    ? { scheduledFor: { gte: dateFilter.start, lte: dateFilter.end } }
+    : dateFilter.start
+    ? { scheduledFor: { gte: dateFilter.start } }
+    : {};
 
   const logs = await prisma.leadFollowUpLog.findMany({
     where: {
       ...scopeViaRelation(activeCompanyId, "lead"),
+      ...dateWhere,
       ...(employeeId ? { employeeId } : {}),
     },
     include: {
