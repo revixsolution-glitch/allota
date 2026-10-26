@@ -86,6 +86,13 @@ async function handleRealPhoneCaptured(
   lidToPnMap.set(lidJid, `91${clean10}`);
 
   const lead = activeLidLeads.get(lidJid);
+  if (lead && lead.resolvedPhone === realPhone) {
+    return; // Already notified Savi for this lead
+  }
+  if (lead) {
+    lead.resolvedPhone = realPhone;
+  }
+
   const senderName = lead?.senderName || "WhatsApp Prospect";
 
   console.log(`[Real Phone Captured via ${sourceNote}][Company: ${session.companyId}] ${senderName} (${lidJid}) -> ${realPhone}`);
@@ -126,7 +133,8 @@ async function handleRealPhoneCaptured(
 
 👤 *Prospect:* ${senderName}
 📞 *Real Phone:* ${realPhone}
-⚡ *Source:* ${sourceNote}
+💬 *Inquiry:* "${lead?.initialInquiry || "Third-Party Pharma Manufacturing Inquiry"}"
+⚡ *Source:* Meta Ad (${sourceNote})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
@@ -136,10 +144,6 @@ async function handleRealPhoneCaptured(
     } catch (fwdErr: any) {
       console.warn("[Forward Real Phone Error]", fwdErr?.message);
     }
-  }
-
-  if (lead) {
-    lead.resolvedPhone = realPhone;
   }
 }
 
@@ -438,38 +442,50 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       }
     });
 
-    sock.ev.on("contacts.upsert", (contacts: any[]) => {
+    sock.ev.on("contacts.upsert", async (contacts: any[]) => {
       for (const c of contacts) {
+        let pn = "";
         if (c.lid && (c.id || c.jid)) {
-          const pn = String(c.id || c.jid).replace(/\D/g, "");
-          if (pn.length >= 10 && !pn.includes("lid")) {
+          const candidate = String(c.id || c.jid).replace(/\D/g, "");
+          if (candidate.length >= 10 && !candidate.includes("lid")) {
+            pn = candidate;
             lidToPnMap.set(c.lid, pn);
           }
         }
         if (c.phoneNumber) {
-          const pn = String(c.phoneNumber).replace(/\D/g, "");
-          if (pn.length >= 10) {
+          const candidate = String(c.phoneNumber).replace(/\D/g, "");
+          if (candidate.length >= 10) {
+            pn = candidate;
             if (c.id) lidToPnMap.set(c.id, pn);
             if (c.lid) lidToPnMap.set(c.lid, pn);
           }
         }
+        if (c.lid && pn) {
+          handleRealPhoneCaptured(session, c.lid, pn, "WhatsApp Contact Sync").catch(() => {});
+        }
       }
     });
 
-    sock.ev.on("contacts.update", (updates: any[]) => {
+    sock.ev.on("contacts.update", async (updates: any[]) => {
       for (const u of updates) {
+        let pn = "";
         if (u.lid && (u.id || u.jid)) {
-          const pn = String(u.id || u.jid).replace(/\D/g, "");
-          if (pn.length >= 10 && !pn.includes("lid")) {
+          const candidate = String(u.id || u.jid).replace(/\D/g, "");
+          if (candidate.length >= 10 && !candidate.includes("lid")) {
+            pn = candidate;
             lidToPnMap.set(u.lid, pn);
           }
         }
         if (u.phoneNumber) {
-          const pn = String(u.phoneNumber).replace(/\D/g, "");
-          if (pn.length >= 10) {
+          const candidate = String(u.phoneNumber).replace(/\D/g, "");
+          if (candidate.length >= 10) {
+            pn = candidate;
             if (u.id) lidToPnMap.set(u.id, pn);
             if (u.lid) lidToPnMap.set(u.lid, pn);
           }
+        }
+        if (u.lid && pn) {
+          handleRealPhoneCaptured(session, u.lid, pn, "WhatsApp Contact Update").catch(() => {});
         }
       }
     });
@@ -571,12 +587,21 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           const lead = activeLidLeads.get(jid)!;
           const phoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
 
-          if (phoneMatch) {
-            const clean10 = phoneMatch[1];
+          let clean10 = phoneMatch ? phoneMatch[1] : null;
+          if (!clean10 && lidToPnMap.has(jid)) {
+            const mappedPn = lidToPnMap.get(jid)!;
+            const digits = String(mappedPn).replace(/\D/g, "");
+            if (digits.length >= 10) {
+              clean10 = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits.slice(-10);
+            }
+          }
+
+          if (clean10) {
             const realPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
             lead.resolvedPhone = realPhone;
+            lidToPnMap.set(jid, `91${clean10}`);
 
-            console.log(`[Real Phone Captured] Prospect ${lead.senderName} (${jid}) provided callable number: ${realPhone}`);
+            console.log(`[Real Phone Captured] Prospect ${lead.senderName} (${jid}) resolved callable number: ${realPhone}`);
 
             // A. Update Allota CRM with the real phone number
             try {
@@ -733,6 +758,18 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           const cleanPn = String(mappedPn).replace(/\D/g, "");
           if (cleanPn.length >= 10) {
             realNumber = cleanPn.startsWith("91") && cleanPn.length === 12 ? cleanPn.slice(2) : cleanPn.slice(-10);
+          }
+        }
+
+        // If this is an @lid and not yet in lidToPnMap, give 1.5s for async contact sync
+        if (!realNumber && jid.endsWith("@lid")) {
+          await new Promise((r) => setTimeout(r, 1500));
+          if (lidToPnMap.has(jid)) {
+            const mappedPn = lidToPnMap.get(jid)!;
+            const cleanPn = String(mappedPn).replace(/\D/g, "");
+            if (cleanPn.length >= 10) {
+              realNumber = cleanPn.startsWith("91") && cleanPn.length === 12 ? cleanPn.slice(2) : cleanPn.slice(-10);
+            }
           }
         }
 
