@@ -4,8 +4,59 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
+const COMPANION_SERVICE_URL =
+  process.env.COMPANION_SERVICE_URL ||
+  "https://allota-whatsapp-companion.onrender.com";
+
 /**
- * Commercial Ad & Lead Keywords for PCD Pharma & Meta Ads.
+ * Dispatches an instant WhatsApp alert to Savi (+91 78891 07964) for Kesrox leads
+ * via the live Render Companion endpoint with 1-tap call and WhatsApp links.
+ */
+async function dispatchLeadToSavi(params: {
+  companyId: string;
+  senderName: string;
+  formattedPhone: string;
+  clean10: string;
+  inquiry: string;
+  headline?: string | null;
+  division?: string;
+  isUpdate?: boolean;
+}) {
+  const isKesrox =
+    params.companyId === "cmubi8zf6000004l8y45hhuds" ||
+    params.companyId === "cmub4ssdx00000u8oqlqc62e0";
+
+  if (!isKesrox) return;
+
+  const endpoint = `${COMPANION_SERVICE_URL}/api/${params.companyId}/forward-lead`;
+
+  const payload = {
+    name: params.senderName,
+    phone: params.formattedPhone,
+    clean10: params.clean10,
+    headline: params.headline || "Third-Party Pharma Manufacturing",
+    inquiry: params.inquiry,
+    division: params.division || "THIRD_PARTY",
+    isUpdate: Boolean(params.isUpdate),
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (res.ok) {
+      console.log(`[Companion Webhook] Dispatched lead alert to Savi: ${params.senderName} (${params.formattedPhone})`);
+    }
+  } catch (err: any) {
+    console.warn(`[Companion Webhook] Forward-lead dispatch warning: ${err?.message}`);
+  }
+}
+
+/**
+ * Commercial Ad & Lead Keywords for PCD Pharma, Third-Party Mfg & Meta Ads.
  * Personal, family, or supplier chats that do not match these are dropped by the firewall.
  */
 const AD_INTENT_KEYWORDS = [
@@ -28,6 +79,32 @@ const AD_INTENT_KEYWORDS = [
   "order",
   "medicine",
   "sample",
+  // Third-Party Manufacturing terms & Kesrox Ad template
+  "third party",
+  "third-party",
+  "3rd party",
+  "manufacturing",
+  "mfg",
+  "monthly qty",
+  "drug licence",
+  "drug license",
+  "gst: y/n",
+  "gst:y/n",
+  "gst : y/n",
+  "hi kesrox",
+  "kesrox",
+  "batch",
+  "quotation",
+  "who-gmp",
+  "gmp",
+  "tablets",
+  "capsules",
+  "syrup",
+  "injectable",
+  "dry syrup",
+  "ointment",
+  "product:",
+  "qty",
 ];
 
 /**
@@ -222,6 +299,21 @@ export async function POST(request: Request) {
         },
       });
 
+      if (needsPhoneUpgrade) {
+        const clean10 = formattedPhone.replace(/\D/g, "").slice(-10);
+        if (clean10.length === 10) {
+          dispatchLeadToSavi({
+            companyId,
+            senderName: existing.name || senderName || "Prospect Lead",
+            formattedPhone,
+            clean10,
+            inquiry: updatedInquiry,
+            division: determinedDivision,
+            isUpdate: true,
+          }).catch(() => {});
+        }
+      }
+
       return NextResponse.json({
         success: true,
         action: needsPhoneUpgrade ? "UPGRADED_PHONE" : "UPDATED",
@@ -231,7 +323,16 @@ export async function POST(request: Request) {
 
     // 5. PRIVACY FIREWALL: Verify if this new contact is from a Meta Ad or Commercial Inquiry
     const matchesCommercialIntent = AD_INTENT_KEYWORDS.some((kw) => cleanText.includes(kw));
-    const isVerifiedAdLead = Boolean(hasAdReferral) || matchesCommercialIntent;
+    const isMetaAd =
+      Boolean(hasAdReferral) ||
+      cleanText.includes("hi kesrox") ||
+      cleanText.includes("monthly qty") ||
+      cleanText.includes("drug licence") ||
+      cleanText.includes("drug license") ||
+      cleanText.includes("gst: y/n") ||
+      cleanText.includes("gst:y/n") ||
+      Boolean(body.sourceTag?.toLowerCase().includes("meta"));
+    const isVerifiedAdLead = isMetaAd || matchesCommercialIntent;
 
     if (!isVerifiedAdLead) {
       // Drop personal / non-ad chats silently without storing anything
@@ -258,14 +359,32 @@ export async function POST(request: Request) {
         companyId,
         name: senderName || "WhatsApp Prospect",
         phoneNumber: formattedPhone,
-        source: LeadSource.WHATSAPP,
-        sourceTag: hasAdReferral ? `Meta Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Mfg" : "PCD Franchise"})` : "WhatsApp Ad Inquirer",
+        source: isMetaAd ? LeadSource.META : LeadSource.WHATSAPP,
+        sourceTag: isMetaAd
+          ? `Meta Click-to-WhatsApp Ad (${determinedDivision === "THIRD_PARTY" ? "Third-Party Mfg" : "PCD Franchise"})`
+          : "WhatsApp Ad Inquirer",
         division: determinedDivision,
         status: defaultEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: defaultEmployee?.id || null,
         inquiryDetails: lidJid ? `[LID: ${lidJid}]\n${messageText || "Initiated ad inquiry on WhatsApp."}` : (messageText || "Initiated ad inquiry on WhatsApp."),
       },
     });
+
+    // Immediate redundant dispatch to Savi if real callable phone number is present
+    if (!isAwaitingPhone) {
+      const clean10 = formattedPhone.replace(/\D/g, "").slice(-10);
+      if (clean10.length === 10) {
+        dispatchLeadToSavi({
+          companyId,
+          senderName: newLead.name || senderName || "Prospect Lead",
+          formattedPhone,
+          clean10,
+          inquiry: newLead.inquiryDetails || messageText || "Initiated ad inquiry on WhatsApp.",
+          division: determinedDivision,
+          isUpdate: false,
+        }).catch(() => {});
+      }
+    }
 
     console.log(`[Privacy Firewall] Verified Ad Lead Captured: ${newLead.name} (${newLead.phoneNumber}) for ${company.name}`);
 

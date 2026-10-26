@@ -124,7 +124,21 @@ export default async function AdminLeadsPage({
     ...companyScope,
   };
   if (selectedSource) {
-    leadWhere.source = selectedSource;
+    if (selectedSource === LeadSource.META) {
+      leadWhere.OR = [
+        { source: LeadSource.META },
+        { sourceTag: { contains: "Meta" } },
+        { sourceTag: { contains: "FB_AD" } },
+        { sourceTag: { contains: "INSTAGRAM_AD" } },
+      ];
+    } else if (selectedSource === LeadSource.WHATSAPP) {
+      leadWhere.OR = [
+        { source: LeadSource.WHATSAPP },
+        { sourceTag: { contains: "WhatsApp" } },
+      ];
+    } else {
+      leadWhere.source = selectedSource;
+    }
   }
   if (unassignedOnly) {
     leadWhere.assignedEmployeeId = null;
