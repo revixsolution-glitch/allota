@@ -47,6 +47,9 @@ export async function analyzeAudioRecordingWithGemini({
 You are a senior pharma commercial intelligence analyst for an Indian PCD Pharma franchise & third-party manufacturing company.
 You are analyzing a recorded phone call between an employee (${employeeName}) and a customer/chemist/distributor (${customerName}). The conversation is predominantly in Hindi/Hinglish.
 
+CRITICAL EXECUTIVE CONTEXT:
+- Tarun Sir is the Managing Director (MD) and executive leadership of Kesrox Healthcare. If a call or discussion involves or references Tarun Sir, treat it as an executive/internal management discussion, instruction, or approval, NOT an external prospect.
+
 Carefully listen to the entire audio and perform:
 1. Verbatim speaker-diarized transcript in conversational Hinglish:
    Employee: [words spoken]

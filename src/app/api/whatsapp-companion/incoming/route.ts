@@ -334,11 +334,16 @@ export async function POST(request: Request) {
       });
     }
 
-    // 6. Ingest only verified ad leads into Allota CRM
-    const defaultEmployee = await prisma.employee.findFirst({
-      where: { companyId },
-      select: { id: true, name: true },
-    });
+    // 6. Ingest only verified ad leads into Allota CRM (Prioritize Savi for Kesrox)
+    const defaultEmployee =
+      (await prisma.employee.findFirst({
+        where: { companyId, name: { contains: "Savi", mode: "insensitive" } },
+        select: { id: true, name: true },
+      })) ||
+      (await prisma.employee.findFirst({
+        where: { companyId },
+        select: { id: true, name: true },
+      }));
 
     const cleanLower = `${cleanText} ${body.sourceTag || ""}`.toLowerCase();
     const isPcdExplicit = cleanLower.includes("pcd") || cleanLower.includes("franchise") || cleanLower.includes("monopoly");
