@@ -896,6 +896,17 @@ app.get("/api/:companyId/debug", (req, res) => {
     lastDisconnectCode: session.lastDisconnectCode,
     lastError: session.lastError,
     lastConnectedAt: session.lastConnectedAt,
+    activeLidLeadsCount: activeLidLeads.size,
+    lidToPnMapCount: lidToPnMap.size,
+  });
+});
+
+app.get("/api/:companyId/lead-cache", (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  res.json({
+    activeLidLeads: Array.from(activeLidLeads.entries()),
+    lidToPnMap: Array.from(lidToPnMap.entries()),
   });
 });
 
