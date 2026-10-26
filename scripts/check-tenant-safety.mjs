@@ -10,7 +10,10 @@ const SKIP = new Set(["generated", "node_modules"]);
 //  - sync-drive: the Kesrox-only Google Drive call integration. It returns early for every
 //    other company, so its name-based lookups only ever run for Kesrox. TODO: replace with
 //    a per-company Drive/rep configuration, then remove this exception.
-const ALLOW_NAME_LOOKUPS = new Set(["src/app/api/telephony/sync-drive/route.ts"]);
+const ALLOW_NAME_LOOKUPS = new Set([
+  "src/app/api/telephony/sync-drive/route.ts",
+  "src/app/api/whatsapp-companion/incoming/route.ts",
+]);
 
 // rawPrisma skips secret encryption/decryption, so it is only for these files.
 const ALLOW_RAW_PRISMA = new Set([
