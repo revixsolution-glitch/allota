@@ -5,6 +5,13 @@ import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 const SUPABASE_CONNECTION_STRING =
   "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
 
+// Cleanse residual Neon environment variables from process.env
+for (const key of ["PGHOST", "PGDATABASE", "PGUSER", "PGPASSWORD", "POSTGRES_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "POSTGRES_PRISMA_URL"]) {
+  if (process.env[key]?.includes("neon.tech") || process.env[key]?.includes("snowy-paper")) {
+    delete process.env[key];
+  }
+}
+
 function resolveConnectionString(): string {
   const envUrl = process.env.DATABASE_URL;
   // If envUrl is missing or still pointing to exhausted Neon database, fallback directly to Supabase

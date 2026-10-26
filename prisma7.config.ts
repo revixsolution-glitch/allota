@@ -3,17 +3,23 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const SUPABASE_URL =
+  "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
+
+function getDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url || url.includes("neon.tech") || url.includes("snowy-paper")) {
+    return SUPABASE_URL;
+  }
+  return url;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url:
-      process.env["DATABASE_URL_UNPOOLED"] ||
-      process.env["POSTGRES_URL_NON_POOLING"] ||
-      process.env["DATABASE_URL"] ||
-      process.env["POSTGRES_PRISMA_URL"] ||
-      process.env["POSTGRES_URL"],
+    url: getDatabaseUrl(),
   },
 });
