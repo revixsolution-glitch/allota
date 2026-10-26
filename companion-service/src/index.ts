@@ -280,7 +280,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       console.log(`[Socket Init] Attempting PostgreSQL session vault restoration for ${cleanId}...`);
       const res = await fetch(ALLOTA_WEBHOOK_URL);
       if (res.ok) {
-        const data = await res.json();
+        const data: any = await res.json();
         const tenant = data?.tenants?.find((t: any) => t.companyId === cleanId);
         if (tenant?.whatsappCompanionCreds) {
           restoreSessionFilesFromMap(session.authDir, tenant.whatsappCompanionCreds);
@@ -522,8 +522,6 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
           session.companyId === "cmubi8zf6000004l8y45hhuds" ||
           session.phone?.includes("7494809665");
-
-        const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
 
         // 1. REVERSE LOOKUP / ONGOING CONVERSATION: Check if this is an answer from a prospect awaiting real phone number
         if (activeLidLeads.has(jid)) {
@@ -834,7 +832,7 @@ async function restoreAllSavedSessions() {
   try {
     const res = await fetch(ALLOTA_WEBHOOK_URL);
     if (res.ok) {
-      const data = await res.json();
+      const data: any = await res.json();
       if (data?.tenants && Array.isArray(data.tenants)) {
         for (const t of data.tenants) {
           if (t.companyId && t.whatsappCompanionCreds) {
@@ -949,7 +947,7 @@ app.post("/api/:companyId/restore", async (req, res) => {
   try {
     const r = await fetch(ALLOTA_WEBHOOK_URL);
     if (r.ok) {
-      const data = await r.json();
+      const data: any = await r.json();
       const tenant = data?.tenants?.find((t: any) => t.companyId === cleanId);
       if (tenant?.whatsappCompanionCreds) {
         restoreSessionFilesFromMap(session.authDir, tenant.whatsappCompanionCreds);
