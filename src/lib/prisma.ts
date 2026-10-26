@@ -2,15 +2,22 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 
-function sanitizeConnectionString(url?: string): string {
-  if (!url) return "postgresql://postgres:postgres@localhost:5432/placeholder";
-  if (url.includes(":/*PL%&Zq8ecyj&Q@")) {
-    return url.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
+const SUPABASE_CONNECTION_STRING =
+  "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
+
+function resolveConnectionString(): string {
+  const envUrl = process.env.DATABASE_URL;
+  // If envUrl is missing or still pointing to exhausted Neon database, fallback directly to Supabase
+  if (!envUrl || envUrl.includes("neon.tech") || envUrl.includes("snowy-paper")) {
+    return SUPABASE_CONNECTION_STRING;
   }
-  return url;
+  if (envUrl.includes(":/*PL%&Zq8ecyj&Q@")) {
+    return envUrl.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
+  }
+  return envUrl;
 }
 
-const DEFAULT_CONNECTION_STRING = sanitizeConnectionString(process.env.DATABASE_URL);
+const DEFAULT_CONNECTION_STRING = resolveConnectionString();
 
 const globalForPrisma = globalThis as unknown as {
   rawPrismaClient: PrismaClient | undefined;
