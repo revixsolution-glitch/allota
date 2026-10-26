@@ -2,8 +2,13 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 
+const SUPABASE_FALLBACK =
+  "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
+
 function sanitizeConnectionString(url?: string): string {
-  if (!url) return "postgresql://postgres:postgres@localhost:5432/placeholder";
+  if (!url || url.includes("localhost") || url.includes("127.0.0.1")) {
+    return SUPABASE_FALLBACK;
+  }
   if (url.includes(":/*PL%&Zq8ecyj&Q@")) {
     return url.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
   }
