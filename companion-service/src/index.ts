@@ -605,17 +605,33 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           }
         }
 
-        // 2. NEW INCOMING INQUIRY: Privacy firewall guard
+        // 2. NEW INCOMING INQUIRY: Strictly filter for Meta Click-to-WhatsApp Ads
         const contextInfo =
           msg.message?.extendedTextMessage?.contextInfo ||
-          msg.message?.imageMessage?.contextInfo;
+          msg.message?.imageMessage?.contextInfo ||
+          msg.message?.videoMessage?.contextInfo ||
+          msg.message?.documentMessage?.contextInfo;
         const hasAdReferral = Boolean(contextInfo?.externalAdReply);
-        const matchesIntent = AD_KEYWORDS.some((kw) => cleanText.includes(kw));
 
-        // For Kesrox, every 1-on-1 customer message on the business WhatsApp is an active inquiry/lead!
-        const isLead = isKesrox || hasAdReferral || matchesIntent;
-        if (!isLead) {
-          console.log(`[Non-Ad Message Ignored] ${jid}: "${cleanText.slice(0, 30)}"`);
+        // Strict Meta Ad detection:
+        // Must either carry native Meta Ad referral metadata (externalAdReply / conversionData)
+        // OR match the exact prefilled Kesrox Meta Ad campaign template.
+        const isMetaAdLead =
+          hasAdReferral ||
+          Boolean((contextInfo as any)?.entryPointConversionSource) ||
+          Boolean((contextInfo as any)?.conversionData) ||
+          cleanText.includes("hi kesrox") ||
+          cleanText.includes("monthly qty") ||
+          cleanText.includes("drug licence") ||
+          cleanText.includes("drug license") ||
+          cleanText.includes("gst: y/n") ||
+          cleanText.includes("gst:y/n") ||
+          cleanText.includes("gst : y/n") ||
+          (cleanText.includes("product:") && cleanText.includes("qty"));
+
+        if (!isMetaAdLead) {
+          // Strictly skip non-Meta personal, vendor, or internal chats as requested by the user
+          console.log(`[Skipping Non-Meta Message] from ${jid} (${msg.pushName || "Unknown"}): "${cleanText.slice(0, 40)}"`);
           continue;
         }
 
