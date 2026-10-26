@@ -2,29 +2,17 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 
-const SUPABASE_CONNECTION_STRING =
-  "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
-
-// Cleanse residual Neon environment variables from process.env
-for (const key of ["PGHOST", "PGDATABASE", "PGUSER", "PGPASSWORD", "POSTGRES_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL_NON_POOLING", "POSTGRES_PRISMA_URL"]) {
-  if (process.env[key]?.includes("neon.tech") || process.env[key]?.includes("snowy-paper")) {
-    delete process.env[key];
+function sanitizeConnectionString(url?: string): string {
+  if (!url) return "postgresql://postgres:postgres@localhost:5432/placeholder";
+  if (url.includes(":/*PL%&Zq8ecyj&Q@")) {
+    return url.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
   }
+  return url;
 }
 
-function resolveConnectionString(): string {
-  const envUrl = process.env.DATABASE_URL;
-  // If envUrl is missing or still pointing to exhausted Neon database, fallback directly to Supabase
-  if (!envUrl || envUrl.includes("neon.tech") || envUrl.includes("snowy-paper")) {
-    return SUPABASE_CONNECTION_STRING;
-  }
-  if (envUrl.includes(":/*PL%&Zq8ecyj&Q@")) {
-    return envUrl.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
-  }
-  return envUrl;
-}
-
-const DEFAULT_CONNECTION_STRING = resolveConnectionString();
+const DEFAULT_CONNECTION_STRING = sanitizeConnectionString(
+  process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL
+);
 
 const globalForPrisma = globalThis as unknown as {
   rawPrismaClient: PrismaClient | undefined;
