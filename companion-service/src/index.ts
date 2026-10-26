@@ -72,6 +72,115 @@ const activeLidLeads = new Map<string, ActiveLidLead>();
 // Direct cache mapping WhatsApp LIDs to real phone numbers synced from the device
 const lidToPnMap = new Map<string, string>();
 
+// On-disk persistence files to survive Render redeploys and reboots
+const LID_STORE_FILE = path.join(BASE_AUTH_DIR, "lid_store.json");
+const LEADS_HISTORY_FILE = path.join(BASE_AUTH_DIR, "leads_history.json");
+const DISPATCHED_PHONES_FILE = path.join(BASE_AUTH_DIR, "dispatched_phones.json");
+
+// In-memory set of phone numbers already dispatched to Savi to prevent duplicate spam
+const dispatchedPhones = new Set<string>();
+
+function loadDispatchedPhones() {
+  try {
+    if (fs.existsSync(DISPATCHED_PHONES_FILE)) {
+      const list = JSON.parse(fs.readFileSync(DISPATCHED_PHONES_FILE, "utf8"));
+      if (Array.isArray(list)) {
+        for (const item of list) dispatchedPhones.add(String(item));
+      }
+    }
+  } catch {}
+}
+
+function saveDispatchedPhones() {
+  try {
+    fs.writeFileSync(DISPATCHED_PHONES_FILE, JSON.stringify(Array.from(dispatchedPhones)), "utf8");
+  } catch {}
+}
+
+function loadLidStore() {
+  try {
+    if (fs.existsSync(LID_STORE_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(LID_STORE_FILE, "utf8"));
+      if (parsed?.lidToPn && typeof parsed.lidToPn === "object") {
+        for (const [k, v] of Object.entries(parsed.lidToPn)) {
+          lidToPnMap.set(k, String(v));
+        }
+      }
+      if (parsed?.activeLeads && typeof parsed.activeLeads === "object") {
+        for (const [k, v] of Object.entries(parsed.activeLeads)) {
+          const l: any = v;
+          activeLidLeads.set(k, {
+            ...l,
+            firstSeenAt: new Date(l.firstSeenAt || Date.now()),
+          });
+        }
+      }
+      console.log(`[LidStore] Restored ${lidToPnMap.size} LIDs and ${activeLidLeads.size} active leads from disk`);
+    }
+  } catch (e: any) {
+    console.warn("[LidStore Load Error]", e?.message);
+  }
+}
+
+function saveLidStore() {
+  try {
+    const data = {
+      lidToPn: Object.fromEntries(lidToPnMap),
+      activeLeads: Object.fromEntries(activeLidLeads),
+    };
+    fs.writeFileSync(LID_STORE_FILE, JSON.stringify(data, null, 2), "utf8");
+  } catch (e: any) {
+    console.warn("[LidStore Save Error]", e?.message);
+  }
+}
+
+export interface CapturedLeadRecord {
+  id: string;
+  companyId: string;
+  name: string;
+  phone: string;
+  clean10?: string;
+  division?: string;
+  inquiry: string;
+  source: string;
+  receivedAt: string;
+}
+
+function saveLeadToHistory(lead: Omit<CapturedLeadRecord, "id">) {
+  try {
+    let list: CapturedLeadRecord[] = [];
+    if (fs.existsSync(LEADS_HISTORY_FILE)) {
+      list = JSON.parse(fs.readFileSync(LEADS_HISTORY_FILE, "utf8"));
+      if (!Array.isArray(list)) list = [];
+    }
+    const newRecord: CapturedLeadRecord = {
+      id: `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      ...lead,
+    };
+    list.unshift(newRecord);
+    if (list.length > 1000) list = list.slice(0, 1000);
+    fs.writeFileSync(LEADS_HISTORY_FILE, JSON.stringify(list, null, 2), "utf8");
+  } catch (e: any) {
+    console.warn("[Lead History Save Error]", e?.message);
+  }
+}
+
+// Completely non-blocking background CRM webhook dispatcher with strict 3-second timeout
+function fireCrmWebhook(payload: any) {
+  fetch(ALLOTA_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(3000),
+  }).catch((err: any) => {
+    console.warn("[CRM Webhook Background Notice]", err?.message);
+  });
+}
+
+// Initial hydration from disk on module load
+loadDispatchedPhones();
+loadLidStore();
+
 async function handleRealPhoneCaptured(
   session: TenantSession,
   lidJid: string,
@@ -84,41 +193,26 @@ async function handleRealPhoneCaptured(
 
   const realPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
   lidToPnMap.set(lidJid, `91${clean10}`);
+  saveLidStore();
 
   const lead = activeLidLeads.get(lidJid);
-  if (lead && lead.resolvedPhone === realPhone) {
-    return; // Already notified Savi for this lead
+  const senderName = lead?.senderName || "WhatsApp Prospect";
+
+  const dispatchKey = `${session.companyId}:${clean10}`;
+  if (dispatchedPhones.has(dispatchKey)) {
+    return; // Already notified Savi for this exact phone
   }
+  dispatchedPhones.add(dispatchKey);
+  saveDispatchedPhones();
+
   if (lead) {
     lead.resolvedPhone = realPhone;
+    saveLidStore();
   }
-
-  const senderName = lead?.senderName || "WhatsApp Prospect";
 
   console.log(`[Real Phone Captured via ${sourceNote}][Company: ${session.companyId}] ${senderName} (${lidJid}) -> ${realPhone}`);
 
-  // 1. Update Allota CRM with the real callable phone number
-  try {
-    await fetch(ALLOTA_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        companyId: session.companyId,
-        senderPhone: realPhone,
-        senderName,
-        messageText: `[Real Phone Disclosed via ${sourceNote}]: ${realPhone}\n[Inquiry]: ${lead?.initialInquiry || "Ad Lead"}`,
-        isFromMe: false,
-        isGroup: false,
-        hasAdReferral: true,
-        lidJid,
-      }),
-    });
-    console.log(`[CRM Upgraded] Lead ${senderName} updated with callable phone: ${realPhone}`);
-  } catch (err: any) {
-    console.warn("[CRM Real Phone Update Error]", err?.message);
-  }
-
-  // 2. High-priority dispatch to Savi on WhatsApp
+  // 1. High-priority dispatch to Savi on WhatsApp FIRST! (Zero delay, completely non-blocking)
   const isKesrox =
     session.companyId.includes("kesrox") ||
     session.companyId === "cmub4ssdx00000u8oqlqc62e0" ||
@@ -145,6 +239,30 @@ async function handleRealPhoneCaptured(
       console.warn("[Forward Real Phone Error]", fwdErr?.message);
     }
   }
+
+  // 2. Persist lead in local history
+  saveLeadToHistory({
+    companyId: session.companyId,
+    name: senderName,
+    phone: realPhone,
+    clean10,
+    division: "THIRD_PARTY",
+    inquiry: lead?.initialInquiry || "Third-Party Pharma Manufacturing Inquiry",
+    source: `Meta Ad (${sourceNote})`,
+    receivedAt: new Date().toISOString(),
+  });
+
+  // 3. Fire-and-forget background CRM webhook
+  fireCrmWebhook({
+    companyId: session.companyId,
+    senderPhone: realPhone,
+    senderName,
+    messageText: `[Real Phone Disclosed via ${sourceNote}]: ${realPhone}\n[Inquiry]: ${lead?.initialInquiry || "Ad Lead"}`,
+    isFromMe: false,
+    isGroup: false,
+    hasAdReferral: true,
+    lidJid,
+  });
 }
 
 const AD_KEYWORDS = [
@@ -443,6 +561,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
     });
 
     sock.ev.on("contacts.upsert", async (contacts: any[]) => {
+      let updated = false;
       for (const c of contacts) {
         let pn = "";
         if (c.lid && (c.id || c.jid)) {
@@ -450,6 +569,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (candidate.length >= 10 && !candidate.includes("lid")) {
             pn = candidate;
             lidToPnMap.set(c.lid, pn);
+            updated = true;
           }
         }
         if (c.phoneNumber) {
@@ -458,15 +578,18 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             pn = candidate;
             if (c.id) lidToPnMap.set(c.id, pn);
             if (c.lid) lidToPnMap.set(c.lid, pn);
+            updated = true;
           }
         }
         if (c.lid && pn) {
           handleRealPhoneCaptured(session, c.lid, pn, "WhatsApp Contact Sync").catch(() => {});
         }
       }
+      if (updated) saveLidStore();
     });
 
     sock.ev.on("contacts.update", async (updates: any[]) => {
+      let updated = false;
       for (const u of updates) {
         let pn = "";
         if (u.lid && (u.id || u.jid)) {
@@ -474,6 +597,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (candidate.length >= 10 && !candidate.includes("lid")) {
             pn = candidate;
             lidToPnMap.set(u.lid, pn);
+            updated = true;
           }
         }
         if (u.phoneNumber) {
@@ -482,12 +606,14 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             pn = candidate;
             if (u.id) lidToPnMap.set(u.id, pn);
             if (u.lid) lidToPnMap.set(u.lid, pn);
+            updated = true;
           }
         }
         if (u.lid && pn) {
           handleRealPhoneCaptured(session, u.lid, pn, "WhatsApp Contact Update").catch(() => {});
         }
       }
+      if (updated) saveLidStore();
     });
 
     function detectDivision(rawText: string, contextInfo?: any): {
@@ -600,31 +726,11 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             const realPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
             lead.resolvedPhone = realPhone;
             lidToPnMap.set(jid, `91${clean10}`);
+            saveLidStore();
 
             console.log(`[Real Phone Captured] Prospect ${lead.senderName} (${jid}) resolved callable number: ${realPhone}`);
 
-            // A. Update Allota CRM with the real phone number
-            try {
-              await fetch(ALLOTA_WEBHOOK_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  companyId: session.companyId,
-                  senderPhone: realPhone,
-                  senderName: lead.senderName,
-                  messageText: `[Real Phone Provided]: ${rawText}\n[Initial Inquiry]: ${lead.initialInquiry}`,
-                  isFromMe: false,
-                  isGroup: false,
-                  hasAdReferral: true,
-                  lidJid: jid,
-                }),
-              });
-              console.log(`[CRM Upgraded] Lead ${lead.senderName} upgraded to real phone: ${realPhone}`);
-            } catch (err: any) {
-              console.warn("[CRM Real Phone Update Error]", err?.message);
-            }
-
-            // B. High-Priority Direct Alert to Savi with 1-tap call & WhatsApp links
+            // A. High-Priority Direct Alert to Savi FIRST (Zero delay, non-blocking)
             if (isKesrox && session.sock) {
               try {
                 const verifiedText =
@@ -645,12 +751,36 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
               }
             }
 
-            // C. Courteous acknowledgment to the prospect on WhatsApp
+            // B. Courteous acknowledgment to the prospect on WhatsApp
             try {
               await sendAndCacheMessage(session.sock, jid, {
                 text: `Dhanyavaad ${lead.senderName}! 🙏 We have received your contact number (${realPhone}). Our team will connect with you shortly.`
               });
             } catch {}
+
+            // C. Persist lead locally in leads_history.json
+            saveLeadToHistory({
+              companyId: session.companyId,
+              name: lead.senderName,
+              phone: realPhone,
+              clean10,
+              division: "THIRD_PARTY",
+              inquiry: `${lead.initialInquiry}\n[Reply]: ${rawText}`,
+              source: "Meta Ad (Reply)",
+              receivedAt: new Date().toISOString(),
+            });
+
+            // D. Non-blocking CRM update
+            fireCrmWebhook({
+              companyId: session.companyId,
+              senderPhone: realPhone,
+              senderName: lead.senderName,
+              messageText: `[Real Phone Provided]: ${rawText}\n[Initial Inquiry]: ${lead.initialInquiry}`,
+              isFromMe: false,
+              isGroup: false,
+              hasAdReferral: true,
+              lidJid: jid,
+            });
 
             continue;
           } else {
@@ -722,9 +852,18 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           cleanText.includes("enquiry") ||
           cleanText.includes("chahiye") ||
           cleanText.includes("bhejo") ||
+          cleanText.includes("hi") ||
+          cleanText.includes("hello") ||
+          cleanText.includes("namaste") ||
+          cleanText.includes("sir") ||
+          cleanText.includes("details") ||
+          cleanText.includes("info") ||
+          cleanText.includes("call") ||
+          cleanText.includes("contact") ||
+          cleanText.includes("send") ||
           Boolean(rawText.match(/(?:(?:\+?91|0)[\s-]?)?([6-9]\d{9})\b/));
 
-        // CRITICAL FIX: Every incoming 1-on-1 chat ending in @lid is a Meta Click-to-WhatsApp Ad lead!
+        // CRITICAL: Any @lid chat, any ad referral, any commercial keyword, or any inquiry with a phone number
         const isMetaAdLead = isLid || hasAdSource || hasAdKeywords;
 
         if (!isMetaAdLead) {
@@ -749,6 +888,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (cleanPn.length >= 10) {
             realNumber = cleanPn.startsWith("91") && cleanPn.length === 12 ? cleanPn.slice(2) : cleanPn.slice(-10);
             lidToPnMap.set(jid, `91${realNumber}`);
+            saveLidStore();
           }
         }
 
@@ -779,6 +919,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (directPhone.length >= 10) {
             realNumber = directPhone.startsWith("91") && directPhone.length === 12 ? directPhone.slice(2) : directPhone.slice(-10);
             lidToPnMap.set(jid, `91${realNumber}`);
+            saveLidStore();
           }
         }
 
@@ -788,6 +929,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           if (pPhone.length >= 10) {
             realNumber = pPhone.startsWith("91") && pPhone.length === 12 ? pPhone.slice(2) : pPhone.slice(-10);
             lidToPnMap.set(jid, `91${realNumber}`);
+            saveLidStore();
           }
         }
 
@@ -801,6 +943,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             if (clean.length === 10) {
               realNumber = clean;
               lidToPnMap.set(jid, `91${realNumber}`);
+              saveLidStore();
             }
           }
         }
@@ -815,6 +958,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             if (clean.length === 10) {
               realNumber = clean;
               lidToPnMap.set(jid, `91${realNumber}`);
+              saveLidStore();
             }
           }
         }
@@ -824,29 +968,16 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           const formattedPhone = `+91 ${realNumber.slice(0, 5)} ${realNumber.slice(5)}`;
           console.log(`[Lead Detected with Real Phone][Company: ${session.companyId}] ${senderName} (${formattedPhone}) - ${divMeta.label}`);
 
-          // 1. Ingest into CRM
-          try {
-            await fetch(ALLOTA_WEBHOOK_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                companyId: session.companyId,
-                senderPhone: formattedPhone,
-                senderName,
-                division: divMeta.division,
-                messageText: rawText,
-                isFromMe: false,
-                isGroup: false,
-                hasAdReferral,
-                lidJid: jid,
-              }),
-            });
-          } catch (e: any) {
-            console.warn("[CRM Ingest Error]", e?.message);
+          // Prevent duplicate dispatch to Savi
+          const dispatchKey = `${session.companyId}:${realNumber}`;
+          const isAlreadyDispatched = dispatchedPhones.has(dispatchKey);
+          if (!isAlreadyDispatched) {
+            dispatchedPhones.add(dispatchKey);
+            saveDispatchedPhones();
           }
 
-          // 2. Forward to Savi with 1-tap call & WhatsApp links
-          if (isKesrox && session.sock) {
+          // 1. Forward to Savi with 1-tap call & WhatsApp links FIRST!
+          if (!isAlreadyDispatched && isKesrox && session.sock) {
             try {
               const forwardText =
 `🚨 *NEW ${divMeta.label} LEAD (KESROX)*
@@ -865,11 +996,36 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
               console.warn("[Forward Error]", fwdErr?.message);
             }
           }
+
+          // 2. Persist lead in local history
+          saveLeadToHistory({
+            companyId: session.companyId,
+            name: senderName,
+            phone: formattedPhone,
+            clean10: realNumber,
+            division: divMeta.division,
+            inquiry: rawText,
+            source: `Meta Ad (${divMeta.label})`,
+            receivedAt: new Date().toISOString(),
+          });
+
+          // 3. Non-blocking background CRM webhook
+          fireCrmWebhook({
+            companyId: session.companyId,
+            senderPhone: formattedPhone,
+            senderName,
+            division: divMeta.division,
+            messageText: rawText,
+            isFromMe: false,
+            isGroup: false,
+            hasAdReferral,
+            lidJid: jid,
+          });
         } else {
           // SCENARIO B: MASKED META AD LID
           console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid})`);
 
-          // Register in tracker
+          // Register in tracker & persist to disk
           activeLidLeads.set(jid, {
             companyId: session.companyId,
             senderName,
@@ -877,29 +1033,9 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             firstSeenAt: new Date(),
             promptSent: false,
           });
+          saveLidStore();
 
-          // 1. Save preliminary lead in CRM
-          try {
-            await fetch(ALLOTA_WEBHOOK_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                companyId: session.companyId,
-                senderPhone: `Awaiting Phone (${senderName})`,
-                senderName,
-                division: divMeta.division,
-                messageText: rawText,
-                isFromMe: false,
-                isGroup: false,
-                hasAdReferral,
-                lidJid: jid,
-              }),
-            });
-          } catch (e: any) {
-            console.warn("[CRM Ingest Preliminary Error]", e?.message);
-          }
-
-          // 2. Forward clear status to Savi
+          // 1. Forward clear status to Savi FIRST!
           if (isKesrox && session.sock) {
             try {
               const initialNotice =
@@ -919,7 +1055,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
               console.warn("[Forward Error]", fwdErr?.message);
             }
 
-            // 3. Send polite, natural WhatsApp prompt asking for their calling number
+            // 2. Send polite, natural WhatsApp prompt asking for their calling number
             try {
               const politePrompt =
 `Namaste ${senderName}! 🙏
@@ -934,6 +1070,31 @@ Please reply with your 📱 *10-digit Calling / WhatsApp Number & City* so our D
               console.warn("[Polite Prompt Warning]", pErr?.message);
             }
           }
+
+          // 3. Persist lead in local history
+          saveLeadToHistory({
+            companyId: session.companyId,
+            name: senderName,
+            phone: `Awaiting Phone (${senderName})`,
+            clean10: "",
+            division: divMeta.division,
+            inquiry: rawText,
+            source: `Meta Ad LID (${divMeta.label})`,
+            receivedAt: new Date().toISOString(),
+          });
+
+          // 4. Non-blocking background CRM webhook
+          fireCrmWebhook({
+            companyId: session.companyId,
+            senderPhone: `Awaiting Phone (${senderName})`,
+            senderName,
+            division: divMeta.division,
+            messageText: rawText,
+            isFromMe: false,
+            isGroup: false,
+            hasAdReferral,
+            lidJid: jid,
+          });
         }
       }
     });
@@ -1410,6 +1571,85 @@ app.post("/api/:companyId/prompt-pending-leads", async (req, res) => {
   }
 
   return res.json({ success: true, results });
+});
+
+// View all locally captured leads stored in leads_history.json
+app.get("/api/:companyId/leads", (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  try {
+    let list: CapturedLeadRecord[] = [];
+    if (fs.existsSync(LEADS_HISTORY_FILE)) {
+      list = JSON.parse(fs.readFileSync(LEADS_HISTORY_FILE, "utf8"));
+      if (!Array.isArray(list)) list = [];
+    }
+    const filtered = list.filter((l) => sanitizeCompanyId(l.companyId) === cleanId || !l.companyId);
+    res.json({ success: true, count: filtered.length, leads: filtered });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message });
+  }
+});
+
+// Flush all mapped LIDs in memory/disk to Savi with safe spacing
+app.post("/api/:companyId/flush-lid-backlog", async (req, res) => {
+  const { companyId } = req.params;
+  const cleanId = sanitizeCompanyId(companyId);
+  const session = tenantSessions.get(cleanId);
+
+  if (!session || !session.sock || session.status !== "CONNECTED") {
+    return res.status(400).json({ error: "WhatsApp is not connected for this company" });
+  }
+
+  const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+  const entries = Array.from(lidToPnMap.entries());
+  let dispatchedCount = 0;
+  let skippedCount = 0;
+
+  for (const [lid, pn] of entries) {
+    const digits = String(pn).replace(/\D/g, "");
+    const clean10 = digits.startsWith("91") && digits.length === 12 ? digits.slice(2) : digits.slice(-10);
+    if (clean10.length !== 10) continue;
+
+    const dispatchKey = `${cleanId}:${clean10}`;
+    const force = req.query?.force === "true" || req.body?.force === true;
+    if (!force && dispatchedPhones.has(dispatchKey)) {
+      skippedCount++;
+      continue;
+    }
+
+    const lead = activeLidLeads.get(lid);
+    const senderName = lead?.senderName || "Meta Ad Prospect";
+    const formattedPhone = `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`;
+
+    const text =
+`🎯 *BACKLOG AD LEAD (KESROX)*
+
+👤 *Prospect:* ${senderName}
+📞 *Real Phone:* ${formattedPhone}
+💬 *Inquiry:* "${lead?.initialInquiry || "Third-Party Pharma Manufacturing Meta Ad Lead"}"
+⚡ *Source:* Meta Click-to-WhatsApp Ad (Synced)
+🕒 *Synced:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+👉 *Click to Call:* tel:+91${clean10}
+👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
+
+    try {
+      await sendAndCacheMessage(session.sock, saviJid, { text });
+      dispatchedPhones.add(dispatchKey);
+      saveDispatchedPhones();
+      dispatchedCount++;
+      console.log(`[Backlog Dispatched to Savi] ${senderName} (${formattedPhone})`);
+      await new Promise((r) => setTimeout(r, 1200));
+    } catch (e: any) {
+      console.warn("Backlog dispatch error:", e?.message);
+    }
+  }
+
+  return res.json({
+    success: true,
+    totalMappedLids: entries.length,
+    dispatchedCount,
+    skippedCount,
+  });
 });
 
 app.post("/api/:companyId/disconnect", async (req, res) => {

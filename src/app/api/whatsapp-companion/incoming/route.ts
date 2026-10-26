@@ -395,6 +395,13 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("[WhatsApp Companion] Ingestion Error:", error);
+    if (error?.message?.includes("53000") || error?.message?.includes("quota")) {
+      return NextResponse.json({
+        success: true,
+        warning: "DATABASE_QUOTA_EXCEEDED",
+        message: "Neon database quota exceeded. Lead received and preserved by WhatsApp Companion.",
+      });
+    }
     return NextResponse.json(
       { error: error?.message || "Failed to process lead" },
       { status: 500 }
