@@ -493,9 +493,31 @@ export async function POST(req: NextRequest) {
           }
 
           // 2. Fetch full lead details from Meta Graph API
-          const metaRes = await fetch(
-            `https://graph.facebook.com/v19.0/${leadgenId}?access_token=${accessToken}`
+          let activeToken = accessToken;
+          let metaRes = await fetch(
+            `https://graph.facebook.com/v19.0/${leadgenId}?access_token=${activeToken}`
           );
+
+          // If the token is a User token, automatically exchange it for the Page Access Token
+          if (!metaRes.ok) {
+            try {
+              const accRes = await fetch(
+                `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`
+              );
+              if (accRes.ok) {
+                const accData = await accRes.json();
+                const pageMatch = (accData.data || []).find((a: any) => a.id === pageId);
+                if (pageMatch?.access_token) {
+                  activeToken = pageMatch.access_token;
+                  metaRes = await fetch(
+                    `https://graph.facebook.com/v19.0/${leadgenId}?access_token=${activeToken}`
+                  );
+                }
+              }
+            } catch (exchangeErr: any) {
+              console.warn("[Meta Webhook] Token exchange warning:", exchangeErr?.message);
+            }
+          }
 
           if (!metaRes.ok) {
             console.error(`[Meta Webhook] Failed to fetch lead ${leadgenId} from Graph API:`, await metaRes.text());

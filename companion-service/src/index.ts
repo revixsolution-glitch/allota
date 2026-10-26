@@ -6,6 +6,7 @@ import makeWASocket, {
   Browsers,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
+  normalizeMessageContent,
   proto,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
@@ -544,14 +545,20 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
         if (jid === saviJid || jid.includes(SAVI_PHONE.replace(/\D/g, ""))) continue;
 
+        const normalized = normalizeMessageContent(msg.message) || msg.message;
         const rawText =
-          msg.message?.conversation ||
-          msg.message?.extendedTextMessage?.text ||
-          msg.message?.imageMessage?.caption ||
+          normalized?.conversation ||
+          normalized?.extendedTextMessage?.text ||
+          normalized?.imageMessage?.caption ||
+          normalized?.videoMessage?.caption ||
+          normalized?.documentMessage?.caption ||
+          normalized?.templateButtonReplyMessage?.selectedDisplayText ||
+          normalized?.buttonsResponseMessage?.selectedDisplayText ||
+          normalized?.interactiveResponseMessage?.body?.text ||
+          normalized?.listResponseMessage?.title ||
           "";
 
         const cleanText = rawText.trim().toLowerCase();
-        if (!cleanText) continue;
 
         const isKesrox =
           session.companyId.includes("kesrox") ||
@@ -641,32 +648,61 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           }
         }
 
-        // 2. NEW INCOMING INQUIRY: Strictly filter for Meta Click-to-WhatsApp Ads
+        // 2. NEW INCOMING INQUIRY: Strictly filter for Meta Click-to-WhatsApp Ads & Commercial Inquiries
         const contextInfo =
-          msg.message?.extendedTextMessage?.contextInfo ||
-          msg.message?.imageMessage?.contextInfo ||
-          msg.message?.videoMessage?.contextInfo ||
-          msg.message?.documentMessage?.contextInfo;
+          normalized?.extendedTextMessage?.contextInfo ||
+          normalized?.imageMessage?.contextInfo ||
+          normalized?.videoMessage?.contextInfo ||
+          normalized?.documentMessage?.contextInfo;
         const hasAdReferral = Boolean(contextInfo?.externalAdReply);
 
-        // Strict Meta Ad detection:
-        // Must either carry native Meta Ad referral metadata (externalAdReply / conversionData)
-        // OR match the exact prefilled Kesrox Meta Ad campaign template.
-        const isMetaAdLead =
+        const isLid = jid.endsWith("@lid");
+        const hasAdSource =
           hasAdReferral ||
           Boolean((contextInfo as any)?.entryPointConversionSource) ||
-          Boolean((contextInfo as any)?.conversionData) ||
-          cleanText.includes("hi kesrox") ||
+          Boolean((contextInfo as any)?.conversionData);
+
+        const hasAdKeywords =
+          cleanText.includes("kesrox") ||
+          cleanText.includes("third party") ||
+          cleanText.includes("third-party") ||
+          cleanText.includes("3rd party") ||
+          cleanText.includes("manufacturing") ||
+          cleanText.includes("mfg") ||
           cleanText.includes("monthly qty") ||
           cleanText.includes("drug licence") ||
           cleanText.includes("drug license") ||
-          cleanText.includes("gst: y/n") ||
-          cleanText.includes("gst:y/n") ||
-          cleanText.includes("gst : y/n") ||
-          (cleanText.includes("product:") && cleanText.includes("qty"));
+          cleanText.includes("gst") ||
+          cleanText.includes("batch") ||
+          cleanText.includes("quotation") ||
+          cleanText.includes("quote") ||
+          cleanText.includes("rate") ||
+          cleanText.includes("price") ||
+          cleanText.includes("catalog") ||
+          cleanText.includes("catalogue") ||
+          cleanText.includes("pcd") ||
+          cleanText.includes("franchise") ||
+          cleanText.includes("monopoly") ||
+          cleanText.includes("pharma") ||
+          cleanText.includes("medicine") ||
+          cleanText.includes("product") ||
+          cleanText.includes("qty") ||
+          cleanText.includes("order") ||
+          cleanText.includes("sample") ||
+          cleanText.includes("tablets") ||
+          cleanText.includes("capsules") ||
+          cleanText.includes("syrup") ||
+          cleanText.includes("distributor") ||
+          cleanText.includes("inquiry") ||
+          cleanText.includes("enquiry") ||
+          cleanText.includes("chahiye") ||
+          cleanText.includes("bhejo") ||
+          Boolean(rawText.match(/(?:(?:\+?91|0)[\s-]?)?([6-9]\d{9})\b/));
+
+        // CRITICAL FIX: Every incoming 1-on-1 chat ending in @lid is a Meta Click-to-WhatsApp Ad lead!
+        const isMetaAdLead = isLid || hasAdSource || hasAdKeywords;
 
         if (!isMetaAdLead) {
-          // Strictly skip non-Meta personal, vendor, or internal chats as requested by the user
           console.log(`[Skipping Non-Meta Message] from ${jid} (${msg.pushName || "Unknown"}): "${cleanText.slice(0, 40)}"`);
           continue;
         }
@@ -833,17 +869,32 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 `🚨 *NEW ${divMeta.label} LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
-📞 *Phone:* ⏳ *Awaiting Prospect's Mobile No. (Meta Ad LID)*
-💬 *Inquiry:* "${rawText}"
+📞 *Phone:* ⏳ *Awaiting Mobile Number (Meta Ad LID)*
+💬 *Inquiry:* "${rawText || "Meta Click-to-WhatsApp Ad Click"}"
 ⚡ *Source:* Meta Click-to-WhatsApp Ad (${divMeta.emoji} ${divMeta.label})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-⚡ *Status:* Logged in Allota CRM. Click below to chat directly with prospect on WhatsApp.
+👉 *Action:* Polite prompt sent to prospect. Callable number will arrive here the moment they reply!
 👉 *Kesrox WhatsApp:* Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`;
 
               await sendAndCacheMessage(session.sock, saviJid, { text: initialNotice });
               console.log(`[Lead Forwarded] Sent initial awaiting-phone notice to Savi for Kesrox (${divMeta.label})`);
             } catch (fwdErr: any) {
               console.warn("[Forward Error]", fwdErr?.message);
+            }
+
+            // 3. Send polite, natural WhatsApp prompt asking for their calling number
+            try {
+              const politePrompt =
+`Namaste ${senderName}! 🙏
+
+Thank you for contacting *Kesrox Healthcare* regarding *${divMeta.greetingType}*.
+
+Please reply with your 📱 *10-digit Calling / WhatsApp Number & City* so our Director can share our product catalog, batch sizes, and commercial quotation with you.`;
+
+              await sendAndCacheMessage(session.sock, jid, { text: politePrompt });
+              console.log(`[Polite Prompt Sent] Sent phone number request to ${senderName}`);
+            } catch (pErr: any) {
+              console.warn("[Polite Prompt Warning]", pErr?.message);
             }
           }
         }
