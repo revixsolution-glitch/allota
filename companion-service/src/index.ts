@@ -5,6 +5,8 @@ import makeWASocket, {
   DisconnectReason,
   Browsers,
   fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
+  proto,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
 import QRCode from "qrcode";
@@ -19,6 +21,21 @@ const PORT = process.env.PORT || 10000;
 const ALLOTA_WEBHOOK_URL = process.env.ALLOTA_WEBHOOK_URL || "https://allota.vercel.app/api/whatsapp-companion/incoming";
 const SAVI_PHONE = process.env.SAVI_PHONE || "917889107964";
 const BASE_AUTH_DIR = process.env.AUTH_DIR || path.join(process.cwd(), "data", "wa_auth");
+
+// In-memory cache for message retry decryption (prevents "Waiting for this message")
+const messageMemoryCache = new Map<string, proto.IMessage>();
+
+export async function sendAndCacheMessage(sock: any, jid: string, content: any) {
+  const sent = await sock.sendMessage(jid, content);
+  if (sent?.key?.id && sent?.message) {
+    messageMemoryCache.set(sent.key.id, sent.message);
+    if (messageMemoryCache.size > 2000) {
+      const firstKey = messageMemoryCache.keys().next().value;
+      if (firstKey) messageMemoryCache.delete(firstKey);
+    }
+  }
+  return sent;
+}
 
 if (!fs.existsSync(BASE_AUTH_DIR)) {
   fs.mkdirSync(BASE_AUTH_DIR, { recursive: true });
@@ -113,7 +130,7 @@ async function handleRealPhoneCaptured(
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
 
-      await session.sock.sendMessage(saviJid, { text: verifiedText });
+      await sendAndCacheMessage(session.sock, saviJid, { text: verifiedText });
       console.log(`[Lead Real Phone Dispatched] Sent ${realPhone} to Savi for Kesrox`);
     } catch (fwdErr: any) {
       console.warn("[Forward Real Phone Error]", fwdErr?.message);
@@ -312,16 +329,27 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 
     console.log(`[Companion][Company: ${session.companyId}] Initializing protocol v${version.join(".")}`);
 
+    const sockLogger = pino({ level: "silent" });
+
     const sock = makeWASocket({
       version,
-      auth: state,
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, sockLogger as any),
+      },
       printQRInTerminal: false,
-      logger: pino({ level: "silent" }) as any,
+      logger: sockLogger as any,
       browser: ["Mac OS", "Chrome", "130.0.0.0"],
       syncFullHistory: false,
       generateHighQualityLinkPreview: false,
       keepAliveIntervalMs: 15000,
       connectTimeoutMs: 60000,
+      getMessage: async (key) => {
+        if (key.id && messageMemoryCache.has(key.id)) {
+          return messageMemoryCache.get(key.id);
+        }
+        return undefined;
+      },
     });
 
     session.sock = sock;
@@ -500,6 +528,14 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
       console.log(`[messages.upsert] Received ${messages.length} message(s), type: ${type}`);
 
       for (const msg of messages) {
+        if (msg.key?.id && msg.message) {
+          messageMemoryCache.set(msg.key.id, msg.message);
+          if (messageMemoryCache.size > 2000) {
+            const firstKey = messageMemoryCache.keys().next().value;
+            if (firstKey) messageMemoryCache.delete(firstKey);
+          }
+        }
+
         const jid = msg.key.remoteJid || "";
 
         // Privacy rules: ignore groups, status, outbound
@@ -570,7 +606,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
 
-                await session.sock.sendMessage(saviJid, { text: verifiedText });
+                await sendAndCacheMessage(session.sock, saviJid, { text: verifiedText });
                 console.log(`[Lead Real Phone Dispatched] Sent callable phone ${realPhone} to Savi`);
               } catch (fwdErr: any) {
                 console.warn("[Forward Real Phone Error]", fwdErr?.message);
@@ -579,7 +615,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 
             // C. Courteous acknowledgment to the prospect on WhatsApp
             try {
-              await session.sock.sendMessage(jid, {
+              await sendAndCacheMessage(session.sock, jid, {
                 text: `Dhanyavaad ${lead.senderName}! 🙏 We have received your contact number (${realPhone}). Our team will connect with you shortly.`
               });
             } catch {}
@@ -598,7 +634,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 ⏳ *Status:* Still awaiting 10-digit mobile number.
 👉 *Chat on Kesrox Phone:* Search "${lead.senderName}" in WhatsApp`;
 
-                await session.sock.sendMessage(saviJid, { text: replyNotice });
+                await sendAndCacheMessage(session.sock, saviJid, { text: replyNotice });
               } catch {}
             }
             continue;
@@ -750,7 +786,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 👉 *Click to Call:* tel:+91${realNumber}
 👉 *Click to WhatsApp:* https://wa.me/91${realNumber}`;
 
-              await session.sock.sendMessage(saviJid, { text: forwardText });
+              await sendAndCacheMessage(session.sock, saviJid, { text: forwardText });
               console.log(`[Lead Forwarded] Sent real phone ${formattedPhone} to Savi for Kesrox (${divMeta.label})`);
             } catch (fwdErr: any) {
               console.warn("[Forward Error]", fwdErr?.message);
@@ -804,7 +840,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
 ⚡ *Status:* Logged in Allota CRM. Click below to chat directly with prospect on WhatsApp.
 👉 *Kesrox WhatsApp:* Open WhatsApp on Kesrox Phone ➔ Chat "${senderName}"`;
 
-              await session.sock.sendMessage(saviJid, { text: initialNotice });
+              await sendAndCacheMessage(session.sock, saviJid, { text: initialNotice });
               console.log(`[Lead Forwarded] Sent initial awaiting-phone notice to Savi for Kesrox (${divMeta.label})`);
             } catch (fwdErr: any) {
               console.warn("[Forward Error]", fwdErr?.message);
@@ -1074,7 +1110,7 @@ ${headlineLine}💬 *Inquiry Details:* "${inquiry || "Hi Kesrox! Product: __ | M
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
 
-      await session.sock.sendMessage(saviJid, { text });
+      await sendAndCacheMessage(session.sock, saviJid, { text });
       console.log(`[Dispatched to Savi] ${name} -> ${formatted}`);
     } catch (waErr: any) {
       console.warn("[Dispatch to Savi Error]", waErr?.message);
@@ -1117,7 +1153,7 @@ ${headlineLine}💬 *Inquiry Details:* "${inquiry || "Hi Kesrox! Product: __ | M
 👉 *Click to Call:* tel:+91${clean10}
 👉 *Click to WhatsApp:* https://wa.me/91${clean10}`;
 
-      await session.sock.sendMessage(saviJid, { text });
+      await sendAndCacheMessage(session.sock, saviJid, { text });
       console.log(`[Lead Forwarded to Savi] Dispatched ${name} (${formatted}) via forward-lead`);
       return res.json({ success: true, forwardedTo: saviJid, phone: formatted });
     } catch (waErr: any) {
@@ -1179,7 +1215,7 @@ app.post("/api/:companyId/test-lead", async (req, res) => {
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
 👉 *Direct Action:* ${directAction}`;
 
-    await session.sock.sendMessage(saviJid, { text: forwardText });
+    await sendAndCacheMessage(session.sock, saviJid, { text: forwardText });
     console.log(`[Lead Forwarded] Successfully sent via WhatsApp to Savi (+${SAVI_PHONE})!`);
 
     return res.json({
@@ -1233,7 +1269,7 @@ app.post("/api/:companyId/forward-past-leads", async (req, res) => {
 👉 *Direct Action:* ${lead.action}`;
 
     try {
-      await session.sock.sendMessage(saviJid, { text });
+      await sendAndCacheMessage(session.sock, saviJid, { text });
       console.log(`[Lead Forwarded to Savi] Dispatched ${lead.name} as Third-Party Manufacturing`);
       await new Promise((r) => setTimeout(r, 1200));
     } catch (e: any) {
@@ -1273,12 +1309,12 @@ app.post("/api/:companyId/prompt-pending-leads", async (req, res) => {
 
       // 1. Send native 1-tap phone share button
       try {
-        await session.sock.sendMessage(t.jid, { requestPhoneNumber: true } as any);
+        await sendAndCacheMessage(session.sock, t.jid, { requestPhoneNumber: true } as any);
       } catch {}
 
       // 2. Send polite prompt text for Third Party Manufacturing
       const prompt = `Namaste ${t.name}! 🙏\n\nThank you for reaching out to *Kesrox Healthcare* regarding *Third-Party Pharma Manufacturing*.\n\nTo share our complete *WHO-GMP Manufacturing Approvals, Product List, Batch Sizes & Commercial Quotations* with you, please tap the *"Share Phone Number"* button above or reply with your:\n1. 📱 *Calling / WhatsApp Mobile Number*\n2. 📍 *City & State*\n\nOur team will assist you right away!`;
-      await session.sock.sendMessage(t.jid, { text: prompt });
+      await sendAndCacheMessage(session.sock, t.jid, { text: prompt });
       results.push({ name: t.name, jid: t.jid, status: "PROMPTED_SUCCESS" });
     } catch (err: any) {
       results.push({ name: t.name, jid: t.jid, error: err?.message });
