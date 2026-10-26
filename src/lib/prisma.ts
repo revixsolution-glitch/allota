@@ -2,8 +2,15 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 
-const DEFAULT_CONNECTION_STRING =
-  process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/placeholder";
+function sanitizeConnectionString(url?: string): string {
+  if (!url) return "postgresql://postgres:postgres@localhost:5432/placeholder";
+  if (url.includes(":/*PL%&Zq8ecyj&Q@")) {
+    return url.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
+  }
+  return url;
+}
+
+const DEFAULT_CONNECTION_STRING = sanitizeConnectionString(process.env.DATABASE_URL);
 
 const globalForPrisma = globalThis as unknown as {
   rawPrismaClient: PrismaClient | undefined;
