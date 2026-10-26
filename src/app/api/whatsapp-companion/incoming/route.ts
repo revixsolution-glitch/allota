@@ -114,23 +114,6 @@ const AD_INTENT_KEYWORDS = [
  */
 export async function GET() {
   try {
-    // Auto-reclassify any active Meta Ad leads for Kesrox to Third-Party Manufacturing
-    await prisma.lead.updateMany({
-      where: {
-        companyId: "cmubi8zf6000004l8y45hhuds",
-        OR: [
-          { name: { contains: "Renjith" } },
-          { name: { contains: "A K DRUGS" } },
-          { inquiryDetails: { contains: "Monthly qty" } },
-          { phoneNumber: { in: ["+136391149277265", "+77588651323577"] } },
-        ],
-      },
-      data: {
-        division: "THIRD_PARTY",
-        sourceTag: "Meta Click-to-WhatsApp Ad (Third-Party Mfg)",
-      },
-    });
-
     const [settings, recentLeads] = await Promise.all([
       prisma.companySettings.findMany({
         where: {
