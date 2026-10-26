@@ -144,6 +144,38 @@ const AD_KEYWORDS = [
   "order",
   "medicine",
   "sample",
+  "kesrox",
+  "third party",
+  "third-party",
+  "3rd party",
+  "manufacturing",
+  "monthly qty",
+  "qty",
+  "quantity",
+  "drug licence",
+  "drug license",
+  "gst",
+  "product",
+  "quotation",
+  "quote",
+  "rates",
+  "rate",
+  "price",
+  "batch",
+  "tablets",
+  "capsules",
+  "syrup",
+  "injection",
+  "dry syrup",
+  "ointment",
+  "hi",
+  "hello",
+  "namaste",
+  "bhejo",
+  "chahiye",
+  "details",
+  "info",
+  "requirements",
 ];
 
 function getSessionFilesMap(authDir: string): Record<string, string> {
@@ -385,6 +417,13 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             lidToPnMap.set(c.lid, pn);
           }
         }
+        if (c.phoneNumber) {
+          const pn = String(c.phoneNumber).replace(/\D/g, "");
+          if (pn.length >= 10) {
+            if (c.id) lidToPnMap.set(c.id, pn);
+            if (c.lid) lidToPnMap.set(c.lid, pn);
+          }
+        }
       }
     });
 
@@ -394,6 +433,13 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
           const pn = String(u.id || u.jid).replace(/\D/g, "");
           if (pn.length >= 10 && !pn.includes("lid")) {
             lidToPnMap.set(u.lid, pn);
+          }
+        }
+        if (u.phoneNumber) {
+          const pn = String(u.phoneNumber).replace(/\D/g, "");
+          if (pn.length >= 10) {
+            if (u.id) lidToPnMap.set(u.id, pn);
+            if (u.lid) lidToPnMap.set(u.lid, pn);
           }
         }
       }
@@ -450,13 +496,17 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
     }
 
     sock.ev.on("messages.upsert", async ({ messages, type }: any) => {
-      if (type !== "notify") return;
+      if (!messages || !Array.isArray(messages)) return;
+      console.log(`[messages.upsert] Received ${messages.length} message(s), type: ${type}`);
 
       for (const msg of messages) {
         const jid = msg.key.remoteJid || "";
 
         // Privacy rules: ignore groups, status, outbound
         if (jid.endsWith("@g.us") || jid.includes("@broadcast") || msg.key.fromMe) continue;
+
+        const saviJid = `${SAVI_PHONE.replace(/\D/g, "")}@s.whatsapp.net`;
+        if (jid === saviJid || jid.includes(SAVI_PHONE.replace(/\D/g, ""))) continue;
 
         const rawText =
           msg.message?.conversation ||
@@ -564,16 +614,23 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         const hasAdReferral = Boolean(contextInfo?.externalAdReply);
         const matchesIntent = AD_KEYWORDS.some((kw) => cleanText.includes(kw));
 
-        if (!hasAdReferral && !matchesIntent) {
-          // Privacy Guard: skip personal chats
+        // For Kesrox, every 1-on-1 customer message on the business WhatsApp is an active inquiry/lead!
+        const isLead = isKesrox || hasAdReferral || matchesIntent;
+        if (!isLead) {
+          console.log(`[Non-Ad Message Ignored] ${jid}: "${cleanText.slice(0, 30)}"`);
           continue;
         }
 
         const divMeta = detectDivision(rawText, contextInfo);
         const senderName = msg.pushName || "Prospect Lead";
 
-        // Check 1: Did WhatsApp protocol expose senderPn directly on the message node?
-        const senderPn = (msg.key as any).senderPn || (msg.key as any).participantPn;
+        // Check 1: Did WhatsApp protocol expose senderPn directly on the message node or key?
+        const senderPn =
+          (msg.key as any).senderPn ||
+          (msg.key as any).participantPn ||
+          (msg as any).senderPn ||
+          (msg as any).participantPn ||
+          (msg as any).pn;
         let realNumber: string | null = null;
 
         if (senderPn) {
@@ -587,18 +644,54 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
         // Check 2: Has this LID already been resolved from device contacts/sync?
         if (!realNumber && lidToPnMap.has(jid)) {
           const mappedPn = lidToPnMap.get(jid)!;
-          realNumber = mappedPn.startsWith("91") && mappedPn.length === 12 ? mappedPn.slice(2) : mappedPn.slice(-10);
+          const cleanPn = String(mappedPn).replace(/\D/g, "");
+          if (cleanPn.length >= 10) {
+            realNumber = cleanPn.startsWith("91") && cleanPn.length === 12 ? cleanPn.slice(2) : cleanPn.slice(-10);
+          }
         }
 
-        // Check 3: Check if message text or non-LID JID directly yields a 10-digit Indian phone
+        // Check 3: Is jid directly a phone number (@s.whatsapp.net)?
+        if (!realNumber && !jid.endsWith("@lid") && jid.includes("@s.whatsapp.net")) {
+          const directPhone = jid.split("@")[0].replace(/\D/g, "");
+          if (directPhone.length >= 10) {
+            realNumber = directPhone.startsWith("91") && directPhone.length === 12 ? directPhone.slice(2) : directPhone.slice(-10);
+            lidToPnMap.set(jid, `91${realNumber}`);
+          }
+        }
+
+        // Check 4: Check if participant has phone number
+        if (!realNumber && (msg.key as any).participant && !(msg.key as any).participant.endsWith("@lid")) {
+          const pPhone = (msg.key as any).participant.split("@")[0].replace(/\D/g, "");
+          if (pPhone.length >= 10) {
+            realNumber = pPhone.startsWith("91") && pPhone.length === 12 ? pPhone.slice(2) : pPhone.slice(-10);
+            lidToPnMap.set(jid, `91${realNumber}`);
+          }
+        }
+
+        // Check 5: Check if message text contains a 10-digit Indian phone number
         if (!realNumber) {
-          const textPhoneMatch = rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+          const textPhoneMatch =
+            rawText.match(/(?:(?:\+?91|0)[\s-]?)?([6-9]\d{4}[\s-]?\d{5})\b/) ||
+            rawText.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
           if (textPhoneMatch) {
-            realNumber = textPhoneMatch[1];
-          } else if (!jid.endsWith("@lid") && jid.includes("@s.whatsapp.net")) {
-            const directPhone = jid.replace(/\D/g, "");
-            if (directPhone.startsWith("91") && directPhone.length === 12) {
-              realNumber = directPhone.slice(2);
+            const clean = textPhoneMatch[1].replace(/\D/g, "");
+            if (clean.length === 10) {
+              realNumber = clean;
+              lidToPnMap.set(jid, `91${realNumber}`);
+            }
+          }
+        }
+
+        // Check 6: Check pushName for phone number
+        if (!realNumber && msg.pushName) {
+          const pushPhoneMatch =
+            msg.pushName.match(/(?:(?:\+?91|0)[\s-]?)?([6-9]\d{4}[\s-]?\d{5})\b/) ||
+            msg.pushName.match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/);
+          if (pushPhoneMatch) {
+            const clean = pushPhoneMatch[1].replace(/\D/g, "");
+            if (clean.length === 10) {
+              realNumber = clean;
+              lidToPnMap.set(jid, `91${realNumber}`);
             }
           }
         }
@@ -650,8 +743,8 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             }
           }
         } else {
-          // SCENARIO B: MASKED META AD LID — Instant Polite Auto-Prompt to Retrieve Number
-          console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid}) — Auto-prompting for ${divMeta.label}...`);
+          // SCENARIO B: MASKED META AD LID
+          console.log(`[Meta Ad Lead Masked][Company: ${session.companyId}] ${senderName} (${jid})`);
 
           // Register in tracker
           activeLidLeads.set(jid, {
@@ -659,7 +752,7 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             senderName,
             initialInquiry: rawText,
             firstSeenAt: new Date(),
-            promptSent: true,
+            promptSent: false,
           });
 
           // 1. Save preliminary lead in CRM
@@ -683,17 +776,14 @@ async function startTenantSocket(companyId: string): Promise<TenantSession> {
             console.warn("[CRM Ingest Preliminary Error]", e?.message);
           }
 
-          // User requirement: Do NOT send automated message asking for phone number in chat
-          console.log(`[Meta Ad Lead][Company: ${session.companyId}] ${senderName} (${jid}) received.`);
-
-          // 3. Forward clear status to Savi WITHOUT any fake/masked numbers
+          // 2. Forward clear status to Savi
           if (isKesrox && session.sock) {
             try {
               const initialNotice =
 `🚨 *NEW ${divMeta.label} LEAD (KESROX)*
 
 👤 *Prospect:* ${senderName}
-📞 *Phone:* ⏳ *Awaiting Prospect's Mobile No.*
+📞 *Phone:* ⏳ *Awaiting Prospect's Mobile No. (Meta Ad LID)*
 💬 *Inquiry:* "${rawText}"
 ⚡ *Source:* Meta Click-to-WhatsApp Ad (${divMeta.emoji} ${divMeta.label})
 🕒 *Received:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
