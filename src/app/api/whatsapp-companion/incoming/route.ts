@@ -114,8 +114,9 @@ const AD_INTENT_KEYWORDS = [
  */
 export async function GET() {
   try {
-    const [settings, recentLeads] = await Promise.all([
-      prisma.companySettings.findMany({
+    let settings: any[] = [];
+    try {
+      settings = await prisma.companySettings.findMany({
         where: {
           whatsappCompanionCreds: { not: null },
         },
@@ -128,8 +129,14 @@ export async function GET() {
           metaAdAccountId: true,
           metaWabaId: true,
         },
-      }),
-      prisma.lead.findMany({
+      });
+    } catch (setErr: any) {
+      console.warn("[Incoming GET] Settings query warning:", setErr?.message);
+    }
+
+    let recentLeads: any[] = [];
+    try {
+      recentLeads = await prisma.lead.findMany({
         where: {
           companyId: "cmubi8zf6000004l8y45hhuds",
         },
@@ -145,11 +152,12 @@ export async function GET() {
           createdAt: true,
           inquiryDetails: true,
         },
-      }),
-    ]);
+      });
+    } catch {}
+
     return NextResponse.json({ success: true, tenants: settings, recentLeads });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message }, { status: 500 });
+    return NextResponse.json({ error: err?.message, tenants: [] }, { status: 200 });
   }
 }
 
