@@ -208,7 +208,12 @@ async function handleRealPhoneCaptured(
   saveLidStore();
 
   const lead = activeLidLeads.get(lidJid);
-  const senderName = lead?.senderName || "WhatsApp Prospect";
+  // CRITICAL: Only dispatch to Savi and CRM if this contact actually sent an incoming ad message!
+  // If not in activeLidLeads, this is just a background address book contact sync from the phone.
+  if (!lead) {
+    return;
+  }
+  const senderName = lead.senderName || "WhatsApp Prospect";
 
   const dispatchKey = `${session.companyId}:${clean10}`;
   if (dispatchedPhones.has(dispatchKey)) {
