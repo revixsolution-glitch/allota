@@ -165,16 +165,28 @@ function saveLeadToHistory(lead: Omit<CapturedLeadRecord, "id">) {
   }
 }
 
-// Completely non-blocking background CRM webhook dispatcher with strict 3-second timeout
-function fireCrmWebhook(payload: any) {
-  fetch(ALLOTA_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(3000),
-  }).catch((err: any) => {
-    console.warn("[CRM Webhook Background Notice]", err?.message);
-  });
+// Completely non-blocking background CRM webhook dispatcher with robust 15-second timeout and retry
+async function fireCrmWebhook(payload: any, retries = 2) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(ALLOTA_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        console.log(`[CRM Webhook OK] Ingested lead for ${payload.senderName || payload.senderPhone}`);
+        return;
+      }
+    } catch (err: any) {
+      if (attempt === retries) {
+        console.warn(`[CRM Webhook Warning] Failed after ${retries} attempts:`, err?.message);
+      } else {
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+  }
 }
 
 // Initial hydration from disk on module load
