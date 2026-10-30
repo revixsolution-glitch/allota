@@ -10,7 +10,6 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
-import { formatInquiryDetails } from "@/lib/lead-format";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -488,13 +487,6 @@ export default async function EmployeeLeadsPage({
                       </span>
                     )}
                   </div>
-
-                  {/* Inquiry notes */}
-                  {lead.inquiryDetails && (
-                    <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
-                      {formatInquiryDetails(lead.inquiryDetails)}
-                    </p>
-                  )}
 
                   {/* Direct 1-tap dialers */}
                   {cleanPhone && (

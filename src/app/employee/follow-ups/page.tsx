@@ -7,7 +7,6 @@ import { FollowUpPicker } from "@/components/FollowUpPicker";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import { SourceBadge } from "@/components/SourceBadge";
 import { GradientText } from "@/components/GradientText";
-import { formatInquiryDetails } from "@/lib/lead-format";
 import { CLOSED_LEAD_STATUSES, startOfDay, endOfDay } from "@/lib/follow-up";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -302,7 +301,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                   <th className="px-4 py-3.5">Category</th>
                   <th className="px-4 py-3.5">Channel / Source</th>
                   <th className="px-4 py-3.5">Scheduled Date</th>
-                  <th className="px-4 py-3.5">Inquiry Details</th>
+                  <th className="px-4 py-3.5">Remarks</th>
                   <th className="px-4 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Instant Action</th>
                 </tr>
@@ -315,8 +314,6 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                   const targetDate = lead.followUpAt ? new Date(lead.followUpAt) : null;
                   const isOverdue = targetDate ? targetDate < todayStart : false;
                   const isToday = targetDate ? targetDate >= todayStart && targetDate < todayEnd : false;
-
-                  const cleanInquiry = formatInquiryDetails(lead.inquiryDetails);
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
@@ -383,26 +380,21 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                         </div>
                       </td>
 
-                      {/* Clean Customer Inquiry */}
-                      <td className="px-4 py-3.5 max-w-xs">
-                        <p className="text-xs text-ink-muted truncate" title={cleanInquiry}>
-                          {cleanInquiry}
-                        </p>
-                        <div className="mt-1">
-                          <LeadRemarksModal
-                            leadId={lead.id}
-                            leadName={lead.name ?? "Unnamed Prospect"}
-                            leadPhone={lead.phoneNumber ?? ""}
-                            leadStatus={lead.status}
-                            followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
-                            remarks={lead.remarks.map((r) => ({
-                              id: r.id,
-                              remark: r.remark,
-                              createdAt: r.createdAt.toISOString(),
-                              employeeName: r.employee.name,
-                            }))}
-                          />
-                        </div>
+                      {/* Remarks & Notes Modal */}
+                      <td className="px-4 py-3.5">
+                        <LeadRemarksModal
+                          leadId={lead.id}
+                          leadName={lead.name ?? "Unnamed Prospect"}
+                          leadPhone={lead.phoneNumber ?? ""}
+                          leadStatus={lead.status}
+                          followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                          remarks={lead.remarks.map((r) => ({
+                            id: r.id,
+                            remark: r.remark,
+                            createdAt: r.createdAt.toISOString(),
+                            employeeName: r.employee.name,
+                          }))}
+                        />
                       </td>
 
                       {/* Status */}
@@ -471,8 +463,6 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
               const isOverdue = targetDate ? targetDate < todayStart : false;
               const isToday = targetDate ? targetDate >= todayStart && targetDate < todayEnd : false;
 
-              const cleanInquiry = formatInquiryDetails(lead.inquiryDetails);
-
               return (
                 <div key={lead.id} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -505,10 +495,6 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       <span>{isOverdue ? "🚨 Overdue" : isToday ? "⏰ Due Today" : "📅 Scheduled"}</span>
                     </span>
                   </div>
-
-                  <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line leading-relaxed">
-                    {cleanInquiry}
-                  </p>
 
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
                     <div className="flex items-center gap-2">

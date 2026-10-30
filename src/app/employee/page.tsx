@@ -9,7 +9,6 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
-import { formatInquiryDetails } from "@/lib/lead-format";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -404,7 +403,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                     <th className="px-5 py-3.5">Prospect</th>
                     <th className="px-4 py-3.5">Category</th>
                     <th className="px-4 py-3.5">Channel / Source</th>
-                    <th className="px-4 py-3.5">Inquiry Details</th>
                     <th className="px-4 py-3.5">Status</th>
                     <th className="px-5 py-3.5 text-right">Instant Action</th>
                   </tr>
@@ -437,12 +435,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
                         <td className="px-4 py-3.5">
                           <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                        </td>
-
-                        <td className="px-4 py-3.5 max-w-xs">
-                          <p className="text-xs text-ink-muted truncate" title={lead.inquiryDetails || undefined}>
-                            {formatInquiryDetails(lead.inquiryDetails)}
-                          </p>
                         </td>
 
                         <td className="px-4 py-3.5">
@@ -532,12 +524,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                     <div className="pt-0.5">
                       <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                     </div>
-
-                    {lead.inquiryDetails && (
-                      <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
-                        {formatInquiryDetails(lead.inquiryDetails)}
-                      </p>
-                    )}
 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
                       <div className="flex items-center gap-2">
