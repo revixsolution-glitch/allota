@@ -21,41 +21,48 @@ function BrandSvg({ path, color, className }: { path: string; color: string; cla
  * Renders the official (or closest recognizable) brand mark for a lead source.
  * Falls back to a generic icon for sources with no distinct third-party brand.
  */
-export function SourceIcon({ source, className = "h-5 w-5" }: { source: LeadSource; className?: string }) {
-  switch (source) {
-    case LeadSource.META:
-      return <BrandSvg path={META_PATH} color="#0081FB" className={className} />;
-    case LeadSource.WHATSAPP:
-      return <BrandSvg path={WHATSAPP_PATH} color="#25D366" className={className} />;
-    case LeadSource.EXCEL_IMPORT:
-      return <BrandSvg path={EXCEL_PATH} color="#217346" className={className} />;
-    case LeadSource.INDIAMART:
-      // eslint-disable-next-line @next/next/no-img-element
-      return <img src="/indiamart-logo.png" alt="IndiaMART" className={`${className} object-contain`} />;
-    case LeadSource.WEBSITE:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" className={className} aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path strokeLinecap="round" d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
-        </svg>
-      );
-    case LeadSource.SOCIAL:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth="2" className={className} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l18-7-7 18-2.5-7.5L3 11Z" />
-        </svg>
-      );
-    case LeadSource.MANUAL:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className={className} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" className={className} aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-        </svg>
-      );
+export function SourceIcon({ source, className = "h-5 w-5" }: { source: LeadSource | string; className?: string }) {
+  const s = String(source || "").toUpperCase();
+
+  if (s === "META" || s === LeadSource.META) {
+    return <BrandSvg path={META_PATH} color="#0081FB" className={className} />;
   }
+  if (s === "WHATSAPP" || s === LeadSource.WHATSAPP) {
+    return <BrandSvg path={WHATSAPP_PATH} color="#25D366" className={className} />;
+  }
+  if (s === "INDIAMART" || s === LeadSource.INDIAMART) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/indiamart-logo.png" alt="IndiaMART" className={`${className} object-contain`} />;
+  }
+  if (s === "EXCEL_IMPORT" || s === "EXCEL" || s === LeadSource.EXCEL_IMPORT) {
+    return <BrandSvg path={EXCEL_PATH} color="#217346" className={className} />;
+  }
+  if (s === "WEBSITE" || s === LeadSource.WEBSITE) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" className={className} aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
+      </svg>
+    );
+  }
+  if (s === "SOCIAL" || s === LeadSource.SOCIAL) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth="2" className={className} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l18-7-7 18-2.5-7.5L3 11Z" />
+      </svg>
+    );
+  }
+  if (s === "MANUAL" || s === LeadSource.MANUAL) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className={className} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
 }

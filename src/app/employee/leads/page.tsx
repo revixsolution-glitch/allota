@@ -302,7 +302,7 @@ export default async function EmployeeLeadsPage({
                 <tr>
                   <th className="px-5 py-3.5">Prospect & Contact</th>
                   <th className="px-4 py-3.5">Division Category</th>
-                  <th className="px-4 py-3.5">Channel / Batch</th>
+                  <th className="px-4 py-3.5">Channel / Source</th>
                   <th className="px-4 py-3.5">Location</th>
                   <th className="px-4 py-3.5">Follow Up</th>
                   <th className="px-4 py-3.5">Remarks</th>

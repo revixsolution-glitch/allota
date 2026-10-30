@@ -6,6 +6,7 @@ import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLeadActiveStatus } from "@/lib/admin-actions";
 import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { SourceBadge } from "@/components/SourceBadge";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -152,12 +153,7 @@ export default async function DeadLeadsPage({
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="font-semibold text-ink">{lead.source}</span>
-                        {lead.sourceTag && (
-                          <p className="text-[10px] text-ink-faint mt-0.5 truncate max-w-[140px]" title={lead.sourceTag}>
-                            {lead.sourceTag}
-                          </p>
-                        )}
+                        <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       <td className="px-4 py-4">
