@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { completeFollowupTask, updateEmployeeLeadStatus } from "@/lib/admin-actions";
+import { addLeadRemark, completeFollowupTask, updateEmployeeLeadStatus } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
+import { FollowUpPicker } from "@/components/FollowUpPicker";
+import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
@@ -75,14 +77,19 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     prisma.lead.findMany({
       where: {
         assignedEmployeeId: employeeId,
+        status: { not: LeadStatus.CONVERTED },
         ...leadDateFilter,
       },
       include: {
         _count: { select: { calls: true } },
         reassignmentLogs: { take: 1, orderBy: { reassignedAt: "desc" } },
+        remarks: {
+          include: { employee: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
-      orderBy: { createdAt: "desc" },
-      take: 8,
+      orderBy: { updatedAt: "desc" },
+      take: 15,
     }),
     prisma.lead.groupBy({
       by: ["division"],
@@ -395,16 +402,17 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           </div>
         ) : (
           <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-            {/* Desktop Table View */}
+            {/* Desktop Table View matching Allotted Leads Desk */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+                <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   <tr>
-                    <th className="px-5 py-3.5">Prospect</th>
-                    <th className="px-4 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">Prospect & Contact</th>
+                    <th className="px-4 py-3.5">Division Category</th>
                     <th className="px-4 py-3.5">Channel / Source</th>
-                    <th className="px-4 py-3.5">Status</th>
-                    <th className="px-5 py-3.5 text-right">Instant Action</th>
+                    <th className="px-4 py-3.5">Follow Up</th>
+                    <th className="px-4 py-3.5">Remarks</th>
+                    <th className="px-5 py-3.5 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -414,60 +422,19 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
                     return (
                       <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                        <td className="px-5 py-3.5">
-                          <p className="font-bold text-ink text-sm">{lead.name}</p>
-                          <p className="font-mono text-ink-muted text-xs mt-0.5">
-                            {lead.phoneNumber}
-                          </p>
-                        </td>
-
-                        <td className="px-4 py-3.5">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              isThirdParty
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {isThirdParty ? "Third-Party" : "PCD Franchise"}
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-3.5">
-                          <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                        </td>
-
-                        <td className="px-4 py-3.5">
-                          <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5">
-                            <input type="hidden" name="leadId" value={lead.id} />
-                            <select
-                              name="status"
-                              defaultValue={lead.status}
-                              className="h-7 rounded-lg border border-line bg-white px-1.5 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                              <option value={LeadStatus.ASSIGNED}>Assigned</option>
-                              <option value={LeadStatus.CONTACTED}>Contacted</option>
-                              <option value={LeadStatus.INTERESTED}>Interested</option>
-                              <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                              <option value={LeadStatus.CONVERTED}>Converted ✓</option>
-                            </select>
-                            <button
-                              type="submit"
-                              className="h-7 rounded-lg bg-slate-100 hover:bg-primary hover:text-white text-ink px-2 text-[10px] font-bold transition cursor-pointer"
-                            >
-                              Save
-                            </button>
-                          </form>
-                        </td>
-
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        {/* Prospect & Contact */}
+                        <td className="px-5 py-4">
+                          <div className="font-extrabold text-ink text-sm">
+                            {lead.name || "Anonymous Prospect"}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
+                            <span>{lead.phoneNumber || "No Phone"}</span>
                             {cleanPhone && (
                               <>
                                 <a
                                   href={`tel:${cleanPhone}`}
-                                  title="Call Prospect"
-                                  className="h-7 w-7 rounded-lg bg-blue-50 text-blue-700 inline-flex items-center justify-center hover:bg-blue-100"
+                                  title="Click to Call"
+                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
                                 >
                                   📞
                                 </a>
@@ -475,19 +442,105 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                                   href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  title="WhatsApp Chat"
-                                  className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-700 inline-flex items-center justify-center hover:bg-emerald-100"
+                                  title="Open WhatsApp Chat"
+                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
                                 >
                                   💬
                                 </a>
                               </>
                             )}
-                            <Link
-                              href="/employee/leads"
-                              className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-ink hover:bg-primary hover:text-white transition"
-                            >
-                              Desk &rarr;
-                            </Link>
+                          </div>
+                          {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
+                            <p className="text-[10px] text-teal-700 font-bold mt-1">
+                              ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
+                            </p>
+                          )}
+                        </td>
+
+                        {/* Division Category */}
+                        <td className="px-4 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                              isThirdParty
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
+                          </span>
+                        </td>
+
+                        {/* Channel / Source */}
+                        <td className="px-4 py-4">
+                          <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
+                        </td>
+
+                        {/* Follow Up */}
+                        <td className="px-4 py-4">
+                          <FollowUpPicker
+                            leadId={lead.id}
+                            followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                            size="sm"
+                          />
+                        </td>
+
+                        {/* Remarks */}
+                        <td className="px-4 py-4">
+                          <details className="inline-block text-left group">
+                            <summary className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
+                              <span>📝 Remarks</span>
+                              <span className="text-[10px] text-amber-600">
+                                ({lead.remarks.length})
+                              </span>
+                            </summary>
+
+                            <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
+                              <h4 className="text-xs font-extrabold text-ink mb-2">
+                                Remarks for {lead.name || "this lead"}
+                              </h4>
+
+                              {lead.remarks.length > 0 && (
+                                <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
+                                  {lead.remarks.map((r) => (
+                                    <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
+                                      <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
+                                      <p className="mt-1 text-[10px] text-ink-faint">
+                                        {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
+                                          day: "numeric",
+                                          month: "short",
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <form action={addLeadRemark} className="space-y-2">
+                                <input type="hidden" name="leadId" value={lead.id} />
+                                <textarea
+                                  name="remark"
+                                  rows={2}
+                                  required
+                                  placeholder="Write a short remark for admin..."
+                                  className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                />
+                                <button
+                                  type="submit"
+                                  className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
+                                >
+                                  Add Remark
+                                </button>
+                              </form>
+                            </div>
+                          </details>
+                        </td>
+
+                        {/* Status: Active / Converted / Dead */}
+                        <td className="px-5 py-4 text-right">
+                          <div className="inline-flex justify-end">
+                            <LeadStatusToggle leadId={lead.id} status={lead.status} />
                           </div>
                         </td>
                       </tr>
@@ -507,7 +560,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                   <div key={lead.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-bold text-ink text-base">{lead.name}</p>
+                        <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
                         <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
                       </div>
                       <span
@@ -521,55 +574,71 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                       </span>
                     </div>
 
-                    <div className="pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
+                      <details className="inline-block text-left group">
+                        <summary className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800 cursor-pointer">
+                          <span>📝 Remarks ({lead.remarks.length})</span>
+                        </summary>
+                        <div className="mt-2 rounded-xl bg-white p-3 shadow-md border border-line">
+                          {lead.remarks.length > 0 && (
+                            <div className="mb-2 max-h-32 overflow-y-auto space-y-1.5">
+                              {lead.remarks.map((r) => (
+                                <p key={r.id} className="text-[11px] text-ink bg-slate-50 p-1.5 rounded">
+                                  {r.remark}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          <form action={addLeadRemark} className="space-y-1.5">
+                            <input type="hidden" name="leadId" value={lead.id} />
+                            <textarea
+                              name="remark"
+                              rows={2}
+                              required
+                              placeholder="Add quick remark..."
+                              className="w-full rounded-lg border border-line p-1.5 text-xs text-ink"
+                            />
+                            <button
+                              type="submit"
+                              className="w-full py-1 rounded-lg bg-amber-600 text-white text-xs font-bold"
+                            >
+                              Add Remark
+                            </button>
+                          </form>
+                        </div>
+                      </details>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
-                      <div className="flex items-center gap-2">
-                        {cleanPhone && (
-                          <>
-                            <a
-                              href={`tel:${cleanPhone}`}
-                              className="flex items-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 active:bg-blue-200"
-                            >
-                              <span>📞</span>
-                              <span>Call</span>
-                            </a>
-                            <a
-                              href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 active:bg-emerald-200"
-                            >
-                              <span>💬</span>
-                              <span>WhatsApp</span>
-                            </a>
-                          </>
-                        )}
-                      </div>
-
-                      <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5">
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <select
-                          name="status"
-                          defaultValue={lead.status}
-                          className="h-8 rounded-xl border border-line bg-white px-2 text-xs font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          <option value={LeadStatus.ASSIGNED}>Assigned</option>
-                          <option value={LeadStatus.CONTACTED}>Contacted</option>
-                          <option value={LeadStatus.INTERESTED}>Interested</option>
-                          <option value={LeadStatus.NOT_INTERESTED}>Not Interested</option>
-                          <option value={LeadStatus.CONVERTED}>Converted ✓</option>
-                        </select>
-                        <button
-                          type="submit"
-                          className="h-8 rounded-xl bg-slate-100 hover:bg-primary hover:text-white text-ink px-2.5 text-xs font-bold transition cursor-pointer"
-                        >
-                          Save
-                        </button>
-                      </form>
+                      <FollowUpPicker
+                        leadId={lead.id}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        size="sm"
+                      />
+                      <LeadStatusToggle leadId={lead.id} status={lead.status} />
                     </div>
+
+                    {cleanPhone && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <a
+                          href={`tel:${cleanPhone}`}
+                          className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 py-1.5 text-xs font-bold text-blue-700 active:bg-blue-200"
+                        >
+                          <span>📞</span>
+                          <span>Call Direct</span>
+                        </a>
+                        <a
+                          href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 py-1.5 text-xs font-bold text-emerald-700 active:bg-emerald-200"
+                        >
+                          <span>💬</span>
+                          <span>WhatsApp</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 );
               })}

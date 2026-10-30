@@ -49,6 +49,7 @@ export default async function EmployeeLeadsPage({
 
   const where: Record<string, any> = {
     assignedEmployeeId: employeeId,
+    status: { not: LeadStatus.CONVERTED },
   };
 
   if (selectedDivision === "PCD_FRANCHISE" || selectedDivision === "THIRD_PARTY") {
@@ -83,7 +84,10 @@ export default async function EmployeeLeadsPage({
     }),
     prisma.lead.groupBy({
       by: ["division"],
-      where: { assignedEmployeeId: employeeId },
+      where: {
+        assignedEmployeeId: employeeId,
+        status: { not: LeadStatus.CONVERTED },
+      },
       _count: { _all: true },
     }),
   ]);
@@ -303,7 +307,6 @@ export default async function EmployeeLeadsPage({
                   <th className="px-5 py-3.5">Prospect & Contact</th>
                   <th className="px-4 py-3.5">Division Category</th>
                   <th className="px-4 py-3.5">Channel / Source</th>
-                  <th className="px-4 py-3.5">Location</th>
                   <th className="px-4 py-3.5">Follow Up</th>
                   <th className="px-4 py-3.5">Remarks</th>
                   <th className="px-5 py-3.5 text-right">Status</th>
@@ -364,14 +367,9 @@ export default async function EmployeeLeadsPage({
                         </span>
                       </td>
 
-                      {/* Channel / Batch */}
+                      {/* Channel / Source */}
                       <td className="px-4 py-4">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                      </td>
-
-                      {/* Location */}
-                      <td className="px-4 py-4 text-ink-muted">
-                        {lead.city ? `${lead.city}, ${lead.state || ""}` : "—"}
                       </td>
 
                       {/* Follow Up */}
@@ -436,10 +434,10 @@ export default async function EmployeeLeadsPage({
                         </details>
                       </td>
 
-                      {/* Status: Active / Dead */}
+                      {/* Status: Active / Converted / Dead */}
                       <td className="px-5 py-4 text-right">
-                        <div className="inline-flex">
-                          <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
+                        <div className="inline-flex justify-end">
+                          <LeadStatusToggle leadId={lead.id} status={lead.status} />
                         </div>
                       </td>
                     </tr>

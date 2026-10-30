@@ -26,11 +26,8 @@ export default async function EmployeeLayout({
     { href: "/employee", label: "Dashboard" },
     { href: "/employee/leads", label: "My Allotted Leads" },
     { href: "/employee/follow-ups", label: "Follow-ups" },
+    { href: "/employee/clients", label: "My Clients" },
   ];
-
-  if (settings?.enableClientsManagement) {
-    navItems.push({ href: "/employee/clients", label: "My Clients" });
-  }
 
   // The business name entered when the company was onboarded.
   const displayTitle = company?.name?.trim() || "Allota AI";

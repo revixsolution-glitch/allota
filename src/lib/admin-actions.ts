@@ -1299,7 +1299,8 @@ export async function setLeadFollowUp(formData: FormData) {
 
 const leadActiveStatusSchema = z.object({
   leadId: requiredText,
-  isDead: z.enum(["true", "false"]),
+  status: z.enum(["ACTIVE", "CONVERTED", "DEAD"]).optional(),
+  isDead: z.enum(["true", "false"]).optional(),
 });
 
 export async function updateLeadActiveStatus(formData: FormData) {
@@ -1310,7 +1311,8 @@ export async function updateLeadActiveStatus(formData: FormData) {
 
   const input = leadActiveStatusSchema.parse({
     leadId: formData.get("leadId"),
-    isDead: formData.get("isDead"),
+    status: formData.get("status") || undefined,
+    isDead: formData.get("isDead") || undefined,
   });
 
   const lead = await prisma.lead.findUnique({
@@ -1325,23 +1327,69 @@ export async function updateLeadActiveStatus(formData: FormData) {
     throw new Error("Unauthorized to update this lead");
   }
 
-  const newStatus =
-    input.isDead === "true"
-      ? LeadStatus.NOT_INTERESTED
-      : lead.status === LeadStatus.NOT_INTERESTED
-      ? LeadStatus.CONTACTED
-      : lead.status;
+  let newStatus = lead.status;
+  let deadAt = lead.deadAt;
+  let clientId = lead.clientId;
+
+  if (input.status === "CONVERTED") {
+    newStatus = LeadStatus.CONVERTED;
+    deadAt = null;
+
+    // Graduate converted prospect into a Client under the representative
+    if (!clientId) {
+      const existingClient = lead.phoneNumber && lead.companyId
+        ? await prisma.client.findFirst({
+            where: {
+              companyId: lead.companyId,
+              phoneNumber: lead.phoneNumber,
+            },
+          })
+        : null;
+
+      if (existingClient) {
+        clientId = existingClient.id;
+      } else if (lead.companyId) {
+        const newClient = await prisma.client.create({
+          data: {
+            companyId: lead.companyId,
+            name: lead.name?.trim() || "Converted Client",
+            phoneNumber: lead.phoneNumber,
+            assignedEmployeeId: lead.assignedEmployeeId,
+            businessType: lead.division || "PCD_FRANCHISE",
+            status: ClientStatus.ACTIVE,
+            companyDetails: `Converted from lead on ${new Date().toLocaleDateString("en-IN")}${
+              lead.sourceTag ? ` (${lead.sourceTag})` : ""
+            }`,
+          },
+        });
+        clientId = newClient.id;
+      }
+    }
+  } else if (input.status === "DEAD" || input.isDead === "true") {
+    newStatus = LeadStatus.NOT_INTERESTED;
+    deadAt = new Date();
+  } else if (input.status === "ACTIVE" || input.isDead === "false") {
+    newStatus =
+      lead.status === LeadStatus.NOT_INTERESTED || lead.status === LeadStatus.CONVERTED
+        ? LeadStatus.CONTACTED
+        : lead.status;
+    deadAt = null;
+  }
 
   await prisma.lead.update({
     where: { id: input.leadId },
     data: {
       status: newStatus,
-      deadAt: input.isDead === "true" ? new Date() : null,
+      deadAt,
+      ...(clientId ? { clientId } : {}),
     },
   });
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
+  revalidatePath("/employee/clients");
+  revalidatePath("/employee/follow-ups");
+  revalidatePath("/admin/clients");
   revalidatePath("/admin/leads");
   revalidatePath("/admin/leads-iq");
   revalidatePath("/admin/dead-leads");
