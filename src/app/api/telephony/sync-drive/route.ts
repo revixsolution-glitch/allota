@@ -463,8 +463,8 @@ async function handleSync(req: NextRequest) {
                     source: "MANUAL",
                     status: "CONTACTED",
                     assignedEmployeeId: targetRep.id,
-                    city: item.analysis.territory || "Uttar Pradesh",
-                    state: "India",
+                    city: item.analysis.territory || null,
+                    state: item.analysis.territory ? "India" : null,
                   },
                 });
                 leadId = newLead.id;
@@ -590,8 +590,8 @@ async function handleSync(req: NextRequest) {
             source: "MANUAL",
             status: "CONTACTED",
             assignedEmployeeId: rep.id,
-            city: analysis?.territory || analysis?.monopolyTerritory || "Uttar Pradesh",
-            state: "India",
+            city: analysis?.territory || analysis?.monopolyTerritory || null,
+            state: (analysis?.territory || analysis?.monopolyTerritory) ? "India" : null,
           },
         });
       }

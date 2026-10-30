@@ -14,6 +14,15 @@ export interface VerifiedCallRecord {
 }
 
 export const RECENT_VERIFIED_TRANSCRIPTS: Record<string, VerifiedCallRecord> = {
+  "261030_133954": {
+    transcript: "Employee: Hello.\nCustomer: Hello, Tarun yes Tarun ji.\nEmployee: Namaskar sir, Tarun ji to nahi hai sir. Main to office se baat kar raha hoon, haan ji.\nCustomer: Haan, office mein nahi aaye hue hain Sharma?\nEmployee: Sir, abhi nahi aaye hain.\nCustomer: Nahi.\nEmployee: Haan, wo dusra unka jo number hai wo phone utha nahi rahe hain. To aapka koi number hai?\nCustomer: Number to wohi hai agar agar baat hoti hai to main unko keh dunga aapka phone aaya tha.\nEmployee: Haan, agar baat kar lijiye to. Haan ji, theek hai sir.\nCustomer: Boliye jab baat karne ke liye.\nEmployee: theek hai sir.",
+    aiSummary: "Caller ne Kesrox office me Tarun ji (Sharma) ke baare me poochha. Savi ne clarify kiya ki Tarun ji abhi office nahi aaye hain aur dusre number par reach nahi ho rahe. Savi ne note kiya aur Tarun ji se baat hone par call back convey karne ka assurance diya.",
+    behaviorTags: ["💀 Dead Lead", "Internal Management", "Call Back Request", "Staff / Office Query"],
+    sentiment: "DEAD",
+    durationSec: 34,
+    territory: "Mohali (Head Office)",
+    contactName: "Office Query - Tarun Sir (Sharma)",
+  },
   "261015_134646": {
     transcript: "Employee: Hello?\nCustomer: Ye bol raha hai ki mal nikal gaya kya?\nEmployee: Abhi nahi nikla sir. Toh bol raha hai ki jaise jo Roxifort teen ml wala aaya nahi hai kya?",
     aiSummary: "Customer ne Roxifort 3ml ke dispatch ke baare mein poochha hai ki mal nikal gaya hai ya nahi. Savi ne clarify kiya ki abhi dispatch nahi hua hai. Agla kadam hoga customer ko Roxifort ke stock status aur dispatch ki update dena.",
