@@ -9,6 +9,8 @@ import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
+import { SourceBadge } from "@/components/SourceBadge";
+import { formatInquiryDetails } from "@/lib/lead-format";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -365,14 +367,7 @@ export default async function EmployeeLeadsPage({
 
                       {/* Channel / Batch */}
                       <td className="px-4 py-4">
-                        <span className="font-semibold text-ink text-xs">
-                          {lead.source}
-                        </span>
-                        {lead.sourceTag && (
-                          <p className="text-[10px] text-ink-faint mt-0.5 truncate max-w-[140px]" title={lead.sourceTag}>
-                            🏷️ {lead.sourceTag}
-                          </p>
-                        )}
+                        <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Location */}
@@ -486,14 +481,7 @@ export default async function EmployeeLeadsPage({
 
                   {/* Badges strip: Source & Location */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-ink">
-                      {lead.source}
-                    </span>
-                    {lead.sourceTag && (
-                      <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] text-ink-muted">
-                        🏷️ {lead.sourceTag}
-                      </span>
-                    )}
+                    <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                     {lead.city && (
                       <span className="text-ink-muted text-xs">
                         📍 {lead.city}{lead.state ? `, ${lead.state}` : ""}
@@ -504,7 +492,7 @@ export default async function EmployeeLeadsPage({
                   {/* Inquiry notes */}
                   {lead.inquiryDetails && (
                     <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
-                      {lead.inquiryDetails}
+                      {formatInquiryDetails(lead.inquiryDetails)}
                     </p>
                   )}
 

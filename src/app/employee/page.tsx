@@ -8,6 +8,8 @@ import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
+import { SourceBadge } from "@/components/SourceBadge";
+import { formatInquiryDetails } from "@/lib/lead-format";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -434,17 +436,12 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         <td className="px-4 py-3.5">
-                          <span className="font-semibold text-ink">{lead.source}</span>
-                          {lead.sourceTag && (
-                            <p className="text-[10px] text-ink-faint truncate max-w-[120px]">
-                              🏷️ {lead.sourceTag}
-                            </p>
-                          )}
+                          <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                         </td>
 
                         <td className="px-4 py-3.5 max-w-xs">
-                          <p className="text-xs text-ink-muted truncate">
-                            {lead.inquiryDetails || "Inquiry received"}
+                          <p className="text-xs text-ink-muted truncate" title={lead.inquiryDetails || undefined}>
+                            {formatInquiryDetails(lead.inquiryDetails)}
                           </p>
                         </td>
 
@@ -532,9 +529,13 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                       </span>
                     </div>
 
+                    <div className="pt-0.5">
+                      <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
+                    </div>
+
                     {lead.inquiryDetails && (
                       <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
-                        {lead.inquiryDetails}
+                        {formatInquiryDetails(lead.inquiryDetails)}
                       </p>
                     )}
 

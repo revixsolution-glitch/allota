@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { SourceIcon } from "@/components/SourceIcon";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
+import { formatInquiryDetails } from "@/lib/lead-format";
 
 const leadSources = [
   {
@@ -1166,7 +1167,7 @@ export default async function AdminLeadsPage({
 
                 {/* Inquiry notes */}
                 <p className="text-xs text-ink-muted bg-slate-50 p-2.5 rounded-xl border border-line-soft leading-relaxed">
-                  {leadDataText}
+                  {formatInquiryDetails(leadDataText)}
                 </p>
 
                 {/* Employee Remarks on Mobile */}

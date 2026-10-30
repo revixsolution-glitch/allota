@@ -25,6 +25,7 @@ export default async function EmployeeLayout({
   const navItems = [
     { href: "/employee", label: "Dashboard" },
     { href: "/employee/leads", label: "My Allotted Leads" },
+    { href: "/employee/follow-ups", label: "Follow-ups" },
   ];
 
   if (settings?.enableClientsManagement) {
