@@ -13,6 +13,8 @@ interface AdminCallsPageProps {
     from?: string;
     to?: string;
     search?: string;
+    callId?: string;
+    leadId?: string;
   }>;
 }
 
@@ -23,16 +25,17 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
   }
   const activeCompanyId = getActiveCompanyId(session);
   const searchParams = props.searchParams ? await props.searchParams : {};
+  const hasDirectCall = Boolean(searchParams.callId || searchParams.leadId);
   const dateFilter = parseDashboardDateFilter(
-    searchParams.range,
+    hasDirectCall ? "all_time" : searchParams.range,
     searchParams.from,
     searchParams.to
   );
 
   const callDateFilter =
-    dateFilter.start && dateFilter.end
+    !hasDirectCall && dateFilter.start && dateFilter.end
       ? { occurredAt: { gte: dateFilter.start, lte: dateFilter.end } }
-      : dateFilter.start
+      : !hasDirectCall && dateFilter.start
       ? { occurredAt: { gte: dateFilter.start } }
       : {};
 

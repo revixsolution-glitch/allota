@@ -133,6 +133,7 @@ export default async function DeadLeadsPage({
               </thead>
               <tbody className="divide-y divide-line">
                 {deadLeads.map((lead) => {
+                  const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
                   const aiReason = buildAiReason(lead);
                   const lastCall = lead.calls[0];
 
@@ -187,7 +188,29 @@ export default async function DeadLeadsPage({
                       </td>
 
                       <td className="px-4 py-4 max-w-xs">
-                        <p className="text-[11px] text-ink-muted leading-relaxed line-clamp-3">{aiReason}</p>
+                        {callWithSummary ? (
+                          <Link
+                            href={`/admin/calls?callId=${callWithSummary.id}`}
+                            className="group block rounded-xl bg-violet-50/80 hover:bg-violet-100 border border-violet-200/80 p-2.5 transition shadow-2xs hover:shadow-xs"
+                            title="Open full AI summary & call recording"
+                          >
+                            <div className="flex items-center justify-between gap-1 text-[10px] font-bold text-violet-900 mb-1">
+                              <span className="inline-flex items-center gap-1">
+                                <span>🤖</span>
+                                <span>AI Call Summary</span>
+                              </span>
+                              <span className="text-violet-600 group-hover:text-violet-900 flex items-center gap-0.5">
+                                <span>Open in AI Calls</span>
+                                <span>↗</span>
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-700 leading-relaxed line-clamp-3 group-hover:text-violet-950">
+                              {callWithSummary.aiSummary}
+                            </p>
+                          </Link>
+                        ) : (
+                          <p className="text-[11px] text-ink-muted leading-relaxed line-clamp-3">{aiReason}</p>
+                        )}
                       </td>
 
                       <td className="px-5 py-4 text-right">

@@ -104,6 +104,8 @@ export function AdminCallsView({
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const searchParams = useSearchParams();
   const searchParam = searchParams.get("search") || "";
+  const callIdParam = searchParams.get("callId") || "";
+  const leadIdParam = searchParams.get("leadId") || "";
   const [leadCategoryFilter, setLeadCategoryFilter] = useState<"ALL" | "HOT" | "WARM" | "COLD" | "DEAD">("ALL");
   const [searchQuery, setSearchQuery] = useState(searchParam);
 
@@ -112,10 +114,11 @@ export function AdminCallsView({
       setSearchQuery(searchParam);
     }
   }, [searchParam]);
+
   const [sendingAlertCallId, setSendingAlertCallId] = useState<string | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
-  const [activeDocCallId, setActiveDocCallId] = useState<string | null>(null);
-  const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>("");
+  const [activeDocCallId, setActiveDocCallId] = useState<string | null>(callIdParam || null);
+  const [selectedEmbeddedDocId, setSelectedEmbeddedDocId] = useState<string>(callIdParam || "");
   const [copiedEmbeddedBrief, setCopiedEmbeddedBrief] = useState(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
   const [callsPage, setCallsPage] = useState(1);
@@ -331,6 +334,34 @@ Report generated via Allota AI Telephony Engine
   useEffect(() => {
     setCallsPage(1);
   }, [selectedRepId, statusFilter, datePreset, customStartDate, customEndDate, leadCategoryFilter, searchQuery]);
+
+  // Deep-link effect: when navigated via ?callId=... or ?leadId=..., select and open that specific call
+  useEffect(() => {
+    if (callIdParam || leadIdParam) {
+      const target = callIdParam
+        ? uniqueCallsList.find((c) => c.id === callIdParam)
+        : uniqueCallsList.find((c) => c.leadId === leadIdParam);
+
+      if (target) {
+        setSelectedEmbeddedDocId(target.id);
+        setActiveDocCallId(target.id);
+        if (typeof window !== "undefined" && window.innerWidth < 1024) {
+          setDocModalOpen(true);
+        }
+        const idx = filteredCalls.findIndex((c) => c.id === target.id);
+        if (idx >= 0) {
+          const targetPage = Math.floor(idx / CALLS_PAGE_SIZE) + 1;
+          setCallsPage(targetPage);
+        }
+        setTimeout(() => {
+          const el = document.getElementById(`call-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 300);
+      }
+    }
+  }, [callIdParam, leadIdParam, uniqueCallsList, filteredCalls]);
 
   const totalCallsPages = Math.max(1, Math.ceil(filteredCalls.length / CALLS_PAGE_SIZE));
   const paginatedCalls = useMemo(() => {
@@ -670,6 +701,7 @@ Report generated via Allota AI Telephony Engine
                     return (
                       <div
                         key={c.id}
+                        id={`call-${c.id}`}
                         onClick={() => {
                           setSelectedEmbeddedDocId(c.id);
                           if (typeof window !== "undefined" && window.innerWidth < 1024) {

@@ -228,11 +228,23 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
         ) : (
           <ul className="space-y-3">
             {summaries.map((c) => (
-              <li key={c.id} className="rounded-2xl bg-violet-50 p-4">
-                <p className="text-sm font-bold text-violet-900">
-                  {fmtDateTime(c.occurredAt)} • {c.missed ? "Call not answered" : `Talked for ${Math.max(1, Math.round((c.durationSec || 0) / 60))} min`}
-                </p>
-                <p className="mt-2 text-base leading-relaxed text-ink">{c.aiSummary}</p>
+              <li key={c.id}>
+                <Link
+                  href={`/admin/calls?callId=${c.id}`}
+                  className="group block rounded-2xl bg-gradient-to-r from-violet-50/90 to-sky-50/90 hover:from-violet-100 hover:to-sky-100 border border-violet-200/80 p-4 transition-all duration-150 shadow-2xs hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-violet-950 flex items-center gap-1.5">
+                      <span>🎙️</span>
+                      <span>{fmtDateTime(c.occurredAt)} • {c.missed ? "Call not answered" : `Talked for ${Math.max(1, Math.round((c.durationSec || 0) / 60))} min`}</span>
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-violet-700 bg-white/90 group-hover:bg-violet-700 group-hover:text-white px-2.5 py-1 rounded-xl border border-violet-200 shadow-2xs transition">
+                      <span>Open in AI Call Summaries</span>
+                      <span>↗</span>
+                    </span>
+                  </div>
+                  <p className="mt-2 text-base leading-relaxed text-ink group-hover:text-violet-950">{c.aiSummary}</p>
+                </Link>
               </li>
             ))}
           </ul>
