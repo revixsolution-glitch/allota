@@ -28,7 +28,8 @@ export function WhatsAppCompanionSection({
   initialConnected?: boolean;
   initialConnectedPhone?: string;
 }) {
-  const initialLocalPhone = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "");
+  const rawInitial = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "");
+  const initialLocalPhone = rawInitial === "9800000000" ? "" : rawInitial;
 
   const [phone, setPhone] = useState(initialLocalPhone);
   const [loading, setLoading] = useState(false);
@@ -101,12 +102,16 @@ export function WhatsAppCompanionSection({
   }, [qrModalOpen, qrDataUrl]);
 
   async function fetchPairingCode(customPhone?: string) {
+    const rawTarget = (customPhone ?? phone).replace(/\D/g, "");
+    if (!rawTarget || rawTarget.length < 10) {
+      setQrError("Please enter your 10-digit WhatsApp phone number first.");
+      return;
+    }
     setCodeLoading(true);
     setQrError(null);
     try {
-      const rawTarget = customPhone || phone;
-      const cleanTarget = rawTarget ? rawTarget.replace(/\D/g, "") : "917494809665";
-      const fullTarget = cleanTarget.startsWith("91") && cleanTarget.length === 12 ? cleanTarget : `91${cleanTarget}`;
+      const tenDigits = rawTarget.slice(-10);
+      const fullTarget = `91${tenDigits}`;
 
       const res = await fetch("/api/whatsapp-companion/pair", {
         method: "POST",
@@ -164,7 +169,9 @@ export function WhatsAppCompanionSection({
     setJustConnected(false);
 
     if (pairingMethod === "code") {
-      await fetchPairingCode();
+      if (phone && phone.replace(/\D/g, "").length >= 10) {
+        await fetchPairingCode();
+      }
     } else {
       await fetchQrCode();
     }
@@ -220,6 +227,17 @@ export function WhatsAppCompanionSection({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
+              onClick={() => {
+                setStatus("NOT_CONNECTED");
+                setPairingCode(null);
+                setQrModalOpen(true);
+              }}
+              className="rounded-2xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition shadow-xs cursor-pointer"
+            >
+              Change Number
+            </button>
+            <button
+              type="button"
               onClick={handleDisconnect}
               disabled={loading}
               className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition shadow-xs cursor-pointer disabled:opacity-50"
@@ -255,13 +273,31 @@ export function WhatsAppCompanionSection({
           </div>
         </div>
 
-        {/* SINGLE CLEAN BUTTON */}
-        <div className="shrink-0">
+        {/* PHONE INPUT & CONNECT BUTTON */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+          <div className="relative flex items-center rounded-2xl border border-slate-300 bg-white shadow-xs focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition">
+            <span className="pl-3.5 pr-1.5 text-xs font-bold text-slate-500 select-none">
+              🇮🇳 +91
+            </span>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                setPhone(val);
+                setPairingCode(null);
+              }}
+              placeholder="10-digit number"
+              className="w-full sm:w-40 py-2.5 pr-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider"
+              maxLength={10}
+            />
+          </div>
+
           <button
             type="button"
             onClick={handleConnectWhatsApp}
             disabled={loading}
-            className="flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer active:scale-95 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-700 hover:to-teal-700 transition cursor-pointer active:scale-95 disabled:opacity-50"
           >
             <span>Connect WhatsApp</span>
             <span>→</span>
@@ -374,7 +410,39 @@ export function WhatsAppCompanionSection({
               </div>
             ) : pairingMethod === "code" ? (
               <div className="space-y-4 text-center">
-                <div className="rounded-3xl p-5 bg-gradient-to-b from-emerald-50/50 to-teal-50/30 border border-emerald-500/30 space-y-3">
+                <div className="rounded-3xl p-5 bg-gradient-to-b from-emerald-50/50 to-teal-50/30 border border-emerald-500/30 space-y-4">
+                  {/* Phone input row inside modal */}
+                  <div className="text-left space-y-1">
+                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                      WhatsApp Phone Number (10 digits)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 flex items-center rounded-xl border border-emerald-300 bg-white px-3 py-2 shadow-xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20">
+                        <span className="text-xs font-bold text-slate-500 mr-1.5 select-none">🇮🇳 +91</span>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            setPhone(val);
+                            setPairingCode(null);
+                          }}
+                          placeholder="e.g. 9876543210"
+                          className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-wider"
+                          maxLength={10}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fetchPairingCode(phone)}
+                        disabled={codeLoading || phone.length < 10}
+                        className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-xs disabled:opacity-50 cursor-pointer shrink-0"
+                      >
+                        {codeLoading ? "Requesting..." : pairingCode ? "New Code" : "Get Code"}
+                      </button>
+                    </div>
+                  </div>
+
                   <p className="text-xs font-bold text-slate-700">
                     Enter this 8-digit code in WhatsApp on your phone:
                   </p>
@@ -408,7 +476,8 @@ export function WhatsAppCompanionSection({
                     <button
                       type="button"
                       onClick={() => fetchPairingCode()}
-                      className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                      disabled={phone.length < 10}
+                      className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition disabled:opacity-50"
                     >
                       Generate 8-Digit Code
                     </button>

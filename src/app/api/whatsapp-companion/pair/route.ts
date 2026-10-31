@@ -49,17 +49,31 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const mode = body.mode || (body.phone ? "code" : "qr");
-    const rawPhone = String(body.phone || "").trim();
+    const rawPhone = String(body.phone || "").replace(/\D/g, "").trim();
+
+    // Persist entered contact phone on the company record
+    if (rawPhone && companyId && companyId !== "default") {
+      const formatted = rawPhone.length === 10
+        ? `+91 ${rawPhone.slice(0, 5)} ${rawPhone.slice(5)}`
+        : rawPhone.length === 12 && rawPhone.startsWith("91")
+        ? `+91 ${rawPhone.slice(2, 7)} ${rawPhone.slice(7)}`
+        : `+${rawPhone}`;
+      await prisma.company.update({
+        where: { id: companyId },
+        data: { contactPhone: formatted },
+      }).catch(() => null);
+    }
 
     // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
     const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
     if (companionHost) {
       try {
         if (mode === "code") {
+          const targetPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
           const remoteRes = await fetch(`${companionHost}/api/${companyId}/pair-code`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: rawPhone || "917494809665" }),
+            body: JSON.stringify({ phone: targetPhone }),
             cache: "no-store",
           });
           if (remoteRes.ok) {
