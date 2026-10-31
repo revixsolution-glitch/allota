@@ -95,6 +95,21 @@ export function AdsInsightsView({
     setCurrentPage(1);
   }, [statusFilter, dateFilter, customStartDate, customEndDate, searchQuery, sortBy, globalRange, globalFrom, globalTo]);
 
+  const handleResetToAllTime = () => {
+    setStatusFilter("ALL");
+    setDateFilter("ALL_TIME");
+    setSearchQuery("");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    if (typeof document !== "undefined") {
+      document.cookie = "allota_date_range=all_time;path=/;max-age=31536000;SameSite=Lax";
+      document.cookie = "allota_date_from=;path=/;max-age=0;SameSite=Lax";
+      document.cookie = "allota_date_to=;path=/;max-age=0;SameSite=Lax";
+    }
+    router.push(`${pathname}?range=all_time`);
+    router.refresh();
+  };
+
   // Filtered & Sorted Campaigns
   const filteredCampaigns = useMemo(() => {
     return allCampaigns
@@ -112,9 +127,11 @@ export function AdsInsightsView({
         }
 
         // 3. Global Navbar Date Filter (from ?range= in URL)
+        // Active campaigns are ongoing / running continuously across recent days.
+        // Never exclude live active campaigns just because their launch date was earlier.
         if (parsedGlobalDate.start && c.startDate) {
           const campTime = new Date(c.startDate).getTime();
-          if (campTime < parsedGlobalDate.start.getTime()) return false;
+          if (c.status !== "ACTIVE" && campTime < parsedGlobalDate.start.getTime()) return false;
           if (parsedGlobalDate.end && campTime > parsedGlobalDate.end.getTime()) return false;
         }
 
@@ -125,15 +142,15 @@ export function AdsInsightsView({
 
           if (dateFilter === "LAST_30") {
             const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-            if (campDate < thirtyDaysAgo) return false;
+            if (c.status !== "ACTIVE" && campDate < thirtyDaysAgo) return false;
           } else if (dateFilter === "LAST_90") {
             const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1000;
-            if (campDate < ninetyDaysAgo) return false;
+            if (c.status !== "ACTIVE" && campDate < ninetyDaysAgo) return false;
           } else if (dateFilter === "THIS_YEAR") {
             const currentYear = new Date().getFullYear();
-            if (new Date(c.startDate).getFullYear() !== currentYear) return false;
+            if (c.status !== "ACTIVE" && new Date(c.startDate).getFullYear() !== currentYear) return false;
           } else if (dateFilter === "CUSTOM") {
-            if (customStartDate) {
+            if (customStartDate && c.status !== "ACTIVE") {
               const fromTime = new Date(customStartDate).getTime();
               if (campDate < fromTime) return false;
             }
@@ -278,13 +295,7 @@ export function AdsInsightsView({
               </div>
               {filteredMetrics.isFiltered && (
                 <button
-                  onClick={() => {
-                    setStatusFilter("ALL");
-                    setDateFilter("ALL_TIME");
-                    setSearchQuery("");
-                    router.push(pathname);
-                    router.refresh();
-                  }}
+                  onClick={handleResetToAllTime}
                   className="text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
                 >
                   Reset to All-Time ✕
@@ -532,12 +543,8 @@ export function AdsInsightsView({
                     Try switching status to &quot;All&quot; or clearing date filters.
                   </p>
                   <button
-                    onClick={() => {
-                      setStatusFilter("ALL");
-                      setDateFilter("ALL_TIME");
-                      setSearchQuery("");
-                    }}
-                    className="mt-3 inline-block rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-black transition"
+                    onClick={handleResetToAllTime}
+                    className="mt-3 inline-block rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-black transition cursor-pointer"
                   >
                     Reset Filters
                   </button>
