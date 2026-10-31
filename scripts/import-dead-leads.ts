@@ -225,6 +225,8 @@ async function main() {
   console.log(`Company: Ekonmed Remedies Private Limited (${companyId})`);
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+if (require.main === module) {
+  main()
+    .catch(console.error)
+    .finally(() => prisma.$disconnect());
+}
