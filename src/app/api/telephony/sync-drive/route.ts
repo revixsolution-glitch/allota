@@ -127,8 +127,14 @@ export async function POST(req: NextRequest) {
 
 async function handleSync(req: NextRequest) {
   try {
-    const session = await getSession();
-    const activeCompanyId = getActiveCompanyId(session);
+    let session: any = null;
+    try {
+      session = await getSession();
+    } catch {
+      // headless or background script context
+    }
+    const queryCompanyId = req.nextUrl?.searchParams?.get("companyId");
+    const activeCompanyId = queryCompanyId || getActiveCompanyId(session);
 
     // 2. Ensure Kesrox Pharmaceuticals has Savi Kesorx, correct Drive folder, and Kesrox AI API key across all target databases
     const kesroxCompany = await defaultPrisma.company.findFirst({
@@ -143,16 +149,21 @@ async function handleSync(req: NextRequest) {
 
     const targetDbs: { db: any; name: string }[] = [{ db: defaultPrisma, name: "default" }];
     const kesroxId = kesroxCompany?.id || "cmub4ssdx00000u8oqlqc62e0";
+    const effectiveCompanyId = activeCompanyId || kesroxId;
+    const isKesrox = effectiveCompanyId === kesroxId;
 
-    // This sync is wired to Kesrox's Drive folder, rep and recordings only.
-    // For any other company, or no company selected, it must do nothing —
-    // otherwise it re-homes Kesrox's rep, calls and leads into whichever
-    // company happens to be open (this is what mixed Ekonmed with Kesrox).
-    if (activeCompanyId !== kesroxId) {
+    // Resolve company settings for active company
+    const companySettings = await prisma.companySettings.findFirst({
+      where: { companyId: effectiveCompanyId, driveFolderUrl: { not: null } },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    // If company is not Kesrox and has no driveFolderUrl configured, gracefully return
+    if (!isKesrox && !companySettings?.driveFolderUrl) {
       return NextResponse.json({
         success: true,
         skipped: true,
-        message: "Drive sync is not configured for this company.",
+        message: "Drive sync is not configured for this company. Please configure a Google Drive folder in Company Settings.",
         totalDriveFiles: 0,
         remainingToSync: 0,
         processedIds: [],
@@ -160,9 +171,8 @@ async function handleSync(req: NextRequest) {
         syncedAt: new Date().toISOString(),
       });
     }
-    const effectiveCompanyId = kesroxId;
 
-    if (kesroxId) {
+    if (isKesrox && kesroxId) {
       try {
         const tenantDb = await getPrismaForCompany(kesroxId);
         if (tenantDb && tenantDb !== defaultPrisma) {
@@ -173,87 +183,87 @@ async function handleSync(req: NextRequest) {
       }
     }
 
-    for (const { db } of targetDbs) {
-      try {
-        await db.companySettings.updateMany({
-          where: { companyId: kesroxId },
-          data: {
-            companyName: "Kesrox Pharmaceuticals",
-            driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
-          },
-        });
-
-        const existingSettings = await db.companySettings.findFirst({
-          where: { companyId: kesroxId },
-        });
-
-        if (!existingSettings) {
-          await db.companySettings.create({
+    if (isKesrox) {
+      for (const { db } of targetDbs) {
+        try {
+          await db.companySettings.updateMany({
+            where: { companyId: kesroxId },
             data: {
-              id: "settings_kesrox",
-              companyId: kesroxId,
               companyName: "Kesrox Pharmaceuticals",
               driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
             },
           });
-        }
 
-        let saviEmp = await db.employee.findFirst({
-          where: { name: { contains: "Savi", mode: "insensitive" } },
-        });
+          const existingSettings = await db.companySettings.findFirst({
+            where: { companyId: kesroxId },
+          });
 
-        if (!saviEmp) {
-          saviEmp = await db.employee.create({
+          if (!existingSettings) {
+            await db.companySettings.create({
+              data: {
+                id: "settings_kesrox",
+                companyId: kesroxId,
+                companyName: "Kesrox Pharmaceuticals",
+                driveFolderUrl: "https://drive.google.com/drive/folders/1-BuEw6RJO7qKs6jwyOKdtwe2FBwFfjw3",
+              },
+            });
+          }
+
+          let saviEmp = await db.employee.findFirst({
+            where: { name: { contains: "Savi", mode: "insensitive" } },
+          });
+
+          if (!saviEmp) {
+            saviEmp = await db.employee.create({
+              data: {
+                name: "Savi Kesrox",
+                phoneNumber: "+91 78891 07964",
+                companyId: effectiveCompanyId,
+                userId: "user_savi_" + Date.now(),
+              },
+            });
+          } else if (saviEmp.name !== "Savi Kesrox" || saviEmp.companyId !== effectiveCompanyId) {
+            await db.employee.update({
+              where: { id: saviEmp.id },
+              data: { name: "Savi Kesrox", companyId: effectiveCompanyId },
+            });
+          }
+
+          let dikshaEmp = await db.employee.findFirst({
+            where: { name: { contains: "Diksha", mode: "insensitive" } },
+          });
+
+          if (!dikshaEmp) {
+            dikshaEmp = await db.employee.create({
+              data: {
+                name: "Diksha Kesrox",
+                phoneNumber: "+91 98000 00001",
+                companyId: effectiveCompanyId,
+                userId: "user_diksha_" + Date.now(),
+              },
+            });
+          } else if (dikshaEmp.name !== "Diksha Kesrox" || dikshaEmp.companyId !== effectiveCompanyId) {
+            await db.employee.update({
+              where: { id: dikshaEmp.id },
+              data: { name: "Diksha Kesrox", companyId: effectiveCompanyId },
+            });
+          }
+
+          // Shift calls from Savi's drive folder to Savi Kesrox (never overwrite Diksha's calls)
+          await db.call.updateMany({
+            where: {
+              recordingUrl: { contains: "drive.google.com" },
+              employee: { companyId: effectiveCompanyId },
+              NOT: {
+                employeeId: dikshaEmp.id,
+              },
+            },
             data: {
-              name: "Savi Kesrox",
-              phoneNumber: "+91 78891 07964",
-              companyId: effectiveCompanyId,
-              userId: "user_savi_" + Date.now(),
+              employeeId: saviEmp.id,
             },
           });
-        } else if (saviEmp.name !== "Savi Kesrox" || saviEmp.companyId !== effectiveCompanyId) {
-          await db.employee.update({
-            where: { id: saviEmp.id },
-            data: { name: "Savi Kesrox", companyId: effectiveCompanyId },
-          });
-        }
 
-        let dikshaEmp = await db.employee.findFirst({
-          where: { name: { contains: "Diksha", mode: "insensitive" } },
-        });
-
-        if (!dikshaEmp) {
-          dikshaEmp = await db.employee.create({
-            data: {
-              name: "Diksha Kesrox",
-              phoneNumber: "+91 98000 00001",
-              companyId: effectiveCompanyId,
-              userId: "user_diksha_" + Date.now(),
-            },
-          });
-        } else if (dikshaEmp.name !== "Diksha Kesrox" || dikshaEmp.companyId !== effectiveCompanyId) {
-          await db.employee.update({
-            where: { id: dikshaEmp.id },
-            data: { name: "Diksha Kesrox", companyId: effectiveCompanyId },
-          });
-        }
-
-        // Shift calls from Savi's drive folder to Savi Kesrox (never overwrite Diksha's calls)
-        await db.call.updateMany({
-          where: {
-            recordingUrl: { contains: "drive.google.com" },
-            employee: { companyId: effectiveCompanyId },
-            NOT: {
-              employeeId: dikshaEmp.id,
-            },
-          },
-          data: {
-            employeeId: saviEmp.id,
-          },
-        });
-
-        // Ensure leads for Savi belong to Kesrox
-        if (effectiveCompanyId) {
+          // Ensure leads for Savi belong to Kesrox
           await db.lead.updateMany({
             where: {
               calls: { some: { employeeId: saviEmp.id } },
@@ -263,20 +273,13 @@ async function handleSync(req: NextRequest) {
               assignedEmployeeId: saviEmp.id,
             },
           });
+        } catch (setupErr) {
+          console.warn("Kesrox self-healing setup error on DB:", setupErr);
         }
-      } catch (setupErr) {
-        console.warn("Kesrox self-healing setup error on DB:", setupErr);
       }
     }
 
     // 2b. Resolve Active Google Drive Folder ID from Company Settings or Default
-    const companySettings = await prisma.companySettings.findFirst({
-      where: effectiveCompanyId
-        ? { companyId: effectiveCompanyId, driveFolderUrl: { not: null } }
-        : { driveFolderUrl: { not: null } },
-      orderBy: { updatedAt: "desc" },
-    });
-
     let activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
     if (companySettings?.driveFolderUrl) {
       const match =
@@ -287,7 +290,7 @@ async function handleSync(req: NextRequest) {
       }
     }
 
-    if (activeFolderId === "1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t") {
+    if (isKesrox && activeFolderId === "1Ii13VNYQ_pxTE52Z8cOhJEzHY8w7eV2t") {
       activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
     }
 
@@ -324,24 +327,33 @@ async function handleSync(req: NextRequest) {
       return results;
     }
 
-    const [saviFiles, dikshaFiles] = await Promise.all([
-      fetchDriveFolderFiles(activeFolderId || DEFAULT_DRIVE_FOLDER_ID),
-      fetchDriveFolderFiles(DIKSHA_DRIVE_FOLDER_ID),
-    ]);
-
     interface TaggedDriveFile {
       id: string;
       name: string;
-      assignedRepName: "Savi" | "Diksha";
+      assignedRepName: "Savi" | "Diksha" | "Employee";
     }
 
-    const driveFiles: TaggedDriveFile[] = [
-      ...saviFiles.map((f) => ({ ...f, assignedRepName: "Savi" as const })),
-      ...dikshaFiles.map((f) => ({ ...f, assignedRepName: "Diksha" as const })),
-    ];
+    let driveFiles: TaggedDriveFile[] = [];
 
-    // 3. Find representatives for mapping (Savi Kesorx, Diksha Kesrox, or Naresh)
-    const [saviRep, dikshaRep, nareshRep] = await Promise.all([
+    if (isKesrox) {
+      const [saviFiles, dikshaFiles] = await Promise.all([
+        fetchDriveFolderFiles(activeFolderId || DEFAULT_DRIVE_FOLDER_ID),
+        fetchDriveFolderFiles(DIKSHA_DRIVE_FOLDER_ID),
+      ]);
+      driveFiles = [
+        ...saviFiles.map((f) => ({ ...f, assignedRepName: "Savi" as const })),
+        ...dikshaFiles.map((f) => ({ ...f, assignedRepName: "Diksha" as const })),
+      ];
+    } else {
+      const companyDriveFiles = await fetchDriveFolderFiles(activeFolderId);
+      driveFiles = companyDriveFiles.map((f) => ({
+        ...f,
+        assignedRepName: "Employee" as const,
+      }));
+    }
+
+    // 3. Find representatives for mapping
+    const [saviRep, dikshaRep, nareshRep, companyEmployee] = await Promise.all([
       prisma.employee.findFirst({
         where: { name: { contains: "Savi", mode: "insensitive" } },
         include: { company: true },
@@ -354,6 +366,12 @@ async function handleSync(req: NextRequest) {
         where: { name: { contains: "Naresh", mode: "insensitive" } },
         include: { company: true },
       }),
+      !isKesrox
+        ? prisma.employee.findFirst({
+            where: { companyId: effectiveCompanyId },
+            include: { company: true },
+          })
+        : null,
     ]);
 
     let defaultEmployee = saviRep || nareshRep;
@@ -375,11 +393,12 @@ async function handleSync(req: NextRequest) {
 
     // Check which files already exist in database
     const existingCalls = await prisma.call.findMany({
+      where: isKesrox ? undefined : { employee: { companyId: effectiveCompanyId } },
       select: { id: true, recordingUrl: true, transcript: true, employeeId: true },
     });
     const existingUrlMap = new Map(existingCalls.map((c) => [c.recordingUrl, c]));
 
-    const rep = saviRep || defaultEmployee;
+    const rep = isKesrox ? (saviRep || defaultEmployee) : (companyEmployee || defaultEmployee);
 
     // Pre-fetch all leads for this company to avoid repetitive DB lookups
     const existingLeads = await prisma.lead.findMany({
@@ -390,7 +409,7 @@ async function handleSync(req: NextRequest) {
       existingLeads.map((l) => [(l.name || "").toLowerCase().trim(), l.id])
     );
 
-    // Collect all pre-verified recordings that need sync/update
+    // Collect all pre-verified recordings that need sync/update (Kesrox only)
     const verifiedToProcess: {
       f: TaggedDriveFile;
       analysis: any;
@@ -398,32 +417,34 @@ async function handleSync(req: NextRequest) {
       contactName: string;
       recordingUrl: string;
       existing: any;
-      assignedRepName: "Savi" | "Diksha";
+      assignedRepName: "Savi" | "Diksha" | "Employee";
     }[] = [];
 
-    for (const f of driveFiles) {
-      const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
-      if (!dateMatch) continue;
-      const [, yy, mm, dd, hh, min, ss] = dateMatch;
-      const key = `${yy}${mm}${dd}_${hh}${min}${ss}`;
-      const analysis = VERIFIED_TRANSCRIPTS[key];
-      if (!analysis) continue;
+    if (isKesrox) {
+      for (const f of driveFiles) {
+        const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+        if (!dateMatch) continue;
+        const [, yy, mm, dd, hh, min, ss] = dateMatch;
+        const key = `${yy}${mm}${dd}_${hh}${min}${ss}`;
+        const analysis = VERIFIED_TRANSCRIPTS[key];
+        if (!analysis) continue;
 
-      const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
-      const existing = existingUrlMap.get(recordingUrl);
-      const repForFile = f.assignedRepName === "Diksha" ? (dikshaRep || saviRep || defaultEmployee) : rep;
+        const recordingUrl = `https://drive.google.com/file/d/${f.id}/view`;
+        const existing = existingUrlMap.get(recordingUrl);
+        const repForFile = f.assignedRepName === "Diksha" ? (dikshaRep || saviRep || defaultEmployee) : rep;
 
-      if (
-        !existing ||
-        existing.employeeId !== repForFile.id ||
-        !existing.transcript ||
-        existing.transcript.includes("Recording saved")
-      ) {
-        const nameMatch =
-          f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
-        const contactName = cleanContactDisplayName(analysis.contactName || (nameMatch ? nameMatch[1].trim() : f.name));
-        const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
-        verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing, assignedRepName: f.assignedRepName });
+        if (
+          !existing ||
+          existing.employeeId !== repForFile.id ||
+          !existing.transcript ||
+          existing.transcript.includes("Recording saved")
+        ) {
+          const nameMatch =
+            f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
+          const contactName = cleanContactDisplayName(analysis.contactName || (nameMatch ? nameMatch[1].trim() : f.name));
+          const callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
+          verifiedToProcess.push({ f, analysis, callDate, contactName, recordingUrl, existing, assignedRepName: f.assignedRepName });
+        }
       }
     }
 
@@ -531,12 +552,13 @@ async function handleSync(req: NextRequest) {
     const liveBatch = unverifiedFilesToSync.slice(0, 1);
 
     for (const f of liveBatch) {
-      let rep =
-        f.assignedRepName === "Diksha"
-          ? (dikshaRep || saviRep || defaultEmployee)
-          : (saviRep || defaultEmployee);
+      let rep = isKesrox
+        ? (f.assignedRepName === "Diksha"
+            ? (dikshaRep || saviRep || defaultEmployee)
+            : (saviRep || defaultEmployee))
+        : (companyEmployee || defaultEmployee);
       const lowerName = f.name.toLowerCase();
-      if (lowerName.includes("naresh")) {
+      if (isKesrox && lowerName.includes("naresh")) {
         rep = nareshRep || defaultEmployee;
       }
 
@@ -578,7 +600,7 @@ async function handleSync(req: NextRequest) {
       }
 
       let lead = await prisma.lead.findFirst({
-        where: { name: { contains: contactName, mode: "insensitive" } },
+        where: { name: { contains: contactName, mode: "insensitive" }, companyId: rep.companyId },
       });
 
       if (!lead) {
@@ -646,17 +668,22 @@ async function handleSync(req: NextRequest) {
     }
 
     // 5. Query latest calls to return immediately to the frontend (scoped to active company)
-    const returnCompanyId = activeCompanyId || kesroxCompany?.id;
-    const callsWhere: any = returnCompanyId
+    const callsWhere: any = isKesrox
       ? {
           OR: [
-            { employee: { companyId: returnCompanyId } },
-            { lead: { companyId: returnCompanyId } },
-            { client: { companyId: returnCompanyId } },
+            { employee: { companyId: kesroxId } },
+            { lead: { companyId: kesroxId } },
+            { client: { companyId: kesroxId } },
             { employee: { name: { contains: "Savi", mode: "insensitive" } } },
           ],
         }
-      : {};
+      : {
+          OR: [
+            { employee: { companyId: effectiveCompanyId } },
+            { lead: { companyId: effectiveCompanyId } },
+            { client: { companyId: effectiveCompanyId } },
+          ],
+        };
 
     let updatedCalls: any[] = await prisma.call.findMany({
       where: callsWhere,
