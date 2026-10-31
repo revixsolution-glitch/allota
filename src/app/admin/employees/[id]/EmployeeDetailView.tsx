@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { PaginationBar } from "@/components/PaginationBar";
 import {
   EmployeeDetailData,
   EmployeeLeadRow,
@@ -78,6 +79,12 @@ export function EmployeeDetailView({
   const [taskSearch, setTaskSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [divisionFilter, setDivisionFilter] = useState<"ALL" | "PCD_FRANCHISE" | "THIRD_PARTY">("ALL");
+
+  const [leadPage, setLeadPage] = useState(1);
+  const [reassignPage, setReassignPage] = useState(1);
+  const [callPage, setCallPage] = useState(1);
+  const [clientPage, setClientPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
 
   const { employee, summary } = data;
   const [callsList, setCallsList] = useState<EmployeeCallRow[]>(data.calls);
@@ -212,6 +219,60 @@ export function EmployeeDetailView({
         t.taskType.toLowerCase().includes(q)
     );
   }, [data.tasks, taskSearch]);
+
+  // Reset page numbers when search / filters change
+  useEffect(() => {
+    setLeadPage(1);
+  }, [leadSearch, statusFilter, divisionFilter]);
+
+  useEffect(() => {
+    setReassignPage(1);
+  }, [reassignSearch, reassignFilter]);
+
+  useEffect(() => {
+    setCallPage(1);
+  }, [callSearch]);
+
+  useEffect(() => {
+    setClientPage(1);
+  }, [clientSearch]);
+
+  // Paginated Slices
+  const totalLeadPages = Math.max(1, Math.ceil(filteredLeads.length / ITEMS_PER_PAGE));
+  const currentLeadPage = Math.min(leadPage, totalLeadPages);
+  const paginatedLeads = useMemo(() => {
+    return filteredLeads.slice(
+      (currentLeadPage - 1) * ITEMS_PER_PAGE,
+      currentLeadPage * ITEMS_PER_PAGE
+    );
+  }, [filteredLeads, currentLeadPage]);
+
+  const totalReassignPages = Math.max(1, Math.ceil(filteredReassignments.length / ITEMS_PER_PAGE));
+  const currentReassignPage = Math.min(reassignPage, totalReassignPages);
+  const paginatedReassignments = useMemo(() => {
+    return filteredReassignments.slice(
+      (currentReassignPage - 1) * ITEMS_PER_PAGE,
+      currentReassignPage * ITEMS_PER_PAGE
+    );
+  }, [filteredReassignments, currentReassignPage]);
+
+  const totalCallPages = Math.max(1, Math.ceil(filteredCalls.length / ITEMS_PER_PAGE));
+  const currentCallPage = Math.min(callPage, totalCallPages);
+  const paginatedCalls = useMemo(() => {
+    return filteredCalls.slice(
+      (currentCallPage - 1) * ITEMS_PER_PAGE,
+      currentCallPage * ITEMS_PER_PAGE
+    );
+  }, [filteredCalls, currentCallPage]);
+
+  const totalClientPages = Math.max(1, Math.ceil(filteredClients.length / ITEMS_PER_PAGE));
+  const currentClientPage = Math.min(clientPage, totalClientPages);
+  const paginatedClients = useMemo(() => {
+    return filteredClients.slice(
+      (currentClientPage - 1) * ITEMS_PER_PAGE,
+      currentClientPage * ITEMS_PER_PAGE
+    );
+  }, [filteredClients, currentClientPage]);
 
   return (
     <div className="space-y-8">
@@ -815,7 +876,7 @@ export function EmployeeDetailView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/60">
-                  {filteredLeads.map((l) => (
+                  {paginatedLeads.map((l) => (
                     <tr key={l.id} className="hover:bg-slate-50/50">
                       <td className="py-3">
                         <div className="flex items-center gap-2">
@@ -908,6 +969,16 @@ export function EmployeeDetailView({
                 </tbody>
               </table>
             </div>
+
+            {/* Leads Pagination */}
+            <PaginationBar
+              currentPage={currentLeadPage}
+              totalPages={totalLeadPages}
+              totalItems={filteredLeads.length}
+              pageSize={ITEMS_PER_PAGE}
+              itemName="leads"
+              onPageChange={(p) => setLeadPage(p)}
+            />
           </div>
         </div>
       )}
@@ -1047,7 +1118,7 @@ export function EmployeeDetailView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/60">
-                  {filteredReassignments.map((log) => (
+                  {paginatedReassignments.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50/50">
                       <td className="py-3">
                         <p className="font-bold text-ink">{log.leadName}</p>
@@ -1118,6 +1189,16 @@ export function EmployeeDetailView({
                 </tbody>
               </table>
             </div>
+
+            {/* Reassignments Pagination */}
+            <PaginationBar
+              currentPage={currentReassignPage}
+              totalPages={totalReassignPages}
+              totalItems={filteredReassignments.length}
+              pageSize={ITEMS_PER_PAGE}
+              itemName="transfers"
+              onPageChange={(p) => setReassignPage(p)}
+            />
           </div>
         </div>
       )}
@@ -1421,7 +1502,7 @@ export function EmployeeDetailView({
             </div>
 
             <div className="mt-5 space-y-4">
-              {filteredCalls.map((c) => {
+              {paginatedCalls.map((c) => {
                 const isMissed = c.missed;
                 const cleanPhone = (c.targetPhone || "").replace(/\D/g, "");
 
@@ -1574,6 +1655,16 @@ export function EmployeeDetailView({
                 </div>
               )}
             </div>
+
+            {/* Calls Pagination */}
+            <PaginationBar
+              currentPage={currentCallPage}
+              totalPages={totalCallPages}
+              totalItems={filteredCalls.length}
+              pageSize={ITEMS_PER_PAGE}
+              itemName="calls"
+              onPageChange={(p) => setCallPage(p)}
+            />
           </div>
         </div>
       )}
@@ -1638,7 +1729,7 @@ export function EmployeeDetailView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/60">
-                  {filteredClients.map((c) => (
+                  {paginatedClients.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50/50">
                       <td className="py-3 font-bold text-ink">
                         {c.name}
@@ -1678,6 +1769,16 @@ export function EmployeeDetailView({
                 </tbody>
               </table>
             </div>
+
+            {/* Clients Pagination */}
+            <PaginationBar
+              currentPage={currentClientPage}
+              totalPages={totalClientPages}
+              totalItems={filteredClients.length}
+              pageSize={ITEMS_PER_PAGE}
+              itemName="clients"
+              onPageChange={(p) => setClientPage(p)}
+            />
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import React from "react";
 
 interface PaginationBarProps {
   currentPage: number;
@@ -6,7 +7,8 @@ interface PaginationBarProps {
   totalItems: number;
   pageSize: number;
   itemName?: string;
-  buildHref: (page: number) => string;
+  buildHref?: (page: number) => string;
+  onPageChange?: (page: number) => void;
 }
 
 export function PaginationBar({
@@ -16,6 +18,7 @@ export function PaginationBar({
   pageSize,
   itemName = "leads",
   buildHref,
+  onPageChange,
 }: PaginationBarProps) {
   if (totalItems === 0) return null;
 
@@ -46,6 +49,45 @@ export function PaginationBar({
 
   const pageNumbers = getPageNumbers();
 
+  const renderPageButton = (page: number, label: React.ReactNode, isActive?: boolean, isNav?: boolean) => {
+    const baseNavClass =
+      "inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:border-primary/40 hover:text-primary hover:bg-slate-50 transition shadow-2xs cursor-pointer";
+    const baseNumberClass = `min-w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition px-2 cursor-pointer ${
+      isActive
+        ? "bg-primary text-white shadow-xs font-extrabold"
+        : "border border-line bg-white text-ink hover:border-primary/40 hover:text-primary hover:bg-slate-50"
+    }`;
+
+    const className = isNav ? baseNavClass : baseNumberClass;
+
+    if (onPageChange) {
+      return (
+        <button
+          key={page}
+          type="button"
+          onClick={() => onPageChange(page)}
+          className={className}
+        >
+          {label}
+        </button>
+      );
+    }
+
+    if (buildHref) {
+      return (
+        <Link
+          key={page}
+          href={buildHref(page)}
+          className={className}
+        >
+          {label}
+        </Link>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="flex flex-col gap-3 border-t border-line bg-slate-50/70 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-xs font-semibold text-ink-muted">
@@ -56,12 +98,7 @@ export function PaginationBar({
       <div className="flex flex-wrap items-center gap-1.5">
         {/* Previous Button */}
         {currentPage > 1 ? (
-          <Link
-            href={buildHref(currentPage - 1)}
-            className="inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:border-primary/40 hover:text-primary hover:bg-slate-50 transition shadow-2xs"
-          >
-            ← Previous
-          </Link>
+          renderPageButton(currentPage - 1, "← Previous", false, true)
         ) : (
           <span className="inline-flex items-center gap-1 rounded-xl border border-line-soft bg-slate-100/70 px-3 py-1.5 text-xs font-bold text-ink-faint cursor-not-allowed">
             ← Previous
@@ -78,20 +115,7 @@ export function PaginationBar({
                 </span>
               );
             }
-            const isActive = p === currentPage;
-            return (
-              <Link
-                key={p}
-                href={buildHref(p)}
-                className={`min-w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition px-2 ${
-                  isActive
-                    ? "bg-primary text-white shadow-xs font-extrabold"
-                    : "border border-line bg-white text-ink hover:border-primary/40 hover:text-primary hover:bg-slate-50"
-                }`}
-              >
-                {p}
-              </Link>
-            );
+            return renderPageButton(p, p, p === currentPage, false);
           })}
         </div>
 
@@ -102,12 +126,7 @@ export function PaginationBar({
 
         {/* Next Button */}
         {currentPage < totalPages ? (
-          <Link
-            href={buildHref(currentPage + 1)}
-            className="inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:border-primary/40 hover:text-primary hover:bg-slate-50 transition shadow-2xs"
-          >
-            Next →
-          </Link>
+          renderPageButton(currentPage + 1, "Next →", false, true)
         ) : (
           <span className="inline-flex items-center gap-1 rounded-xl border border-line-soft bg-slate-100/70 px-3 py-1.5 text-xs font-bold text-ink-faint cursor-not-allowed">
             Next →
