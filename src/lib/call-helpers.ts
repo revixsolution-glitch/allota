@@ -197,9 +197,10 @@ export function cleanContactDisplayName(rawName?: string | null): string {
   // 2. Strip recorder prefixes like 'Call recording ', 'Call_', 'recording_'
   clean = clean.replace(/^(call\s*recording\s*|call[_-]|recording[_-])/i, "");
 
-  // 3. Strip timestamp patterns like _261001_151004 or _20261001_151004 or _151004
-  clean = clean.replace(/[_\s]+\d{6}[_\s]+\d{6}.*$/i, "");
-  clean = clean.replace(/[_\s]+\d{8}[_\s]+\d{6}.*$/i, "");
+  // 3. Strip timestamp patterns like 2026-10-31 15-49-12 or _261001_151004 or _151004
+  clean = clean.replace(/[-_\s]+\d{4}[-_]\d{2}[-_]\d{2}[-_\s]+\d{2}[-_:]\d{2}[-_:]\d{2}.*$/i, "");
+  clean = clean.replace(/[-_\s]+\d{2}[-_]\d{2}[-_]\d{4}[-_\s]+\d{2}[-_:]\d{2}[-_:]\d{2}.*$/i, "");
+  clean = clean.replace(/[_\s]+\d{6,8}[_\s]+\d{6}.*$/i, "");
   clean = clean.replace(/_\d{6}$/i, "");
 
   // 4. Strip trailing or bracketed Existing / New / (E) / (N) status indicators

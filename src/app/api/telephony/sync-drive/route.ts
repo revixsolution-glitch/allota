@@ -614,12 +614,27 @@ async function handleSync(req: NextRequest) {
         f.name.match(/recording\s+([^_]+)_/i) || f.name.match(/recording\s+([^.]+)\./i);
       const contactName = cleanContactDisplayName(nameMatch ? nameMatch[1].trim() : f.name);
 
-      const dateMatch = f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+      const dateMatch =
+        f.name.match(/(\d{4})[-_](\d{2})[-_](\d{2})[-_\s]+(\d{2})[-:](\d{2})[-:](\d{2})/) ||
+        f.name.match(/_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
       let callDate = new Date();
       if (dateMatch) {
-        const [, yy, mm, dd, hh, min, ss] = dateMatch;
-        callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
+        if (dateMatch[1].length === 4) {
+          const [, yyyy, mm, dd, hh, min, ss] = dateMatch;
+          callDate = new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
+        } else {
+          const [, yy, mm, dd, hh, min, ss] = dateMatch;
+          callDate = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:${ss}+05:30`);
+        }
       }
+
+      // Extract phone number from filename or contactName
+      const phoneDigits =
+        f.name.match(/\b([6-9]\d{9})\b/)?.[1] ||
+        contactName.replace(/\D/g, "").match(/([6-9]\d{9})/)?.[1];
+      const leadPhoneNumber = phoneDigits
+        ? `+91 ${phoneDigits.slice(0, 5)} ${phoneDigits.slice(5)}`
+        : "+91 98765 43210";
 
       let analysis: any = null;
 
@@ -647,14 +662,20 @@ async function handleSync(req: NextRequest) {
       }
 
       let lead = await prisma.lead.findFirst({
-        where: { name: { contains: contactName, mode: "insensitive" }, companyId: rep.companyId },
+        where: {
+          companyId: rep.companyId,
+          OR: [
+            { name: { equals: contactName, mode: "insensitive" } },
+            phoneDigits ? { phoneNumber: { contains: phoneDigits } } : { id: "none" },
+          ],
+        },
       });
 
       if (!lead) {
         lead = await prisma.lead.create({
           data: {
             name: `${contactName}`,
-            phoneNumber: "+91 98765 43210",
+            phoneNumber: leadPhoneNumber,
             companyId: rep.companyId,
             source: "MANUAL",
             status: "CONTACTED",
@@ -662,6 +683,11 @@ async function handleSync(req: NextRequest) {
             city: analysis?.territory || analysis?.monopolyTerritory || null,
             state: (analysis?.territory || analysis?.monopolyTerritory) ? "India" : null,
           },
+        });
+      } else if (phoneDigits && (!lead.phoneNumber || lead.phoneNumber.includes("98765 43210"))) {
+        lead = await prisma.lead.update({
+          where: { id: lead.id },
+          data: { phoneNumber: leadPhoneNumber },
         });
       }
 
