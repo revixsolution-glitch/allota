@@ -80,6 +80,12 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
 }
 `;
 
+  // Google Gemini REST inlineData limit is 20MB. Keep base64 within ~14MB (approx 10MB raw audio).
+  let safeAudioBase64 = audioBase64;
+  if (safeAudioBase64.length > 14 * 1024 * 1024) {
+    safeAudioBase64 = safeAudioBase64.slice(0, 14 * 1024 * 1024);
+  }
+
   const requestBody = {
     contents: [
       {
@@ -89,7 +95,7 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
           {
             inlineData: {
               mimeType,
-              data: audioBase64,
+              data: safeAudioBase64,
             },
           },
         ],
@@ -121,6 +127,7 @@ You MUST reply ONLY with a valid JSON object with this exact structure (no markd
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(35000),
       });
 
       if (response.ok) {

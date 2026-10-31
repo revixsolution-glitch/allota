@@ -295,7 +295,10 @@ async function handleSync(req: NextRequest) {
     }
 
     // Helper to fetch files from a Drive folder URL/ID (supports root audio and employee subfolders)
-    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string; repHint?: string }[]> {
+    async function fetchDriveFolderFiles(
+      folderId: string,
+      defaultRepHint?: string
+    ): Promise<{ id: string; name: string; repHint?: string }[]> {
       const results: { id: string; name: string; repHint?: string }[] = [];
       try {
         const folderRes = await fetch(
@@ -320,7 +323,7 @@ async function handleSync(req: NextRequest) {
             entryName.endsWith(".ogg");
 
           if (isAudio) {
-            results.push({ id: entryId, name: entryName });
+            results.push({ id: entryId, name: entryName, repHint: defaultRepHint });
           } else if (isFolder) {
             subfolders.push({ id: entryId, name: entryName });
           }
@@ -350,7 +353,7 @@ async function handleSync(req: NextRequest) {
                     entryName.endsWith(".ogg");
 
                   if (isAudio) {
-                    results.push({ id: entryId, name: entryName, repHint: sub.name });
+                    results.push({ id: entryId, name: entryName, repHint: sub.name || defaultRepHint });
                   }
                 }
               } catch (subErr) {
@@ -374,15 +377,30 @@ async function handleSync(req: NextRequest) {
 
     let driveFiles: TaggedDriveFile[] = [];
 
+    const isEkonmed = effectiveCompanyId === "cmvaqedgb000008jtxjxb8jxm";
+
     if (isKesrox) {
       const [saviFiles, dikshaFiles] = await Promise.all([
-        fetchDriveFolderFiles(activeFolderId || DEFAULT_DRIVE_FOLDER_ID),
-        fetchDriveFolderFiles(DIKSHA_DRIVE_FOLDER_ID),
+        fetchDriveFolderFiles(activeFolderId || DEFAULT_DRIVE_FOLDER_ID, "Savi"),
+        fetchDriveFolderFiles(DIKSHA_DRIVE_FOLDER_ID, "Diksha"),
       ]);
       driveFiles = [
         ...saviFiles.map((f) => ({ ...f, assignedRepName: "Savi" as const })),
         ...dikshaFiles.map((f) => ({ ...f, assignedRepName: "Diksha" as const })),
       ];
+    } else if (isEkonmed) {
+      // Ekonmed has Khushboo (Master folder + subfolders) and Paramjeet (phone DriveSync folder)
+      const PARAMJEET_DRIVE_FOLDER_ID = "159KOSrWYRMDBAVGMCzBOv3yh6kGmtAn8";
+      const [masterFiles, paramjeetFiles] = await Promise.all([
+        fetchDriveFolderFiles(activeFolderId || "1hqCiXq4sWXRdYEslt9mRFZI6Pb8zfPyJ", "Khushboo"),
+        fetchDriveFolderFiles(PARAMJEET_DRIVE_FOLDER_ID, "Paramjeet"),
+      ]);
+      const combined = [...masterFiles, ...paramjeetFiles];
+      driveFiles = combined.map((f) => ({
+        ...f,
+        assignedRepName: "Employee" as const,
+        repHint: f.repHint,
+      }));
     } else {
       const companyDriveFiles = await fetchDriveFolderFiles(activeFolderId);
       driveFiles = companyDriveFiles.map((f) => ({
@@ -661,6 +679,10 @@ async function handleSync(req: NextRequest) {
         console.warn("Gemini live transcription fallback for " + f.name, err);
       }
 
+      const isSocial = Boolean(f.name.match(/\b(facebook|fb|meta|instagram|insta)\b/i));
+      const isIndiaMart = Boolean(f.name.match(/\bindiamart\b/i));
+      const detectedSource = isSocial ? "META" : isIndiaMart ? "INDIAMART" : "MANUAL";
+
       let lead = await prisma.lead.findFirst({
         where: {
           companyId: rep.companyId,
@@ -677,18 +699,27 @@ async function handleSync(req: NextRequest) {
             name: `${contactName}`,
             phoneNumber: leadPhoneNumber,
             companyId: rep.companyId,
-            source: "MANUAL",
+            source: detectedSource as any,
             status: "CONTACTED",
             assignedEmployeeId: rep.id,
             city: analysis?.territory || analysis?.monopolyTerritory || null,
             state: (analysis?.territory || analysis?.monopolyTerritory) ? "India" : null,
           },
         });
-      } else if (phoneDigits && (!lead.phoneNumber || lead.phoneNumber.includes("98765 43210"))) {
-        lead = await prisma.lead.update({
-          where: { id: lead.id },
-          data: { phoneNumber: leadPhoneNumber },
-        });
+      } else {
+        const updateData: any = {};
+        if (phoneDigits && (!lead.phoneNumber || lead.phoneNumber.includes("98765 43210"))) {
+          updateData.phoneNumber = leadPhoneNumber;
+        }
+        if (isSocial && lead.source === "MANUAL") {
+          updateData.source = "META";
+        }
+        if (Object.keys(updateData).length > 0) {
+          lead = await prisma.lead.update({
+            where: { id: lead.id },
+            data: updateData,
+          });
+        }
       }
 
       const transcript =

@@ -211,6 +211,9 @@ export function cleanContactDisplayName(rawName?: string | null): string {
   clean = clean.replace(/[\s_-]+\(E\)/i, "");
   clean = clean.replace(/[\s_-]+\(N\)/i, "");
 
+  // 4b. Strip channel suffixes like Facebook, Meta, Instagram, IndiaMart
+  clean = clean.replace(/[\s_-]+(Facebook|Meta|Instagram|Insta|Indiamart)(?=[\s_-]|$)/i, "");
+
   // 5. Replace underscores with spaces
   clean = clean.replace(/_/g, " ");
 
