@@ -532,3 +532,16 @@ model SocialInboxItem {
   receivedAt      DateTime  @default(now())
   createdAt       DateTime  @default(now())
 }
+
+/// Email OTP verification for password creation, password updates, and account security
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      String   @default("PASSWORD_UPDATE") // "PASSWORD_UPDATE" | "PASSWORD_RESET" | "ACCOUNT_CREATION"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}

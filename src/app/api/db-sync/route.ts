@@ -478,7 +478,7 @@ export async function GET() {
       where: { slug: "ekonmed-remedies" },
       update: {
         name: "Ekonmed Remedies Private Limited",
-        contactEmail: "admin.ekonmed@allota.internal",
+        contactEmail: "ekonmedremedies@gmail.com",
         contactPhone: "+91 98000 00000",
         planTier: "CORE_LEAD_SUITE",
         status: "ACTIVE",
@@ -486,7 +486,7 @@ export async function GET() {
       create: {
         name: "Ekonmed Remedies Private Limited",
         slug: "ekonmed-remedies",
-        contactEmail: "admin.ekonmed@allota.internal",
+        contactEmail: "ekonmedremedies@gmail.com",
         contactPhone: "+91 98000 00000",
         planTier: "CORE_LEAD_SUITE",
         status: "ACTIVE",
@@ -532,7 +532,7 @@ export async function GET() {
       });
     }
 
-    const ekonmedAdminEmail = "admin.ekonmed@allota.internal";
+    const ekonmedAdminEmail = "ekonmedremedies@gmail.com";
     const ekonmedAdminPass = await bcrypt.hash("Ekonmed@2026", 10);
     await prisma.user.upsert({
       where: { email: ekonmedAdminEmail },
