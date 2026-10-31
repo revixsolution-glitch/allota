@@ -5,6 +5,7 @@ import { ensureCompanySettingsColumns } from "@/lib/db-sync";
 import { UpgradePlanCard } from "@/components/UpgradePlanCard";
 import { GradientText } from "@/components/GradientText";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
+import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -55,6 +56,13 @@ export default async function AdminSettingsPage() {
   const company = activeCompanyId
     ? await prisma.company.findUnique({
         where: { id: activeCompanyId },
+      })
+    : null;
+
+  const currentUser = session?.userId
+    ? await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { email: true },
       })
     : null;
 
@@ -699,6 +707,9 @@ export default async function AdminSettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Account & Password Security */}
+      <ChangePasswordSection userEmail={currentUser?.email} />
     </div>
   );
 }
