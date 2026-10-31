@@ -180,22 +180,7 @@ async function main() {
       });
     }
 
-    // "query is remarks": create remark if query is present
-    if (cleanQuery) {
-      const existingRemark = await prisma.leadRemark.findFirst({
-        where: { leadId: lead.id, remark: cleanQuery },
-      });
-      if (!existingRemark) {
-        await prisma.leadRemark.create({
-          data: {
-            leadId: lead.id,
-            employeeId: employee.id,
-            remark: cleanQuery,
-            createdAt: dCreated,
-          },
-        });
-      }
-    }
+    // In this sheet, Query is the customer's initial inquiry requirement (saved in inquiryDetails above), NOT an employee remark.
 
     // FollowUp log if present
     if (dNext) {
