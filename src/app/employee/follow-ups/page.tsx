@@ -9,6 +9,7 @@ import { SourceBadge } from "@/components/SourceBadge";
 import { GradientText } from "@/components/GradientText";
 import { CLOSED_LEAD_STATUSES, startOfDay, endOfDay } from "@/lib/follow-up";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { PaginationBar } from "@/components/PaginationBar";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ interface EmployeeFollowUpsPageProps {
     range?: string;
     from?: string;
     to?: string;
+    page?: string;
   }>;
 }
 
@@ -112,6 +114,29 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
     });
   }
 
+  const LEADS_PER_PAGE = 15;
+  const rawPage = parseInt(params?.page || "1", 10);
+  const requestedPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+  const totalItems = visibleLeads.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / LEADS_PER_PAGE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const startIndex = (currentPage - 1) * LEADS_PER_PAGE;
+  const paginatedLeads = visibleLeads.slice(startIndex, startIndex + LEADS_PER_PAGE);
+
+  const buildEmployeeFollowUpsUrl = (o: { tab?: string; page?: number }) => {
+    const sp = new URLSearchParams();
+    const t = o.tab !== undefined ? o.tab : activeTab;
+    const p = o.page !== undefined ? o.page : 1;
+    if (t && t !== "all") sp.set("tab", t);
+    if (params?.search) sp.set("search", params.search);
+    if (params?.range) sp.set("range", params.range);
+    if (params?.from) sp.set("from", params.from);
+    if (params?.to) sp.set("to", params.to);
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return qs ? `/employee/follow-ups?${qs}` : "/employee/follow-ups";
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -148,7 +173,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
         {/* Metric Cards Grid */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Link
-            href="/employee/follow-ups?tab=all"
+            href={buildEmployeeFollowUpsUrl({ tab: "all" })}
             className={`rounded-2xl p-4 transition-all border ${
               activeTab === "all"
                 ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/10"
@@ -165,7 +190,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
           </Link>
 
           <Link
-            href="/employee/follow-ups?tab=today"
+            href={buildEmployeeFollowUpsUrl({ tab: "today" })}
             className={`rounded-2xl p-4 transition-all border ${
               activeTab === "today"
                 ? "bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-600/10"
@@ -184,7 +209,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
           </Link>
 
           <Link
-            href="/employee/follow-ups?tab=overdue"
+            href={buildEmployeeFollowUpsUrl({ tab: "overdue" })}
             className={`rounded-2xl p-4 transition-all border ${
               activeTab === "overdue"
                 ? "bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-600/10"
@@ -203,7 +228,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
           </Link>
 
           <Link
-            href="/employee/follow-ups?tab=upcoming"
+            href={buildEmployeeFollowUpsUrl({ tab: "upcoming" })}
             className={`rounded-2xl p-4 transition-all border ${
               activeTab === "upcoming"
                 ? "bg-sky-600 text-white border-sky-600 shadow-md ring-2 ring-sky-600/10"
@@ -307,7 +332,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {visibleLeads.map((lead) => {
+                {paginatedLeads.map((lead) => {
                   const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
                   const isThirdParty = lead.division === "THIRD_PARTY";
 
@@ -455,7 +480,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
 
           {/* Mobile Cards View */}
           <div className="md:hidden divide-y divide-line">
-            {visibleLeads.map((lead) => {
+            {paginatedLeads.map((lead) => {
               const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
               const isThirdParty = lead.division === "THIRD_PARTY";
 
@@ -528,6 +553,16 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
               );
             })}
           </div>
+
+          {/* Pagination Footer */}
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={LEADS_PER_PAGE}
+            itemName="follow-ups"
+            buildHref={(p) => buildEmployeeFollowUpsUrl({ page: p })}
+          />
         </div>
       )}
     </div>

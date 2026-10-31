@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeViaRelation } from "@/lib/auth";
 import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { PaginationBar } from "@/components/PaginationBar";
 
 function dayBounds(d: Date) {
   const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -13,7 +14,7 @@ function dayBounds(d: Date) {
 export default async function FollowUpsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ employeeId?: string; range?: string; from?: string; to?: string }>;
+  searchParams?: Promise<{ employeeId?: string; range?: string; from?: string; to?: string; page?: string }>;
 }) {
   const resolvedParams = searchParams ? await searchParams : {};
   const employeeId = resolvedParams.employeeId || "";
@@ -72,6 +73,25 @@ export default async function FollowUpsPage({
       l.scheduledFor >= todayStart &&
       l.scheduledFor < todayEnd
   ).length;
+
+  const LEADS_PER_PAGE = 15;
+  const rawPage = parseInt(resolvedParams.page || "1", 10);
+  const requestedPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+  const totalPages = Math.max(1, Math.ceil(totalScheduled / LEADS_PER_PAGE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const startIndex = (currentPage - 1) * LEADS_PER_PAGE;
+  const paginatedSequence = withSequence.slice(startIndex, startIndex + LEADS_PER_PAGE);
+
+  const buildFollowUpsUrl = (p: number) => {
+    const sp = new URLSearchParams();
+    if (resolvedParams.employeeId) sp.set("employeeId", resolvedParams.employeeId);
+    if (resolvedParams.range) sp.set("range", resolvedParams.range);
+    if (resolvedParams.from) sp.set("from", resolvedParams.from);
+    if (resolvedParams.to) sp.set("to", resolvedParams.to);
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return qs ? `/admin/follow-ups?${qs}` : "/admin/follow-ups";
+  };
 
   return (
     <div className="space-y-6">
@@ -137,7 +157,7 @@ export default async function FollowUpsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {withSequence.map((log) => {
+                {paginatedSequence.map((log) => {
                   const isCurrent = log.lead.followUpAt?.getTime() === log.scheduledFor.getTime();
                   const isOverdue = isCurrent && log.scheduledFor < todayStart;
                   const isToday = isCurrent && log.scheduledFor >= todayStart && log.scheduledFor < todayEnd;
@@ -186,7 +206,7 @@ export default async function FollowUpsPage({
 
           {/* Mobile Touch Cards View (lg:hidden) */}
           <div className="lg:hidden divide-y divide-line">
-            {withSequence.map((log) => {
+            {paginatedSequence.map((log) => {
               const isCurrent = log.lead.followUpAt?.getTime() === log.scheduledFor.getTime();
               const isOverdue = isCurrent && log.scheduledFor < todayStart;
               const isToday = isCurrent && log.scheduledFor >= todayStart && log.scheduledFor < todayEnd;
@@ -256,6 +276,16 @@ export default async function FollowUpsPage({
               );
             })}
           </div>
+
+          {/* Pagination Footer */}
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalScheduled}
+            pageSize={LEADS_PER_PAGE}
+            itemName="follow-ups"
+            buildHref={buildFollowUpsUrl}
+          />
         </div>
       )}
     </div>
