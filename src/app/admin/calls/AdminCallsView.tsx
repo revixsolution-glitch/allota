@@ -521,7 +521,7 @@ Report generated via Allota AI Telephony Engine
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Left Column: Call Directory & Filter (5 cols) */}
-            <div className="lg:col-span-5 neo-panel rounded-3xl p-5 bg-white border border-line space-y-4">
+            <div id="call-logs-container" className="lg:col-span-5 neo-panel rounded-3xl p-5 bg-white border border-line space-y-4 scroll-mt-20">
               <div className="flex items-center justify-between border-b border-line pb-3">
                 <div>
                   <h3 className="text-sm font-black text-ink flex items-center gap-1.5">
@@ -833,9 +833,20 @@ Report generated via Allota AI Telephony Engine
             </div>
 
             {/* Right Column: Clean Executive Document View (7 cols) */}
-            <div className="lg:col-span-7">
+            <div id="executive-call-brief" className="lg:col-span-7 scroll-mt-20">
               {activeEmbeddedCall ? (
-                <article className="rounded-3xl bg-white p-6 sm:p-9 shadow-lg border border-slate-200 relative neo-panel">
+                <article className="rounded-3xl bg-white p-5 sm:p-9 shadow-lg border border-slate-200 relative neo-panel">
+                  
+                  {/* Mobile Back Button */}
+                  <div className="lg:hidden mb-4">
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById("call-logs-container")?.scrollIntoView({ behavior: "smooth" })}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
+                    >
+                      ← Back to Call Audio Logs
+                    </button>
+                  </div>
                   
                   {/* Top Letterhead */}
                   <div className="border-b-2 border-slate-900 pb-5">

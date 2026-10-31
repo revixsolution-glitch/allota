@@ -123,7 +123,8 @@ export default async function FollowUpsPage({
         </div>
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
@@ -181,6 +182,79 @@ export default async function FollowUpsPage({
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Touch Cards View (lg:hidden) */}
+          <div className="lg:hidden divide-y divide-line">
+            {withSequence.map((log) => {
+              const isCurrent = log.lead.followUpAt?.getTime() === log.scheduledFor.getTime();
+              const isOverdue = isCurrent && log.scheduledFor < todayStart;
+              const isToday = isCurrent && log.scheduledFor >= todayStart && log.scheduledFor < todayEnd;
+              const cleanPhone = (log.lead.phoneNumber || "").replace(/\D/g, "");
+
+              return (
+                <div key={log.id} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-extrabold text-ink text-base">{log.lead.name || "Unnamed Prospect"}</p>
+                      <p className="font-mono text-xs text-ink-muted mt-0.5">{log.lead.phoneNumber || "No phone"}</p>
+                    </div>
+                    <div>
+                      {!isCurrent ? (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-ink-faint">
+                          Rescheduled
+                        </span>
+                      ) : isOverdue ? (
+                        <span className="rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-800">
+                          Overdue
+                        </span>
+                      ) : isToday ? (
+                        <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                          Due Today
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                          Upcoming
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      {log.sequence === 1 ? "1st" : log.sequence === 2 ? "2nd" : log.sequence === 3 ? "3rd" : `${log.sequence}th`} follow-up
+                    </span>
+                    <span className="text-ink-muted text-xs">
+                      Rep: <strong className="text-ink">{log.employee.name}</strong>
+                    </span>
+                    <span className="text-ink-faint text-[11px]">
+                      Scheduled: <strong>{log.scheduledFor.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</strong>
+                    </span>
+                  </div>
+
+                  {cleanPhone && (
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-line-soft">
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-50 border border-blue-200 py-1.5 text-xs font-bold text-blue-700 active:bg-blue-100 transition"
+                      >
+                        <span>📞</span>
+                        <span>Call</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 py-1.5 text-xs font-bold text-emerald-700 active:bg-emerald-100 transition"
+                      >
+                        <span>💬</span>
+                        <span>WhatsApp</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

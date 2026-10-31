@@ -118,7 +118,8 @@ export default async function DeadLeadsPage({
         </div>
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
@@ -241,6 +242,99 @@ export default async function DeadLeadsPage({
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Touch Cards View (lg:hidden) */}
+          <div className="lg:hidden divide-y divide-line">
+            {deadLeads.map((lead) => {
+              const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
+              const aiReason = buildAiReason(lead);
+
+              return (
+                <div key={lead.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Link href={`/admin/lead-history/${lead.id}`} className="group">
+                        <h3 className="font-extrabold text-ink text-base group-hover:text-rose-700">
+                          {lead.name || "Unnamed Prospect"}
+                        </h3>
+                        <p className="font-mono text-xs text-ink-muted mt-0.5">
+                          {lead.phoneNumber || "No phone"}
+                        </p>
+                      </Link>
+                    </div>
+                    <span className="rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 shrink-0">
+                      💀 Dead Lead
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
+                    <span className="text-ink-muted text-xs">
+                      Rep: <strong className="text-ink">{lead.assignedEmployee?.name || "Unassigned"}</strong>
+                    </span>
+                    {lead.deadAt && (
+                      <span className="text-ink-faint text-[11px]">
+                        Closed: {new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                  </div>
+
+                  {callWithSummary ? (
+                    <Link
+                      href={`/admin/calls?callId=${callWithSummary.id}`}
+                      className="block rounded-xl bg-violet-50/80 hover:bg-violet-100 border border-violet-200/80 p-3 transition shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between gap-1 text-[11px] font-bold text-violet-900 mb-1">
+                        <span className="inline-flex items-center gap-1">
+                          <span>🤖</span>
+                          <span>AI Call Summary</span>
+                        </span>
+                        <span className="text-violet-600 font-semibold text-[10px]">Open Call ↗</span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed line-clamp-3">
+                        {callWithSummary.aiSummary}
+                      </p>
+                    </Link>
+                  ) : (
+                    <p className="text-xs text-ink-muted leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-line-soft">
+                      {aiReason}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft">
+                    <Link
+                      href={`/admin/lead-history/${lead.id}`}
+                      className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink-muted hover:bg-slate-50 transition"
+                    >
+                      Full History →
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                      <form action={updateLeadActiveStatus}>
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <input type="hidden" name="isDead" value="false" />
+                        <button
+                          type="submit"
+                          className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 active:bg-emerald-100 transition shadow-2xs cursor-pointer"
+                        >
+                          ↺ Reactivate
+                        </button>
+                      </form>
+                      <form action={deleteLeadAction}>
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <button
+                          type="submit"
+                          className="rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-800 active:bg-rose-100 transition shadow-2xs cursor-pointer"
+                        >
+                          🗑
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

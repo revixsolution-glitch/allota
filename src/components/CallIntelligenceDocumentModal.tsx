@@ -86,6 +86,7 @@ export function CallIntelligenceDocumentModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "ANSWERED" | "MISSED">("ALL");
   const [copiedToast, setCopiedToast] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"DOC" | "LIST">("DOC");
 
   // Sync initialCallId if changed
   useMemo(() => {
@@ -225,11 +226,37 @@ Report generated via Allota AI Telephony Engine
           </div>
         </div>
 
+        {/* Mobile Tab Switcher */}
+        <div className="flex md:hidden border-b border-slate-200 bg-slate-100/80 p-1.5 gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileTab("DOC")}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition ${
+              mobileTab === "DOC"
+                ? "bg-white text-indigo-700 shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            📄 Call Briefing
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("LIST")}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition ${
+              mobileTab === "LIST"
+                ? "bg-white text-indigo-700 shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            🎙️ Call Logs ({filteredCalls.length})
+          </button>
+        </div>
+
         {/* Modal Main Body (2 Columns: List on Left, Document on Right) */}
         <div className="flex flex-1 overflow-hidden">
           
           {/* LEFT COLUMN: All Call Summaries Directory */}
-          <aside className="w-80 md:w-96 border-r border-slate-200 bg-white flex flex-col shrink-0">
+          <aside className={`${mobileTab === "LIST" ? "flex" : "hidden"} md:flex w-full md:w-96 border-r border-slate-200 bg-white flex-col shrink-0`}>
             <div className="p-4 border-b border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
@@ -302,7 +329,10 @@ Report generated via Allota AI Telephony Engine
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => setSelectedCallId(c.id)}
+                      onClick={() => {
+                        setSelectedCallId(c.id);
+                        setMobileTab("DOC");
+                      }}
                       className={`w-full text-left p-3.5 rounded-2xl transition-all cursor-pointer ${
                         isSelected
                           ? "bg-purple-50/80 border-2 border-purple-500 shadow-sm"
@@ -355,7 +385,7 @@ Report generated via Allota AI Telephony Engine
           </aside>
 
           {/* RIGHT COLUMN: The Clean Document Viewer */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 flex justify-center">
+          <main className={`${mobileTab === "DOC" ? "flex" : "hidden"} md:flex flex-1 overflow-y-auto p-3 sm:p-8 bg-slate-100/70 justify-center`}>
             {activeCall ? (
               <article className="w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-10 shadow-lg border border-slate-200 relative">
                 

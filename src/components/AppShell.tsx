@@ -59,7 +59,7 @@ export function AppShell({
       {/* ============================================================ */}
       {/* 1. MOBILE TOP APP BAR (Screens < 1024px)                     */}
       {/* ============================================================ */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line/70 bg-white/95 px-4 py-3 backdrop-blur-md shadow-xs lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line/70 bg-white/95 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-md shadow-xs lg:hidden">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -125,7 +125,7 @@ export function AppShell({
       )}
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 flex w-76 max-w-[85vw] flex-col bg-canvas p-5 neo-panel shadow-2xl transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-76 max-w-[85vw] h-[100dvh] flex-col bg-canvas p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))] neo-panel shadow-2xl transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto overscroll-contain ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -313,7 +313,7 @@ export function AppShell({
       {/* ============================================================ */}
       {/* 4. MAIN CONTENT VIEWPORT (Responsive Padding & Max-Width)   */}
       {/* ============================================================ */}
-      <main className="min-w-0 flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 lg:pb-8 w-full max-w-full overflow-x-hidden">
+      <main className="min-w-0 flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-8 w-full max-w-full overflow-x-hidden">
         {/* Global Top Action Bar Across All Pages (Notification Bell + Date Filter) */}
         <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-line/60 pb-3 sm:pb-3.5">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -337,7 +337,7 @@ export function AppShell({
       {/* ============================================================ */}
       {/* 5. MOBILE BOTTOM THUMB NAVIGATION BAR (Screens < 1024px)     */}
       {/* ============================================================ */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 flex h-16 items-center justify-around border-t border-line/80 bg-white/95 backdrop-blur-md px-1 shadow-lg lg:hidden">
+      <nav className="fixed bottom-0 inset-x-0 z-30 flex h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] items-center justify-around border-t border-line/80 bg-white/95 backdrop-blur-md px-1 shadow-lg lg:hidden">
         {bottomNavShortcuts.map((item) => {
           const isActive =
             item.href === "/admin" || item.href === "/employee"
