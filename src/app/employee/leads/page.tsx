@@ -10,6 +10,7 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
+import { PaginationBar } from "@/components/PaginationBar";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -21,6 +22,7 @@ export default async function EmployeeLeadsPage({
     range?: string;
     from?: string;
     to?: string;
+    page?: string;
   }>;
 }) {
   const session = await getSession();
@@ -146,13 +148,27 @@ export default async function EmployeeLeadsPage({
       return 0;
     });
 
-  const buildUrl = (o: { division?: string; followUp?: string }) => {
+  const LEADS_PER_PAGE = 15;
+  const rawPage = parseInt(params?.page || "1", 10);
+  const requestedPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+  const totalFilteredLeads = filteredLeads.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredLeads / LEADS_PER_PAGE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const startIndex = (currentPage - 1) * LEADS_PER_PAGE;
+  const paginatedLeads = filteredLeads.slice(startIndex, startIndex + LEADS_PER_PAGE);
+
+  const buildUrl = (o: { division?: string; followUp?: string; page?: number }) => {
     const sp = new URLSearchParams();
     const d = o.division ?? selectedDivision;
     const f = o.followUp ?? followUpFilter;
+    const p = o.page !== undefined ? o.page : 1;
     if (d && d !== "ALL") sp.set("division", d);
     if (f && f !== "all") sp.set("followUp", f);
     if (search) sp.set("search", params?.search || "");
+    if (params?.range) sp.set("range", params.range);
+    if (params?.from) sp.set("from", params.from);
+    if (params?.to) sp.set("to", params.to);
+    if (p > 1) sp.set("page", String(p));
     const qs = sp.toString();
     return qs ? `/employee/leads?${qs}` : "/employee/leads";
   };
@@ -191,7 +207,7 @@ export default async function EmployeeLeadsPage({
         <div className="mt-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 border-t border-line pt-4">
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              href="/employee/leads"
+              href={buildUrl({ division: "ALL" })}
               className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition ${
                 selectedDivision === "ALL"
                   ? "bg-slate-900 text-white shadow-xs"
@@ -201,7 +217,7 @@ export default async function EmployeeLeadsPage({
               All Inquiries ({totalLeads})
             </Link>
             <Link
-              href="/employee/leads?division=PCD_FRANCHISE"
+              href={buildUrl({ division: "PCD_FRANCHISE" })}
               className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 selectedDivision === "PCD_FRANCHISE"
                   ? "bg-blue-700 text-white shadow-xs"
@@ -212,7 +228,7 @@ export default async function EmployeeLeadsPage({
               <span>PCD Franchise ({pcdCount})</span>
             </Link>
             <Link
-              href="/employee/leads?division=THIRD_PARTY"
+              href={buildUrl({ division: "THIRD_PARTY" })}
               className={`rounded-2xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 selectedDivision === "THIRD_PARTY"
                   ? "bg-purple-700 text-white shadow-xs"
@@ -313,7 +329,7 @@ export default async function EmployeeLeadsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filteredLeads.map((lead) => {
+                {paginatedLeads.map((lead) => {
                   const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
                   const isThirdParty = lead.division === "THIRD_PARTY";
 
@@ -449,7 +465,7 @@ export default async function EmployeeLeadsPage({
 
           {/* Mobile Touch Cards View (lg:hidden) */}
           <div className="lg:hidden divide-y divide-line">
-            {filteredLeads.map((lead) => {
+            {paginatedLeads.map((lead) => {
               const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
               const isThirdParty = lead.division === "THIRD_PARTY";
 
@@ -580,6 +596,16 @@ export default async function EmployeeLeadsPage({
               );
             })}
           </div>
+
+          {/* Pagination Footer */}
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalFilteredLeads}
+            pageSize={LEADS_PER_PAGE}
+            itemName="leads"
+            buildHref={(p) => buildUrl({ page: p })}
+          />
         </div>
       )}
     </div>

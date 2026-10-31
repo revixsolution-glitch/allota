@@ -11,12 +11,14 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
+import { PaginationBar } from "@/components/PaginationBar";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
     range?: string;
     from?: string;
     to?: string;
+    page?: string;
   }>;
 }
 
@@ -53,6 +55,10 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       ? { occurredAt: { gte: dateFilter.start } }
       : {};
 
+  const LEADS_PER_PAGE = 15;
+  const rawPage = parseInt(searchParams.page || "1", 10);
+  const requestedPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+
   const [
     employee,
     clientCount,
@@ -68,6 +74,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     recentAllotments,
     overdueFollowUps,
     todayFollowUps,
+    assignedLeadsCount,
   ] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
@@ -89,7 +96,8 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: 15,
+      skip: (requestedPage - 1) * LEADS_PER_PAGE,
+      take: LEADS_PER_PAGE,
     }),
     prisma.lead.groupBy({
       by: ["division"],
@@ -178,7 +186,27 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
         status: { notIn: [...CLOSED_LEAD_STATUSES] },
       },
     }),
+    prisma.lead.count({
+      where: {
+        assignedEmployeeId: employeeId,
+        status: { not: LeadStatus.CONVERTED },
+        ...leadDateFilter,
+      },
+    }),
   ]);
+
+  const totalLeadPages = Math.max(1, Math.ceil(assignedLeadsCount / LEADS_PER_PAGE));
+  const currentLeadPage = Math.min(requestedPage, totalLeadPages);
+
+  const buildDashboardUrl = (p: number) => {
+    const sp = new URLSearchParams();
+    if (searchParams.range) sp.set("range", searchParams.range);
+    if (searchParams.from) sp.set("from", searchParams.from);
+    if (searchParams.to) sp.set("to", searchParams.to);
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return qs ? `/employee?${qs}` : "/employee";
+  };
 
   const pcdCount =
     divisionStats.find((d) => d.division === "PCD_FRANCHISE")?._count._all || 0;
@@ -643,6 +671,16 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                 );
               })}
             </div>
+
+            {/* Pagination Footer */}
+            <PaginationBar
+              currentPage={currentLeadPage}
+              totalPages={totalLeadPages}
+              totalItems={assignedLeadsCount}
+              pageSize={LEADS_PER_PAGE}
+              itemName="leads"
+              buildHref={buildDashboardUrl}
+            />
           </div>
         )}
       </section>
