@@ -434,7 +434,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                                 📞 Call
                               </a>
                               <a
-                                href={`https://wa.me/${cleanPhone}`}
+                                href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition active:scale-95"
@@ -507,7 +507,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                             📞 Call
                           </a>
                           <a
-                            href={`https://wa.me/${cleanPhone}`}
+                            href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                             target="_blank"
                             rel="noreferrer"
                             className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700"
