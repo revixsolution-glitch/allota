@@ -294,22 +294,24 @@ async function handleSync(req: NextRequest) {
       activeFolderId = DEFAULT_DRIVE_FOLDER_ID;
     }
 
-    // Helper to fetch files from a Drive folder URL/ID (root only for fast response)
-    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string }[]> {
-      const results: { id: string; name: string }[] = [];
+    // Helper to fetch files from a Drive folder URL/ID (supports root audio and employee subfolders)
+    async function fetchDriveFolderFiles(folderId: string): Promise<{ id: string; name: string; repHint?: string }[]> {
+      const results: { id: string; name: string; repHint?: string }[] = [];
       try {
         const folderRes = await fetch(
           `https://drive.google.com/embeddedfolderview?id=${folderId}`,
           { cache: "no-store" }
         );
         const html = await folderRes.text();
-        const entryRegex =
-          /id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
+        const entryBlockRegex =
+          /<div class="flip-entry"[^>]*id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
         let match;
+        const subfolders: { id: string; name: string }[] = [];
 
-        while ((match = entryRegex.exec(html)) !== null) {
+        while ((match = entryBlockRegex.exec(html)) !== null) {
           const entryId = match[1];
           const entryName = match[2].trim();
+          const isFolder = match[0].includes("drive-sprite-folder") || match[0].includes("drive.google.com/drive/folders");
           const isAudio =
             entryName.endsWith(".m4a") ||
             entryName.endsWith(".mp3") ||
@@ -319,7 +321,43 @@ async function handleSync(req: NextRequest) {
 
           if (isAudio) {
             results.push({ id: entryId, name: entryName });
+          } else if (isFolder) {
+            subfolders.push({ id: entryId, name: entryName });
           }
+        }
+
+        // If master folder contains subfolders per rep (e.g. Khushboo/), scan them
+        if (subfolders.length > 0) {
+          await Promise.all(
+            subfolders.slice(0, 10).map(async (sub) => {
+              try {
+                const subRes = await fetch(
+                  `https://drive.google.com/embeddedfolderview?id=${sub.id}`,
+                  { cache: "no-store" }
+                );
+                const subHtml = await subRes.text();
+                let subMatch;
+                const subEntryRegex =
+                  /<div class="flip-entry"[^>]*id="entry-([a-zA-Z0-9_-]+)"[\s\S]*?<div class="flip-entry-title">([^<]+)<\/div>/g;
+                while ((subMatch = subEntryRegex.exec(subHtml)) !== null) {
+                  const entryId = subMatch[1];
+                  const entryName = subMatch[2].trim();
+                  const isAudio =
+                    entryName.endsWith(".m4a") ||
+                    entryName.endsWith(".mp3") ||
+                    entryName.endsWith(".wav") ||
+                    entryName.endsWith(".aac") ||
+                    entryName.endsWith(".ogg");
+
+                  if (isAudio) {
+                    results.push({ id: entryId, name: entryName, repHint: sub.name });
+                  }
+                }
+              } catch (subErr) {
+                console.warn(`Error scanning subfolder ${sub.name}:`, subErr);
+              }
+            })
+          );
         }
       } catch (fErr) {
         console.warn(`Error scanning Google Drive folder ${folderId}:`, fErr);
@@ -331,6 +369,7 @@ async function handleSync(req: NextRequest) {
       id: string;
       name: string;
       assignedRepName: "Savi" | "Diksha" | "Employee";
+      repHint?: string;
     }
 
     let driveFiles: TaggedDriveFile[] = [];
@@ -349,6 +388,7 @@ async function handleSync(req: NextRequest) {
       driveFiles = companyDriveFiles.map((f) => ({
         ...f,
         assignedRepName: "Employee" as const,
+        repHint: f.repHint,
       }));
     }
 
@@ -557,6 +597,13 @@ async function handleSync(req: NextRequest) {
             ? (dikshaRep || saviRep || defaultEmployee)
             : (saviRep || defaultEmployee))
         : (companyEmployee || defaultEmployee);
+      if (!isKesrox && f.repHint) {
+        const hintRep = await prisma.employee.findFirst({
+          where: { name: { contains: f.repHint, mode: "insensitive" }, companyId: effectiveCompanyId },
+          include: { company: true },
+        });
+        if (hintRep) rep = hintRep;
+      }
       const lowerName = f.name.toLowerCase();
       if (isKesrox && lowerName.includes("naresh")) {
         rep = nareshRep || defaultEmployee;
