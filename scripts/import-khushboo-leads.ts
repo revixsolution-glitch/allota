@@ -205,7 +205,8 @@ async function main() {
   });
   if (!employee) throw new Error("Khushboo employee record not found");
 
-  const csvPath = "/Users/kartikchaudhary/Documents/1.csv";
+  const csvPath = process.argv[2] || "/Users/kartikchaudhary/Documents/2.csv";
+  if (!fs.existsSync(csvPath)) throw new Error(`CSV file not found: ${csvPath}`);
   const content = fs.readFileSync(csvPath, "utf8");
   const rows = parseCSV(content).slice(1);
 
