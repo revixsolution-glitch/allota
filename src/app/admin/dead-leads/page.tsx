@@ -10,6 +10,7 @@ import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
 import { formatLeadDateTime } from "@/lib/date-format";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -80,7 +81,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
       ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
     },
     include: {
-      assignedEmployee: { select: { id: true, name: true } },
+      assignedEmployee: { select: { id: true, name: true, phoneNumber: true } },
       calls: {
         orderBy: { occurredAt: "desc" },
         select: { id: true, occurredAt: true, durationSec: true, missed: true, aiSummary: true, direction: true },
@@ -284,28 +285,27 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1240px]">
+            <table className="w-full text-left text-xs min-w-[1200px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="py-3 px-4 w-[280px] min-w-[260px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">Category</th>
                   <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[200px] min-w-[180px] whitespace-nowrap">Representative</th>
+                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Representative</th>
                   <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Last Activity</th>
-                  <th className="py-3 px-4 w-[180px] min-w-[160px] whitespace-nowrap">Reason / Notes</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {paginatedDeadLeads.map((lead) => {
                   const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
-                  const aiReason = buildAiReason(lead);
                   const isIrrelevant = lead.deadReason === "IRRELEVANT";
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 w-[280px] min-w-[260px]">
                         <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </Link>
@@ -315,7 +315,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -330,51 +330,45 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 w-[160px] min-w-[150px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Representative */}
-                      <td className="py-3 px-4 font-semibold text-ink">
+                      <td className="py-3 px-4 w-[180px] min-w-[170px] font-semibold text-ink whitespace-nowrap">
                         {lead.assignedEmployee?.name || (
                           <span className="text-ink-faint">Unassigned</span>
                         )}
                       </td>
 
                       {/* Last Activity */}
-                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap text-xs">
+                      <td className="py-3 px-4 w-[160px] min-w-[150px] text-ink-muted whitespace-nowrap text-xs">
                         {lead.deadAt
                           ? formatLeadDateTime(lead.deadAt)
                           : formatLeadDateTime(lead.updatedAt)}
                       </td>
 
-                      {/* Reason / Notes */}
-                      <td className="py-3 px-4 max-w-sm">
-                        {callWithSummary ? (
-                          <Link
-                            href={`/admin/calls?callId=${callWithSummary.id}`}
-                            className="block rounded-xl bg-violet-50/80 hover:bg-violet-100 border border-violet-200/80 p-2.5 transition shadow-2xs group"
-                          >
-                            <div className="flex items-center justify-between gap-1 text-[11px] font-bold text-violet-900 mb-0.5">
-                              <span className="inline-flex items-center gap-1">
-                                <span>🤖</span>
-                                <span>AI Call Summary</span>
-                              </span>
-                              <span className="text-violet-600 font-semibold text-[10px] group-hover:underline">Open Call ↗</span>
-                            </div>
-                            <p className="text-xs text-slate-700 leading-snug line-clamp-2">
-                              {callWithSummary.aiSummary}
-                            </p>
-                          </Link>
-                        ) : (
-                          <p className="text-xs text-ink-muted leading-relaxed line-clamp-2">
-                            {aiReason}
-                          </p>
-                        )}
+                      {/* Remarks (Global Component) */}
+                      <td className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">
+                        <LeadRemarksModal
+                          leadId={lead.id}
+                          leadName={lead.name ?? "Unnamed Prospect"}
+                          leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                          leadStatus={lead.status}
+                          followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                          assignedRepName={lead.assignedEmployee?.name}
+                          assignedRepPhone={lead.assignedEmployee?.phoneNumber}
+                          remarks={lead.remarks.map((r) => ({
+                            id: r.id,
+                            remark: r.remark,
+                            createdAt: r.createdAt.toISOString(),
+                            employeeName: r.employee?.name || "Representative",
+                          }))}
+                        />
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap w-44">
+                      <td className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/admin/lead-history/${lead.id}`}
@@ -524,12 +518,29 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                   )}
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft">
-                    <Link
-                      href={`/admin/lead-history/${lead.id}`}
-                      className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink-muted hover:bg-slate-50 transition"
-                    >
-                      Full History →
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/lead-history/${lead.id}`}
+                        className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink-muted hover:bg-slate-50 transition"
+                      >
+                        Full History →
+                      </Link>
+                      <LeadRemarksModal
+                        leadId={lead.id}
+                        leadName={lead.name ?? "Unnamed Prospect"}
+                        leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                        leadStatus={lead.status}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        assignedRepName={lead.assignedEmployee?.name}
+                        assignedRepPhone={lead.assignedEmployee?.phoneNumber}
+                        remarks={lead.remarks.map((r) => ({
+                          id: r.id,
+                          remark: r.remark,
+                          createdAt: r.createdAt.toISOString(),
+                          employeeName: r.employee?.name || "Representative",
+                        }))}
+                      />
+                    </div>
 
                     <div className="flex items-center gap-2">
                       <details className="group/action relative inline-block text-left">

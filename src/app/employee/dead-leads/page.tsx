@@ -263,16 +263,15 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1200px]">
+            <table className="w-full text-left text-xs min-w-[1100px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="py-3 px-4 w-[280px] min-w-[260px] whitespace-nowrap">Prospect</th>
                   <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
                   <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">City / State</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Closed Date</th>
-                  <th className="py-3 px-4 w-[200px] min-w-[180px] whitespace-nowrap">Remarks History</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[180px] min-w-[160px] whitespace-nowrap">Closed Date</th>
+                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -311,140 +310,71 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 w-[180px] min-w-[170px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
-                      {/* City / State */}
-                      <td className="py-3 px-4 text-ink-muted">
-                        {lead.city || lead.state ? `${lead.city || ""} ${lead.state || ""}`.trim() : "—"}
-                      </td>
-
                       {/* Closed Date */}
-                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap text-xs">
+                      <td className="py-3 px-4 w-[180px] min-w-[160px] text-ink-muted whitespace-nowrap text-xs">
                         {lead.deadAt
                           ? formatLeadDateTime(lead.deadAt)
                           : formatLeadDateTime(lead.updatedAt)}
                       </td>
 
-                      {/* Remarks History */}
-                      <td className="py-3 px-4 min-w-[280px] max-w-sm">
-                        {hasRemarks && latestRemark ? (
-                          <div className="space-y-1.5">
-                            {/* Latest Remark Card */}
-                            <div className="rounded-xl bg-amber-50/80 border border-amber-200/90 p-2.5 shadow-2xs">
-                              <div className="flex items-center justify-between text-[10px] text-amber-800 font-bold mb-1">
-                                <span className="inline-flex items-center gap-1">
-                                  <span>📝</span>
-                                  <span>{lead.remarks.length > 1 ? "Latest Remark" : "Remark"}</span>
-                                </span>
-                                <span className="text-[10px] text-amber-700/80 font-normal">
-                                  {new Date(latestRemark.createdAt).toLocaleString("en-IN", {
-                                    day: "numeric",
-                                    month: "short",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-                              <p className="text-xs font-semibold text-amber-950 leading-snug whitespace-pre-wrap">
-                                {latestRemark.remark}
-                              </p>
-                              <p className="mt-1 text-[10px] text-amber-700 font-medium">
-                                — {latestRemark.employee?.name || "Representative"}
-                              </p>
-                            </div>
+                      {/* Remarks */}
+                      <td className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">
+                        <details className="inline-block text-left group">
+                          <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
+                            <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Remarks</span>
+                            <span className="text-[10px] text-amber-600 font-semibold">
+                              ({lead.remarks.length})
+                            </span>
+                          </summary>
 
-                            {/* Previous Remarks (Expandable) */}
-                            {olderRemarks.length > 0 && (
-                              <details className="group/hist text-left">
-                                <summary className="cursor-pointer text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 select-none py-0.5">
-                                  <span>📜</span>
-                                  <span className="group-open/hist:hidden underline decoration-dotted">
-                                    View all earlier remarks ({olderRemarks.length})
-                                  </span>
-                                  <span className="hidden group-open/hist:inline underline decoration-dotted">
-                                    Hide earlier remarks
-                                  </span>
-                                </summary>
-                                <div className="mt-1.5 space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                                  {olderRemarks.map((r) => (
-                                    <div key={r.id} className="rounded-lg bg-slate-50 border border-line p-2 text-xs">
-                                      <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{r.remark}</p>
-                                      <div className="mt-1 flex items-center justify-between text-[10px] text-ink-faint">
-                                        <span className="font-semibold">{r.employee?.name || "Representative"}</span>
-                                        <span>
-                                          {new Date(r.createdAt).toLocaleString("en-IN", {
-                                            day: "numeric",
-                                            month: "short",
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                          })}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </details>
+                          <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
+                            <h4 className="text-xs font-extrabold text-ink mb-2">
+                              Remarks for {lead.name || "this lead"}
+                            </h4>
+
+                            {lead.remarks.length > 0 && (
+                              <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
+                                {lead.remarks.map((r) => (
+                                  <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
+                                    <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
+                                    <p className="mt-1 text-[10px] text-ink-faint">
+                                      {r.employee?.name || "Representative"} • {new Date(r.createdAt).toLocaleString("en-IN", {
+                                        day: "numeric",
+                                        month: "short",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
                             )}
 
-                            {/* Add Remark Dropdown */}
-                            <details className="group/add text-left inline-block mt-0.5">
-                              <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline flex items-center gap-1 select-none">
-                                <span>+ Add Remark</span>
-                              </summary>
-                              <div className="absolute mt-1.5 w-72 rounded-2xl bg-white p-3 shadow-xl border border-line z-30">
-                                <form action={addLeadRemark} className="space-y-2">
-                                  <input type="hidden" name="leadId" value={lead.id} />
-                                  <textarea
-                                    name="remark"
-                                    rows={2}
-                                    required
-                                    placeholder="Add a remark for this lead..."
-                                    className="w-full rounded-xl bg-slate-50 border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
-                                  />
-                                  <div className="flex justify-end gap-1.5">
-                                    <button
-                                      type="submit"
-                                      className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary-strong transition cursor-pointer"
-                                    >
-                                      Save Remark
-                                    </button>
-                                  </div>
-                                </form>
-                              </div>
-                            </details>
+                            <form action={addLeadRemark} className="space-y-2">
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <textarea
+                                name="remark"
+                                rows={2}
+                                required
+                                placeholder="Write a short remark..."
+                                className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
+                              />
+                              <button
+                                type="submit"
+                                className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
+                              >
+                                Add Remark
+                              </button>
+                            </form>
                           </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <span className="text-xs text-ink-faint italic block">No remarks recorded yet</span>
-                            <details className="group/add text-left inline-block">
-                              <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline flex items-center gap-1 select-none">
-                                <span>+ Add Remark</span>
-                              </summary>
-                              <div className="absolute mt-1.5 w-72 rounded-2xl bg-white p-3 shadow-xl border border-line z-30">
-                                <form action={addLeadRemark} className="space-y-2">
-                                  <input type="hidden" name="leadId" value={lead.id} />
-                                  <textarea
-                                    name="remark"
-                                    rows={2}
-                                    required
-                                    placeholder="Add a remark for this lead..."
-                                    className="w-full rounded-xl bg-slate-50 border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
-                                  />
-                                  <div className="flex justify-end gap-1.5">
-                                    <button
-                                      type="submit"
-                                      className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary-strong transition cursor-pointer"
-                                    >
-                                      Save Remark
-                                    </button>
-                                  </div>
-                                </form>
-                              </div>
-                            </details>
-                          </div>
-                        )}
+                        </details>
                       </td>
 
                       {/* Actions */}
@@ -572,95 +502,58 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                     )}
                   </div>
 
-                  {/* Remarks History Card */}
-                  <div className="rounded-2xl bg-amber-50/50 border border-amber-200/80 p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-amber-900 flex items-center gap-1.5">
-                        <span>📝</span>
-                        <span>Remarks History ({lead.remarks.length})</span>
-                      </span>
-                    </div>
-
-                    {hasRemarks && latestRemark ? (
-                      <div className="space-y-2">
-                        <div className="rounded-xl bg-white border border-amber-200/90 p-2.5 shadow-2xs">
-                          <p className="text-xs font-semibold text-amber-950 leading-snug whitespace-pre-wrap">
-                            {latestRemark.remark}
-                          </p>
-                          <div className="mt-1.5 flex items-center justify-between text-[10px] text-amber-700">
-                            <span className="font-medium">— {latestRemark.employee?.name || "Representative"}</span>
-                            <span>
-                              {new Date(latestRemark.createdAt).toLocaleString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                        </div>
-
-                        {olderRemarks.length > 0 && (
-                          <details className="group/hist text-left">
-                            <summary className="cursor-pointer text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 select-none py-0.5">
-                              <span>📜</span>
-                              <span className="group-open/hist:hidden underline decoration-dotted">
-                                Earlier remarks ({olderRemarks.length})
-                              </span>
-                              <span className="hidden group-open/hist:inline underline decoration-dotted">
-                                Hide earlier remarks
-                              </span>
-                            </summary>
-                            <div className="mt-1.5 space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                              {olderRemarks.map((r) => (
-                                <div key={r.id} className="rounded-lg bg-white border border-amber-200/60 p-2 text-xs">
-                                  <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{r.remark}</p>
-                                  <div className="mt-1 flex items-center justify-between text-[10px] text-ink-faint">
-                                    <span className="font-medium">{r.employee?.name || "Representative"}</span>
-                                    <span>
-                                      {new Date(r.createdAt).toLocaleString("en-IN", {
-                                        day: "numeric",
-                                        month: "short",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        )}
+                  {/* Remarks Accordion */}
+                  <details className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 group">
+                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-amber-900 select-none list-none">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>Remarks</span>
+                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full font-bold">
+                          {lead.remarks.length}
+                        </span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-ink-muted italic">No remarks recorded yet</p>
-                    )}
+                      <span className="text-amber-700 font-bold transition-transform group-open:rotate-180">▾</span>
+                    </summary>
 
-                    {/* Quick Add Remark Form */}
-                    <details className="group/add text-left pt-1">
-                      <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline flex items-center gap-1 select-none">
-                        <span>+ Add Remark</span>
-                      </summary>
-                      <form action={addLeadRemark} className="mt-2 space-y-2">
+                    <div className="mt-3 pt-2 border-t border-amber-200/60 space-y-2.5">
+                      {lead.remarks.length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {lead.remarks.map((r) => (
+                            <div key={r.id} className="rounded-xl bg-white border border-amber-200/60 p-2.5">
+                              <p className="text-xs text-ink leading-relaxed">{r.remark}</p>
+                              <p className="mt-1 text-[10px] text-ink-faint">
+                                {r.employee?.name || "Representative"} • {new Date(r.createdAt).toLocaleString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <form action={addLeadRemark} className="space-y-2">
                         <input type="hidden" name="leadId" value={lead.id} />
                         <textarea
                           name="remark"
                           rows={2}
                           required
-                          placeholder="Add a remark for this lead..."
-                          className="w-full rounded-xl bg-white border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                          placeholder="Write a remark..."
+                          className="w-full rounded-xl border border-line bg-white p-2.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
                         />
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs"
-                          >
-                            Save Remark
-                          </button>
-                        </div>
+                        <button
+                          type="submit"
+                          className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
+                        >
+                          Add Remark
+                        </button>
                       </form>
-                    </details>
-                  </div>
+                    </div>
+                  </details>
 
                   {/* Actions Footer */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
