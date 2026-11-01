@@ -26,6 +26,8 @@
 *.sql
 tmp/
 cookies.txt
+backups/
+exports/
 
 # debug
 npm-debug.log*

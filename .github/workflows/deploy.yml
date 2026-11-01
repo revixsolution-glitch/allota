@@ -1,0 +1,19 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hostinger KVM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 201.18.206.214
+          username: root
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            /var/www/allota-crm/deploy/deploy.sh
