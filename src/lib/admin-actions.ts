@@ -1224,7 +1224,9 @@ export async function updateEmployeeLeadStatus(formData: FormData) {
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
+  revalidatePath("/employee/dead-leads");
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dead-leads");
   revalidatePath("/admin/leads-iq");
   revalidatePath("/admin/employees");
   if (lead.assignedEmployeeId) {
@@ -1451,7 +1453,9 @@ export async function addLeadRemark(formData: FormData) {
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
+  revalidatePath("/employee/dead-leads");
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dead-leads");
   revalidatePath("/admin/leads-iq");
   revalidatePath("/admin/employees");
   if (lead.assignedEmployeeId) {
@@ -1613,7 +1617,9 @@ export async function logEmployeeCall(formData: FormData) {
   revalidatePath("/admin/calls");
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
+  revalidatePath("/employee/dead-leads");
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dead-leads");
   revalidatePath("/admin/leads-iq");
   revalidatePath("/admin/employees");
   revalidatePath(`/admin/employees/${session.employeeId}`);

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
-import { updateLeadActiveStatus } from "@/lib/admin-actions";
+import { updateLeadActiveStatus, addLeadRemark } from "@/lib/admin-actions";
 import { SourceBadge } from "@/components/SourceBadge";
 import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
@@ -19,25 +19,6 @@ interface EmployeeDeadLeadsPageProps {
     to?: string;
     page?: string;
   }>;
-}
-
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen).trim() + "…";
-}
-
-function buildAiReason(lead: {
-  inquiryDetails: string | null;
-  calls: { aiSummary: string | null; occurredAt: Date }[];
-}): string {
-  const latestCallWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
-  if (latestCallWithSummary?.aiSummary) {
-    return truncate(latestCallWithSummary.aiSummary, 200);
-  }
-  if (lead.inquiryDetails) {
-    return truncate(lead.inquiryDetails, 200);
-  }
-  return "No notes or call recordings on record.";
 }
 
 export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPageProps) {
@@ -85,10 +66,6 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         ...dateWhere,
       },
       include: {
-        calls: {
-          orderBy: { occurredAt: "desc" },
-          select: { id: true, occurredAt: true, durationSec: true, missed: true, aiSummary: true },
-        },
         remarks: {
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
@@ -98,7 +75,7 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
     }),
   ]);
 
-  // Apply search query
+  // Apply search query across prospect name, phone, city, state and employee remarks
   let visibleLeads = allDeadLeads;
   if (search) {
     visibleLeads = visibleLeads.filter((l) => {
@@ -106,11 +83,13 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
       const phone = (l.phoneNumber || "").toLowerCase();
       const details = (l.inquiryDetails || "").toLowerCase();
       const city = (l.city || "").toLowerCase();
+      const remarksText = l.remarks.map((r) => (r.remark || "").toLowerCase()).join(" ");
       return (
         name.includes(search) ||
         phone.includes(search) ||
         details.includes(search) ||
-        city.includes(search)
+        city.includes(search) ||
+        remarksText.includes(search)
       );
     });
   }
@@ -163,12 +142,12 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
               type="text"
               name="search"
               defaultValue={params?.search || ""}
-              placeholder="Search by name, phone or city..."
+              placeholder="Search by name, phone or remarks..."
               className="rounded-xl border border-line bg-white px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none w-full sm:w-64"
             />
             <button
               type="submit"
-              className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition"
+              className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
             >
               Filter
             </button>
@@ -205,18 +184,20 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                   <th className="py-3 px-4">Source</th>
                   <th className="py-3 px-4">City / State</th>
                   <th className="py-3 px-4">Closed Date</th>
-                  <th className="py-3 px-4">Reason / Call Summary</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4">Remarks History</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {paginatedDeadLeads.map((lead) => {
-                  const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
                   const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
-                  const aiReason = buildAiReason(lead);
+                  const hasRemarks = lead.remarks.length > 0;
+                  const latestRemark = hasRemarks ? lead.remarks[0] : null;
+                  const olderRemarks = hasRemarks ? lead.remarks.slice(1) : [];
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
+                      {/* Prospect */}
                       <td className="py-3 px-4">
                         <div className="font-bold text-ink">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
@@ -225,64 +206,179 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                           <ProtectedData text={lead.phoneNumber || "No phone"} />
                         </p>
                       </td>
+
+                      {/* Source */}
                       <td className="py-3 px-4">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
+
+                      {/* City / State */}
                       <td className="py-3 px-4 text-ink-muted">
                         {lead.city || lead.state ? `${lead.city || ""} ${lead.state || ""}`.trim() : "—"}
                       </td>
-                      <td className="py-3 px-4 text-ink-muted">
+
+                      {/* Closed Date */}
+                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap">
                         {lead.deadAt
                           ? new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                           : new Date(lead.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
-                      <td className="py-3 px-4 max-w-sm">
-                        {callWithSummary ? (
-                          <div className="rounded-xl bg-violet-50/80 border border-violet-200/80 p-2.5 shadow-2xs">
-                            <span className="text-[10px] font-bold text-violet-900 block mb-0.5">
-                              🤖 AI Call Summary:
-                            </span>
-                            <p className="text-xs text-slate-700 leading-snug line-clamp-2">
-                              {callWithSummary.aiSummary}
-                            </p>
+
+                      {/* Remarks History */}
+                      <td className="py-3 px-4 min-w-[280px] max-w-sm">
+                        {hasRemarks && latestRemark ? (
+                          <div className="space-y-1.5">
+                            {/* Latest Remark Card */}
+                            <div className="rounded-xl bg-amber-50/80 border border-amber-200/90 p-2.5 shadow-2xs">
+                              <div className="flex items-center justify-between text-[10px] text-amber-800 font-bold mb-1">
+                                <span className="inline-flex items-center gap-1">
+                                  <span>📝</span>
+                                  <span>{lead.remarks.length > 1 ? "Latest Remark" : "Remark"}</span>
+                                </span>
+                                <span className="text-[10px] text-amber-700/80 font-normal">
+                                  {new Date(latestRemark.createdAt).toLocaleString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-xs font-semibold text-amber-950 leading-snug whitespace-pre-wrap">
+                                {latestRemark.remark}
+                              </p>
+                              <p className="mt-1 text-[10px] text-amber-700 font-medium">
+                                — {latestRemark.employee?.name || "Representative"}
+                              </p>
+                            </div>
+
+                            {/* Previous Remarks (Expandable) */}
+                            {olderRemarks.length > 0 && (
+                              <details className="group/hist text-left">
+                                <summary className="cursor-pointer text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 select-none py-0.5">
+                                  <span>📜</span>
+                                  <span className="group-open/hist:hidden underline decoration-dotted">
+                                    View all earlier remarks ({olderRemarks.length})
+                                  </span>
+                                  <span className="hidden group-open/hist:inline underline decoration-dotted">
+                                    Hide earlier remarks
+                                  </span>
+                                </summary>
+                                <div className="mt-1.5 space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                  {olderRemarks.map((r) => (
+                                    <div key={r.id} className="rounded-lg bg-slate-50 border border-line p-2 text-xs">
+                                      <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{r.remark}</p>
+                                      <div className="mt-1 flex items-center justify-between text-[10px] text-ink-faint">
+                                        <span className="font-semibold">{r.employee?.name || "Representative"}</span>
+                                        <span>
+                                          {new Date(r.createdAt).toLocaleString("en-IN", {
+                                            day: "numeric",
+                                            month: "short",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+
+                            {/* Add Remark Dropdown */}
+                            <details className="group/add text-left inline-block mt-0.5">
+                              <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline flex items-center gap-1 select-none">
+                                <span>+ Add Remark</span>
+                              </summary>
+                              <div className="absolute mt-1.5 w-72 rounded-2xl bg-white p-3 shadow-xl border border-line z-30">
+                                <form action={addLeadRemark} className="space-y-2">
+                                  <input type="hidden" name="leadId" value={lead.id} />
+                                  <textarea
+                                    name="remark"
+                                    rows={2}
+                                    required
+                                    placeholder="Add a remark for this lead..."
+                                    className="w-full rounded-xl bg-slate-50 border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                                  />
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      type="submit"
+                                      className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary-strong transition cursor-pointer"
+                                    >
+                                      Save Remark
+                                    </button>
+                                  </div>
+                                </form>
+                              </div>
+                            </details>
                           </div>
                         ) : (
-                          <p className="text-xs text-ink-muted leading-relaxed line-clamp-2">
-                            {aiReason}
-                          </p>
+                          <div className="space-y-1">
+                            <span className="text-xs text-ink-faint italic block">No remarks recorded yet</span>
+                            <details className="group/add text-left inline-block">
+                              <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline flex items-center gap-1 select-none">
+                                <span>+ Add Remark</span>
+                              </summary>
+                              <div className="absolute mt-1.5 w-72 rounded-2xl bg-white p-3 shadow-xl border border-line z-30">
+                                <form action={addLeadRemark} className="space-y-2">
+                                  <input type="hidden" name="leadId" value={lead.id} />
+                                  <textarea
+                                    name="remark"
+                                    rows={2}
+                                    required
+                                    placeholder="Add a remark for this lead..."
+                                    className="w-full rounded-xl bg-slate-50 border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                                  />
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      type="submit"
+                                      className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary-strong transition cursor-pointer"
+                                    >
+                                      Save Remark
+                                    </button>
+                                  </div>
+                                </form>
+                              </div>
+                            </details>
+                          </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap min-w-[280px]">
+                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                           {cleanPhone && (
                             <>
                               <a
                                 href={`tel:${cleanPhone}`}
                                 title="Call prospect"
-                                className="inline-flex items-center justify-center h-7 px-2.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition"
+                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-100 active:scale-95 transition shadow-2xs"
                               >
-                                📞 Call
+                                <span className="text-xs leading-none">📞</span>
+                                <span className="leading-none">Call</span>
                               </a>
                               <a
                                 href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Open WhatsApp chat"
-                                className="inline-flex items-center justify-center h-7 px-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition"
+                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 active:scale-95 transition shadow-2xs"
                               >
-                                💬 WhatsApp
+                                <span className="text-xs leading-none">💬</span>
+                                <span className="leading-none">WhatsApp</span>
                               </a>
                             </>
                           )}
-                          <form action={updateLeadActiveStatus}>
+                          <form action={updateLeadActiveStatus} className="inline-block shrink-0">
                             <input type="hidden" name="leadId" value={lead.id} />
                             <input type="hidden" name="isDead" value="false" />
                             <button
                               type="submit"
                               title="Reactivate lead back into active pipeline"
-                              className="rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition cursor-pointer"
+                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap shrink-0 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition shadow-2xs cursor-pointer"
                             >
-                              ↺ Reactivate
+                              <span>↺</span>
+                              <span>Reactivate</span>
                             </button>
                           </form>
                         </div>
@@ -297,9 +393,10 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
           {/* Mobile Cards View (lg:hidden) */}
           <div className="lg:hidden divide-y divide-line">
             {paginatedDeadLeads.map((lead) => {
-              const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
               const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
-              const aiReason = buildAiReason(lead);
+              const hasRemarks = lead.remarks.length > 0;
+              const latestRemark = hasRemarks ? lead.remarks[0] : null;
+              const olderRemarks = hasRemarks ? lead.remarks.slice(1) : [];
 
               return (
                 <div key={lead.id} className="p-4 space-y-3">
@@ -326,38 +423,115 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                     )}
                   </div>
 
-                  {callWithSummary ? (
-                    <div className="rounded-xl bg-violet-50/80 border border-violet-200/80 p-3 shadow-2xs">
-                      <span className="text-[11px] font-bold text-violet-900 block mb-1">
-                        🤖 AI Call Summary:
+                  {/* Remarks History Card */}
+                  <div className="rounded-2xl bg-amber-50/50 border border-amber-200/80 p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-900 flex items-center gap-1.5">
+                        <span>📝</span>
+                        <span>Remarks History ({lead.remarks.length})</span>
                       </span>
-                      <p className="text-xs text-slate-700 leading-relaxed line-clamp-3">
-                        {callWithSummary.aiSummary}
-                      </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-ink-muted leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-line-soft">
-                      {aiReason}
-                    </p>
-                  )}
 
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-line-soft">
+                    {hasRemarks && latestRemark ? (
+                      <div className="space-y-2">
+                        <div className="rounded-xl bg-white border border-amber-200/90 p-2.5 shadow-2xs">
+                          <p className="text-xs font-semibold text-amber-950 leading-snug whitespace-pre-wrap">
+                            {latestRemark.remark}
+                          </p>
+                          <div className="mt-1.5 flex items-center justify-between text-[10px] text-amber-700">
+                            <span className="font-medium">— {latestRemark.employee?.name || "Representative"}</span>
+                            <span>
+                              {new Date(latestRemark.createdAt).toLocaleString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {olderRemarks.length > 0 && (
+                          <details className="group/hist">
+                            <summary className="cursor-pointer text-[11px] font-bold text-amber-800 flex items-center gap-1 select-none">
+                              <span>📜</span>
+                              <span className="group-open/hist:hidden underline decoration-dotted">
+                                View earlier remarks ({olderRemarks.length})
+                              </span>
+                              <span className="hidden group-open/hist:inline underline decoration-dotted">
+                                Hide earlier remarks
+                              </span>
+                            </summary>
+                            <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                              {olderRemarks.map((r) => (
+                                <div key={r.id} className="rounded-xl bg-white border border-line p-2 text-xs">
+                                  <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{r.remark}</p>
+                                  <div className="mt-1 flex items-center justify-between text-[10px] text-ink-faint">
+                                    <span className="font-semibold">{r.employee?.name || "Representative"}</span>
+                                    <span>
+                                      {new Date(r.createdAt).toLocaleString("en-IN", {
+                                        day: "numeric",
+                                        month: "short",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-ink-faint italic py-0.5">No remarks recorded yet</p>
+                    )}
+
+                    <details className="group/add pt-1 border-t border-amber-200/50">
+                      <summary className="cursor-pointer text-[11px] font-bold text-primary hover:underline select-none">
+                        + Add Remark
+                      </summary>
+                      <form action={addLeadRemark} className="mt-2 space-y-2">
+                        <input type="hidden" name="leadId" value={lead.id} />
+                        <textarea
+                          name="remark"
+                          rows={2}
+                          required
+                          placeholder="Add a remark for this lead..."
+                          className="w-full rounded-xl bg-white border border-line p-2 text-xs text-ink focus:outline-none focus:border-primary"
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white shadow-2xs"
+                          >
+                            Save Remark
+                          </button>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">
                     <div className="flex items-center gap-2">
                       {cleanPhone && (
                         <>
                           <a
                             href={`tel:${cleanPhone}`}
-                            className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-700"
+                            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 shadow-2xs"
                           >
-                            📞 Call
+                            <span className="text-xs leading-none">📞</span>
+                            <span className="leading-none">Call</span>
                           </a>
                           <a
                             href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-700"
+                            className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-2xs"
                           >
-                            💬 WhatsApp
+                            <span className="text-xs leading-none">💬</span>
+                            <span className="leading-none">WhatsApp</span>
                           </a>
                         </>
                       )}
@@ -368,9 +542,10 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       <input type="hidden" name="isDead" value="false" />
                       <button
                         type="submit"
-                        className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 active:bg-emerald-100 transition shadow-2xs cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 active:bg-emerald-100 transition shadow-2xs cursor-pointer"
                       >
-                        ↺ Reactivate
+                        <span>↺</span>
+                        <span>Reactivate</span>
                       </button>
                     </form>
                   </div>
