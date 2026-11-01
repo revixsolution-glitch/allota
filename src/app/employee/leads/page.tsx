@@ -369,41 +369,28 @@ export default async function EmployeeLeadsPage({
                   return (
                     <Fragment key={lead.id}>
                       {isFirstLead && isCurrentFresh && (
-                        <tr className="bg-gradient-to-r from-emerald-100/90 via-emerald-50/80 to-teal-50/90 border-y-2 border-emerald-400">
-                          <td colSpan={6} className="px-5 py-2.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2.5">
-                                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-                                <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
-                                  ✨ Fresh Uncontacted Leads ({freshCount})
-                                </span>
-                                <span className="text-[11px] font-semibold text-emerald-700 hidden sm:inline">
-                                  — Reach out first! Once contacted, remarks added, or scheduled, leads move below into the follow-up pipeline.
-                                </span>
-                              </div>
-                              <span className="rounded-full bg-emerald-200 border border-emerald-300 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800">
-                                Priority Action
+                        <tr className="bg-transparent">
+                          <td colSpan={6} className="px-5 py-2">
+                            <div className="flex items-center gap-3">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-300 to-emerald-200" />
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 select-none flex items-center gap-1.5 whitespace-nowrap">
+                                <span>✨</span>
+                                <span>Fresh Leads ({freshCount})</span>
                               </span>
+                              <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 via-emerald-300 to-transparent" />
                             </div>
                           </td>
                         </tr>
                       )}
                       {isTransitionToPipeline && (
-                        <tr className="bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 border-y-2 border-slate-300">
-                          <td colSpan={6} className="px-5 py-2.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2.5">
-                                <span className="text-sm">🔄</span>
-                                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                                  In-Progress Follow-Up Pipeline
-                                </span>
-                                <span className="text-[11px] font-semibold text-slate-600 hidden sm:inline">
-                                  — Active leads with logged remarks, calls, or scheduled follow-up dates
-                                </span>
-                              </div>
-                              <span className="rounded-full bg-slate-200 border border-slate-300 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-700">
-                                Pipeline Active
+                        <tr className="bg-transparent">
+                          <td colSpan={6} className="px-5 py-2">
+                            <div className="flex items-center gap-3">
+                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-200" />
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 select-none flex items-center gap-1.5 whitespace-nowrap">
+                                <span>Follow-up Pipeline</span>
                               </span>
+                              <div className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-300 to-transparent" />
                             </div>
                           </td>
                         </tr>
@@ -568,29 +555,22 @@ export default async function EmployeeLeadsPage({
               return (
                 <Fragment key={lead.id}>
                   {isFirstLead && isCurrentFresh && (
-                    <div className="bg-emerald-50 border-l-4 border-emerald-500 p-3 mx-3 my-2 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
-                          ✨ Fresh Uncontacted Leads ({freshCount})
-                        </span>
-                      </div>
-                      <span className="rounded bg-emerald-200/80 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">
-                        Priority #1
+                    <div className="px-4 py-2 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-300 to-emerald-200" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 select-none flex items-center gap-1.5 whitespace-nowrap">
+                        <span>✨</span>
+                        <span>Fresh Leads ({freshCount})</span>
                       </span>
+                      <div className="h-px flex-1 bg-gradient-to-r from-emerald-200 via-emerald-300 to-transparent" />
                     </div>
                   )}
                   {isTransitionToPipeline && (
-                    <div className="bg-slate-100 border-l-4 border-slate-400 p-3 mx-3 my-3 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">🔄</span>
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                          In-Progress Follow-Up Pipeline
-                        </span>
-                      </div>
-                      <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-700">
-                        Pipeline
+                    <div className="px-4 py-2 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-200" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 select-none flex items-center gap-1.5 whitespace-nowrap">
+                        <span>Follow-up Pipeline</span>
                       </span>
+                      <div className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-300 to-transparent" />
                     </div>
                   )}
                   <div className={`p-4 space-y-3.5 transition rounded-2xl mx-1.5 my-1.5 ${isCurrentFresh ? "crm-fresh-lead-card" : ""}`}>
