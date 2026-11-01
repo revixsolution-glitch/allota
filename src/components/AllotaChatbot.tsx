@@ -32,9 +32,10 @@ export function AllotaChatbot() {
   });
 
   // Draggable launcher position — lets the user move the bubble off whatever
-  // it's covering (e.g. table status/actions columns). Persisted globally in localStorage.
+  // it's covering. Apple AssistiveTouch behavior: automatically snaps horizontally to nearest side edge on release.
   const [launcherPos, setLauncherPos] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(false);
   const launcherWrapRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<{
     startX: number;
@@ -44,35 +45,45 @@ export function AllotaChatbot() {
     hasMoved: boolean;
   } | null>(null);
 
+  // AssistiveTouch magnetic edge snapping (left or right side)
+  function snapToAssistiveEdge(currentX: number, currentY: number) {
+    if (typeof window === "undefined") return { x: currentX, y: currentY };
+    const wrap = launcherWrapRef.current;
+    const w = wrap?.offsetWidth || 84;
+    const h = wrap?.offsetHeight || 84;
+    const margin = 16;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    // Check whether center of orb is closer to left or right half
+    const centerX = currentX + w / 2;
+    const targetX = centerX < screenWidth / 2 ? margin : Math.max(margin, screenWidth - w - margin);
+
+    // Keep Y comfortably inside safe viewport bounds
+    const minY = 64; // Under top header
+    const maxY = Math.max(minY, screenHeight - h - 24);
+    const targetY = Math.min(Math.max(minY, currentY), maxY);
+
+    return { x: targetX, y: targetY };
+  }
+
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("allota-launcher-pos");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
-          setLauncherPos(clampToViewport(parsed.x, parsed.y));
+          setLauncherPos(snapToAssistiveEdge(parsed.x, parsed.y));
         }
       }
     } catch {}
 
     const handleResize = () => {
-      setLauncherPos((prev) => (prev ? clampToViewport(prev.x, prev.y) : null));
+      setLauncherPos((prev) => (prev ? snapToAssistiveEdge(prev.x, prev.y) : null));
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  function clampToViewport(x: number, y: number) {
-    const wrap = launcherWrapRef.current;
-    const w = wrap?.offsetWidth || 110;
-    const h = wrap?.offsetHeight || 110;
-    const maxX = Math.max(12, window.innerWidth - w - 12);
-    const maxY = Math.max(12, window.innerHeight - h - 12);
-    return {
-      x: Math.min(Math.max(12, x), maxX),
-      y: Math.min(Math.max(12, y), maxY),
-    };
-  }
 
   function handleLauncherPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.button !== 0) return;
@@ -105,10 +116,19 @@ export function AllotaChatbot() {
     if (!drag.hasMoved && Math.hypot(dx, dy) > 4) {
       drag.hasMoved = true;
       setIsDragging(true);
+      setIsSnapping(false);
     }
 
     if (drag.hasMoved) {
-      setLauncherPos(clampToViewport(drag.origX + dx, drag.origY + dy));
+      const wrap = launcherWrapRef.current;
+      const w = wrap?.offsetWidth || 84;
+      const h = wrap?.offsetHeight || 84;
+      const maxX = Math.max(0, window.innerWidth - w);
+      const maxY = Math.max(0, window.innerHeight - h);
+      setLauncherPos({
+        x: Math.min(Math.max(0, drag.origX + dx), maxX),
+        y: Math.min(Math.max(0, drag.origY + dy), maxY),
+      });
     }
   }
 
@@ -123,17 +143,23 @@ export function AllotaChatbot() {
 
     if (drag?.hasMoved) {
       setIsDragging(false);
-      setLauncherPos((pos) => {
+      setIsSnapping(true);
+
+      // Magnetic snap to the nearest screen edge like Apple AssistiveTouch
+      setLauncherPos((currentPos) => {
+        const rawX = currentPos?.x ?? (window.innerWidth - 84 - 16);
+        const rawY = currentPos?.y ?? (window.innerHeight - 84 - 24);
+        const snapped = snapToAssistiveEdge(rawX, rawY);
         try {
-          if (pos) {
-            window.localStorage.setItem("allota-launcher-pos", JSON.stringify(pos));
-          }
+          window.localStorage.setItem("allota-launcher-pos", JSON.stringify(snapped));
         } catch {}
-        return pos;
+        return snapped;
       });
+
       setTimeout(() => {
+        setIsSnapping(false);
         dragStateRef.current = null;
-      }, 120);
+      }, 420);
       return;
     }
 
@@ -324,11 +350,12 @@ export function AllotaChatbot() {
     <>
       {/* ============================================================ */}
       {/* 1. FLOATING 3D ANIMATED ALLOTA AI CHATBOT LAUNCHER           */}
+      {/* Apple AssistiveTouch style: edge snapping, clean circular orb */}
       {/* ============================================================ */}
       <div
         ref={launcherWrapRef}
-        className={`fixed z-50 flex flex-col items-center select-none ${
-          isDragging ? "cursor-grabbing allota-is-dragging scale-105 opacity-90 shadow-2xl" : "cursor-grab"
+        className={`fixed z-50 rounded-full flex items-center justify-center select-none ${
+          isDragging ? "cursor-grabbing allota-is-dragging" : "cursor-grab"
         } ${
           launcherPos ? "" : "right-4 sm:right-6 bottom-20 lg:bottom-6"
         }`}
@@ -336,6 +363,17 @@ export function AllotaChatbot() {
           touchAction: "none",
           userSelect: "none",
           WebkitUserSelect: "none",
+          background: "transparent",
+          boxShadow: "none",
+          border: "none",
+          outline: "none",
+          ...(isSnapping
+            ? {
+                transition: "left 0.4s cubic-bezier(0.22, 1, 0.36, 1), top 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+              }
+            : isDragging
+            ? { transition: "none" }
+            : {}),
           ...(launcherPos
             ? { left: `${launcherPos.x}px`, top: `${launcherPos.y}px`, right: "auto", bottom: "auto" }
             : {}),
@@ -352,52 +390,13 @@ export function AllotaChatbot() {
           } catch {}
         }}
       >
-        {/* Reset corner button when repositioned */}
-        {launcherPos && !isOpen && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLauncherPos(null);
-              try {
-                window.localStorage.removeItem("allota-launcher-pos");
-              } catch {}
-            }}
-            title="Reset position to default corner (or double-click)"
-            className="absolute -top-2.5 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 border border-slate-700 text-[10px] text-white hover:bg-rose-600 transition shadow-md z-20 cursor-pointer"
-          >
-            ↺
-          </button>
-        )}
-
-        {/* UPPER JUMPING TEXT PILL (USER REQ: UPPER TEXT KEEPS JUMPING & ANIMATED) */}
-        {!isOpen && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={handleToggleOpen}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setIsOpen(true);
-              }
-            }}
-            className="allota-jumping-text mb-1.5 select-none flex items-center gap-1.5 shadow-md active:scale-95 transition"
-            title="Click to chat with Allota AI — drag to move anywhere, double-click to reset"
-          >
-            <span className="text-xs text-sky-400 select-none opacity-70">⠿</span>
-            <span className="text-[#FFB347] animate-pulse text-xs">✦</span>
-            <span>Ask Allota AI</span>
-          </div>
-        )}
-
         {/* EXACT 3D LAUNCHER BUTTON CONTAINER */}
         <button
           type="button"
           onClick={handleToggleOpen}
           className={`allota-3d-launcher group ${isOpen ? "allota-launcher-active" : ""}`}
-          aria-label={isOpen ? "Close Allota AI Chatbot" : "Open Allota AI Chatbot (drag anywhere)"}
-          title={isOpen ? "Close Allota AI" : "Allota AI Copilot — drag anywhere on screen, double-click to reset"}
+          aria-label={isOpen ? "Close Allota AI Chatbot" : "Open Allota AI Chatbot"}
+          title={isOpen ? "Close Allota AI" : "Allota AI Copilot — drag anywhere, snaps to side"}
         >
           {/* A. OUTER 2 RINGS ANIMATED IN CIRCLE ORBIT (USER REQ) */}
           <div className="allota-orbit-layer pointer-events-none select-none">
@@ -915,54 +914,10 @@ export function AllotaChatbot() {
           }
         }
 
-        /* D. UPPER JUMPING TEXT PILL (USER REQ: UPPER TEXT KEEPS JUMPING & ANIMATED) */
-        .allota-jumping-text {
-          padding: 5px 12px;
-          border-radius: 9999px;
-          background: rgba(15, 23, 42, 0.94);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(192, 132, 252, 0.5);
-          box-shadow:
-            0 4px 14px rgba(67, 56, 202, 0.35),
-            0 0 10px rgba(56, 189, 248, 0.3);
-          color: #FFFFFF;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.02em;
-          animation: textJumpPhysics 2.3s ease-in-out infinite;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .allota-jumping-text:hover {
-          transform: translateY(-6px) scale(1.05);
-          box-shadow:
-            0 6px 20px rgba(67, 56, 202, 0.45),
-            0 0 14px rgba(56, 189, 248, 0.4);
-        }
-
-        @keyframes textJumpPhysics {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          26% {
-            transform: translateY(-7px);
-          }
-          46% {
-            transform: translateY(1.5px);
-          }
-          64% {
-            transform: translateY(-3px);
-          }
-          82% {
-            transform: translateY(0);
-          }
-        }
-
         /* Accessibility: reduce motion if user prefers */
         @media (prefers-reduced-motion: reduce) {
           .allota-orbit-layer,
           .allota-jumping-badge,
-          .allota-jumping-text,
           .b-dot {
             animation: none !important;
           }
