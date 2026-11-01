@@ -523,19 +523,15 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                             </td>
                           </tr>
                         )}
-                        <tr className={`hover:bg-slate-50/70 transition ${isCurrentFresh ? "crm-fresh-lead-row" : ""}`}>
+                        <tr className="hover:bg-slate-50/70 transition">
                           {/* Prospect & Contact */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2 font-extrabold text-ink text-sm">
                               <span>{lead.name || "Anonymous Prospect"}</span>
                               {isCurrentFresh && (
-                                <span className="relative inline-flex items-center rounded-full p-[1px] bg-gradient-to-r from-sky-400 via-purple-400 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
-                                    <span className="text-[10px]">✨</span>
-                                    <span className="bg-gradient-to-r from-sky-600 via-purple-600 to-amber-600 bg-clip-text text-transparent">
-                                      NEW LEAD
-                                    </span>
-                                  </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
+                                  <span>✨</span>
+                                  <span>NEW LEAD</span>
                                 </span>
                               )}
                             </div>
@@ -701,19 +697,15 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         <div className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-300 to-transparent" />
                       </div>
                     )}
-                    <div className={`p-4 space-y-3 transition rounded-2xl mx-1.5 my-1.5 ${isCurrentFresh ? "crm-fresh-lead-card" : ""}`}>
+                    <div className="p-4 space-y-3 transition rounded-2xl mx-1.5 my-1.5 bg-white border border-line">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
                             {isCurrentFresh && (
-                              <span className="relative inline-flex items-center rounded-full p-[1px] bg-gradient-to-r from-sky-400 via-purple-400 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
-                                  <span className="text-[10px]">✨</span>
-                                  <span className="bg-gradient-to-r from-sky-600 via-purple-600 to-amber-600 bg-clip-text text-transparent">
-                                    NEW LEAD
-                                  </span>
-                                </span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
+                                <span>✨</span>
+                                <span>NEW LEAD</span>
                               </span>
                             )}
                           </div>
