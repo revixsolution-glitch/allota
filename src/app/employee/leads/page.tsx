@@ -11,6 +11,7 @@ import { CLOSED_LEAD_STATUSES, getFollowUpState } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
+import { ProtectedData } from "@/components/ProtectedData";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -338,10 +339,10 @@ export default async function EmployeeLeadsPage({
                       {/* Prospect & Contact */}
                       <td className="px-5 py-4">
                         <div className="font-extrabold text-ink text-sm">
-                          {lead.name || "Anonymous Prospect"}
+                          <ProtectedData text={lead.name || "Anonymous Prospect"} />
                         </div>
                         <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
-                          <span>{lead.phoneNumber || "No Phone"}</span>
+                          <ProtectedData text={lead.phoneNumber || "No Phone"} />
                           {cleanPhone && (
                             <>
                               <a
@@ -475,11 +476,11 @@ export default async function EmployeeLeadsPage({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3 className="font-extrabold text-ink text-base">
-                        {lead.name || "Anonymous Prospect"}
+                        <ProtectedData text={lead.name || "Anonymous Prospect"} />
                       </h3>
-                      <p className="font-mono text-ink-muted text-xs mt-0.5">
-                        {lead.phoneNumber || "No phone"}
-                      </p>
+                      <div className="font-mono text-ink-muted text-xs mt-0.5">
+                        <ProtectedData text={lead.phoneNumber || "No phone"} />
+                      </div>
                     </div>
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${

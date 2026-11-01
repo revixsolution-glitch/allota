@@ -3,7 +3,7 @@
 import { useState, Suspense, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckboxCaptcha } from "@/components/CheckboxCaptcha";
+import { HumanVerificationCaptcha } from "@/components/HumanVerificationCaptcha";
 
 function LoginForm() {
   const router = useRouter();
@@ -247,9 +247,9 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Bot & AI Prevention Click Box Captcha */}
+        {/* Cryptographic Biometric Human Verification */}
         <div className="pt-1">
-          <CheckboxCaptcha
+          <HumanVerificationCaptcha
             isVerified={isVerified}
             onVerify={(token) => {
               setCaptchaToken(token);

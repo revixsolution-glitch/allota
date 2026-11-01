@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { defaultPrisma, getPrismaForCompany } from "@/lib/prisma";
 import { SESSION_COOKIE, signSession, verifyPassword } from "@/lib/auth";
+import { validateHumanToken } from "@/lib/captcha";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Login identifier is required"),
@@ -25,11 +26,11 @@ export async function POST(request: Request) {
       return Response.json({ error: "Automated submission detected." }, { status: 403 });
     }
 
-    // Bot Prevention 2: Security check verification
+    // Bot Prevention 2: Cryptographic Human Security verification
     const isDemo = request.headers.get("x-demo-bypass") === "true";
-    if (!isDemo && (!captchaToken || !captchaToken.startsWith("allota_sec_"))) {
+    if (!isDemo && (!captchaToken || !validateHumanToken(captchaToken))) {
       return Response.json(
-        { error: "Please click the security checkbox to verify you are human." },
+        { error: "Security check required. Please complete the human verification puzzle." },
         { status: 400 }
       );
     }

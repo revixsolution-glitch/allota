@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { AntiScrapeShield } from "@/components/AntiScrapeShield";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
@@ -33,12 +34,15 @@ export default async function EmployeeLayout({
   const displayTitle = company?.name?.trim() || "Allota AI";
 
   return (
-    <AppShell
-      title={displayTitle}
-      portalType="Employee"
-      navItems={navItems}
-    >
-      {children}
-    </AppShell>
+    <div className="select-none min-h-screen">
+      <AntiScrapeShield />
+      <AppShell
+        title={displayTitle}
+        portalType="Employee"
+        navItems={navItems}
+      >
+        {children}
+      </AppShell>
+    </div>
   );
 }

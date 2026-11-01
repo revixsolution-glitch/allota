@@ -8,6 +8,7 @@ import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { SourceIcon } from "@/components/SourceIcon";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 import { formatInquiryDetails } from "@/lib/lead-format";
+import { ProtectedData } from "@/components/ProtectedData";
 
 const leadSources = [
   {
@@ -991,11 +992,11 @@ export default async function AdminLeadsPage({
                           <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
                         )}
                         <p className="font-bold text-ink text-sm">
-                          {lead.name ?? "Unnamed Prospect"}
+                          <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
                         </p>
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-mono text-ink-muted">
-                            {lead.phoneNumber ?? "No phone recorded"}
+                            <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
                           </p>
                         </div>
                         <p className="text-[10px] text-ink-faint">
@@ -1129,10 +1130,10 @@ export default async function AdminLeadsPage({
                       <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
                     )}
                     <h3 className="font-extrabold text-ink text-base">
-                      {lead.name ?? "Unnamed Prospect"}
+                      <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
                     </h3>
                     <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
-                      <span>{lead.phoneNumber ?? "No phone recorded"}</span>
+                      <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
                     </div>
                   </div>
                   <span
