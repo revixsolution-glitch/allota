@@ -22,10 +22,10 @@ export interface TrajectoryPoint {
  */
 export function createChallenge() {
   const nonce = randomBytes(8).toString("hex");
-  const targetX = Math.floor(Math.random() * 160) + 50; // Random target position between 50px and 210px
+  const minRequiredX = 160; // Must slide across to the right (at least 160px)
   const exp = Date.now() + 3 * 60 * 1000; // 3 minutes validity
 
-  const payload = `${nonce}:${targetX}:${exp}`;
+  const payload = `${nonce}:${minRequiredX}:${exp}`;
   const sig = createHmac("sha256", SECRET).update(payload).digest("hex");
   const challengeToken = Buffer.from(`${payload}:${sig}`).toString("base64url");
 
@@ -45,9 +45,9 @@ export function verifyChallenge(
 ): { success: boolean; humanToken?: string; error?: string } {
   try {
     const decoded = Buffer.from(challengeToken, "base64url").toString("utf8");
-    const [nonce, targetXStr, expStr, sig] = decoded.split(":");
+    const [nonce, minXStr, expStr, sig] = decoded.split(":");
 
-    if (!nonce || !targetXStr || !expStr || !sig) {
+    if (!nonce || !minXStr || !expStr || !sig) {
       return { success: false, error: "Invalid challenge token format." };
     }
 
@@ -57,7 +57,7 @@ export function verifyChallenge(
 
     // Verify HMAC signature
     const expectedSig = createHmac("sha256", SECRET)
-      .update(`${nonce}:${targetXStr}:${expStr}`)
+      .update(`${nonce}:${minXStr}:${expStr}`)
       .digest("hex");
 
     if (sig !== expectedSig) {
@@ -70,42 +70,34 @@ export function verifyChallenge(
       return { success: false, error: "Verification challenge expired. Please retry." };
     }
 
-    // Check target position accuracy (within 6px tolerance)
-    const targetX = parseInt(targetXStr, 10);
-    if (Math.abs(userFinalX - targetX) > 6) {
-      return { success: false, error: "Puzzle not aligned. Please align the piece accurately." };
+    // Must have slid at least to the target distance on the right
+    const minRequiredX = parseInt(minXStr, 10) || 160;
+    if (userFinalX < minRequiredX) {
+      return { success: false, error: "Please slide the button all the way to the right to verify." };
     }
 
     // Biometric Human Trajectory Verification:
-    // Real humans generate at least 6 mousemove coordinates with non-zero duration
-    // and slight natural hand micro-jitter in the vertical axis.
-    if (!Array.isArray(trajectory) || trajectory.length < 5) {
+    // Real humans generate mousemove/touchmove events with natural hand duration
+    if (!Array.isArray(trajectory) || trajectory.length < 3) {
       return { success: false, error: "Automated pointer detected. Please slide manually." };
     }
 
     const duration = trajectory[trajectory.length - 1].t - trajectory[0].t;
-    if (duration < 250) {
-      return { success: false, error: "Slide movement too fast for a human hand. Please slide naturally." };
+    if (duration < 150) {
+      return { success: false, error: "Movement was too fast for a human hand. Please slide naturally." };
     }
 
-    if (duration > 35000) {
-      return { success: false, error: "Slide timeout. Please retry." };
+    if (duration > 45000) {
+      return { success: false, error: "Verification timed out. Please retry." };
     }
 
-    // Check vertical variance (bots move in exact straight lines y=0 or single coordinates)
-    const yValues = trajectory.map((p) => p.y);
-    const minY = Math.min(...yValues);
-    const maxY = Math.max(...yValues);
-    const ySpread = maxY - minY;
-
-    // Check speed changes (humans accelerate and decelerate near the target)
     let movedPoints = 0;
     for (let i = 1; i < trajectory.length; i++) {
       if (trajectory[i].x !== trajectory[i - 1].x) movedPoints++;
     }
 
-    if (movedPoints < 4) {
-      return { success: false, error: "Synthetic movement detected." };
+    if (movedPoints < 2) {
+      return { success: false, error: "Synthetic single-step movement detected." };
     }
 
     // Mark nonce as used

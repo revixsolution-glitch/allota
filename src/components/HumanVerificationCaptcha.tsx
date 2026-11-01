@@ -94,16 +94,30 @@ export function HumanVerificationCaptcha({
     if (!isDragging) return;
     setIsDragging(false);
 
-    if (!challengeToken) return;
+    if (!challengeToken || !trackRef.current) return;
 
+    const trackRect = trackRef.current.getBoundingClientRect();
+    const maxSlide = trackRect.width - 48;
+
+    // If released before reaching near the end, reset back to start
+    if (sliderX < maxSlide * 0.65) {
+      setSliderX(0);
+      setErrorMsg("Slide the button all the way to the right to verify.");
+      return;
+    }
+
+    // Snap cleanly to completion
+    setSliderX(maxSlide);
     setVerifying(true);
+    setErrorMsg(null);
+
     try {
       const res = await fetch("/api/auth/captcha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challengeToken,
-          finalX: Math.round(sliderX),
+          finalX: Math.round(maxSlide),
           trajectory: trajectoryRef.current,
         }),
       });
@@ -112,15 +126,14 @@ export function HumanVerificationCaptcha({
       if (res.ok && data.success && data.humanToken) {
         onVerify(data.humanToken);
       } else {
-        setErrorMsg(data?.error || "Alignment check failed. Please try again.");
+        setErrorMsg(data?.error || "Verification failed. Please slide again.");
         setSliderX(0);
-        // Refresh challenge on failure
         setTimeout(() => {
           loadChallenge();
-        }, 1200);
+        }, 800);
       }
     } catch {
-      setErrorMsg("Verification server error. Retrying...");
+      setErrorMsg("Network error verifying challenge.");
       setSliderX(0);
       loadChallenge();
     } finally {
@@ -195,7 +208,7 @@ export function HumanVerificationCaptcha({
             <span className="text-slate-400">Loading security challenge...</span>
           ) : (
             <span className="text-slate-600 tracking-wide font-medium flex items-center gap-1">
-              Slide to complete verification &rarr;
+              Slide button to the right to verify &rarr;
             </span>
           )}
         </div>
