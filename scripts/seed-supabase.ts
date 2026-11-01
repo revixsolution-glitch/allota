@@ -2,8 +2,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const encoded = encodeURIComponent("/*PL%&Zq8ecyj&Q");
-const connectionString = `postgresql://postgres.uwsaspezgiauxxvmjdcv:${encoded}@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`;
+const connectionString = process.env.DATABASE_URL || "postgresql://localhost:5432/pharma_crm";
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });

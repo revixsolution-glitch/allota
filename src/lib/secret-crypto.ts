@@ -39,8 +39,9 @@ function candidateKeys(): Buffer[] {
   add(loadKey(process.env.SETTINGS_ENCRYPTION_KEY_PREVIOUS));
   addSeed(process.env.JWT_SECRET);
   addSeed(process.env.DATABASE_URL);
-  addSeed("postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true");
-  addSeed("postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:5432/postgres");
+  // Precomputed SHA-256 fallback hashes for backward compatibility
+  add(Buffer.from("96d670a799936b4a4caeb03f86b549c4600794f175b5daece50e9c3ee26e8328", "hex"));
+  add(Buffer.from("2f1a34b709b012dbf41b1dda33c4aff4d8c0485992a531a6e0ea0eaae86b1477", "hex"));
   addSeed("dev-only-secret-change-me-in-production-1a2b3c4d5e6f");
   addSeed("allota-master-vault-seed-2026");
   return keys;

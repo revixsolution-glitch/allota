@@ -3,7 +3,7 @@ import pg from "pg";
 
 const { Client } = pg;
 const localClient = new Client({
-  connectionString: "postgresql://allota_admin:Allota_Pg_Secure_2026_!nvme@localhost:5432/pharma_crm"
+  connectionString: process.env.DATABASE_URL || "postgresql://allota_admin@localhost:5432/pharma_crm"
 });
 
 async function importAll() {

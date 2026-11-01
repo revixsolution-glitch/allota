@@ -2,8 +2,8 @@ import { Client } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const NEON_URL = 'postgresql://neondb_owner:npg_7VBoc0daFhyR@ep-orange-king-b3q65i4a.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
-const SUPABASE_URL = 'postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:5432/postgres';
+const NEON_URL = process.env.NEON_URL || '';
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
 
 const TABLES_IN_ORDER = [
   'Company',

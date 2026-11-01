@@ -2,15 +2,9 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { encryptSecretFields, decryptSecretFields } from "@/lib/secret-crypto";
 
-const SUPABASE_FALLBACK =
-  "postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true";
-
 function sanitizeConnectionString(url?: string): string {
   if (!url) {
-    return SUPABASE_FALLBACK;
-  }
-  if (url.includes(":/*PL%&Zq8ecyj&Q@")) {
-    return url.replace(":/*PL%&Zq8ecyj&Q@", ":%2F*PL%25%26Zq8ecyj%26Q@");
+    throw new Error("DATABASE_URL environment variable is required.");
   }
   return url;
 }
