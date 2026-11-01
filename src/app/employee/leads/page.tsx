@@ -408,14 +408,19 @@ export default async function EmployeeLeadsPage({
                           </td>
                         </tr>
                       )}
-                      <tr className={`hover:bg-slate-50/70 transition ${isCurrentFresh ? "bg-emerald-50/20" : ""}`}>
+                      <tr className={`hover:bg-slate-50/70 transition ${isCurrentFresh ? "crm-fresh-lead-row" : ""}`}>
                         {/* Prospect & Contact */}
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 font-extrabold text-ink text-sm">
                             <ProtectedData text={lead.name || "Anonymous Prospect"} />
                             {isCurrentFresh && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-800 animate-pulse">
-                                ✨ FRESH
+                              <span className="relative inline-flex items-center rounded-full p-[1px] bg-gradient-to-r from-sky-400 via-purple-400 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                                  <span className="text-[10px]">✨</span>
+                                  <span className="bg-gradient-to-r from-sky-600 via-purple-600 to-amber-600 bg-clip-text text-transparent">
+                                    NEW LEAD
+                                  </span>
+                                </span>
                               </span>
                             )}
                           </div>
@@ -588,7 +593,7 @@ export default async function EmployeeLeadsPage({
                       </span>
                     </div>
                   )}
-                  <div className={`p-4 space-y-3.5 ${isCurrentFresh ? "bg-emerald-50/20" : ""}`}>
+                  <div className={`p-4 space-y-3.5 transition rounded-2xl mx-1.5 my-1.5 ${isCurrentFresh ? "crm-fresh-lead-card" : ""}`}>
                     {/* Prospect Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -597,8 +602,13 @@ export default async function EmployeeLeadsPage({
                             <ProtectedData text={lead.name || "Anonymous Prospect"} />
                           </h3>
                           {isCurrentFresh && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-800 animate-pulse">
-                              ✨ FRESH
+                            <span className="relative inline-flex items-center rounded-full p-[1px] bg-gradient-to-r from-sky-400 via-purple-400 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                                <span className="text-[10px]">✨</span>
+                                <span className="bg-gradient-to-r from-sky-600 via-purple-600 to-amber-600 bg-clip-text text-transparent">
+                                  NEW LEAD
+                                </span>
+                              </span>
                             </span>
                           )}
                         </div>

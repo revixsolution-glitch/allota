@@ -983,18 +983,34 @@ export default async function AdminLeadsPage({
               {paginatedLeads.map((lead) => {
                 const sourceMeta = leadSources.find((s) => s.value === lead.source);
                 const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
+                const isFresh =
+                  (lead.status === "NEW" || lead.status === "ASSIGNED") &&
+                  (!lead.remarks || lead.remarks.length === 0) &&
+                  !lead.followUpAt;
 
                 return (
-                  <tr key={lead.id} className="hover:bg-slate-50/60 transition">
+                  <tr key={lead.id} className={`hover:bg-slate-50/60 transition ${isFresh ? "crm-fresh-lead-row" : ""}`}>
                     {/* Lead & Contact */}
                     <td className="px-6 py-4">
                       <div className="space-y-0.5">
                         {!lead.assignedEmployeeId && (
                           <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
                         )}
-                        <p className="font-bold text-ink text-sm">
-                          <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-ink text-sm">
+                            <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
+                          </p>
+                          {isFresh && (
+                            <span className="relative inline-flex items-center rounded-full p-[1px] bg-gradient-to-r from-sky-400 via-purple-400 to-amber-400 shadow-[0_0_8px_rgba(168,85,247,0.35)] animate-pulse">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-0.2 text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-[9px]">✨</span>
+                                <span className="bg-gradient-to-r from-sky-600 via-purple-600 to-amber-600 bg-clip-text text-transparent">
+                                  NEW LEAD
+                                </span>
+                              </span>
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-mono text-ink-muted">
                             <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
