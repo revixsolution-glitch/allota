@@ -1301,8 +1301,9 @@ export async function setLeadFollowUp(formData: FormData) {
 
 const leadActiveStatusSchema = z.object({
   leadId: requiredText,
-  status: z.enum(["ACTIVE", "CONVERTED", "DEAD"]).optional(),
+  status: z.enum(["ACTIVE", "CONVERTED", "DEAD", "IRRELEVANT"]).optional(),
   isDead: z.enum(["true", "false"]).optional(),
+  deadReason: z.string().optional(),
 });
 
 export async function updateLeadActiveStatus(formData: FormData) {
@@ -1315,6 +1316,7 @@ export async function updateLeadActiveStatus(formData: FormData) {
     leadId: formData.get("leadId"),
     status: formData.get("status") || undefined,
     isDead: formData.get("isDead") || undefined,
+    deadReason: formData.get("deadReason") || undefined,
   });
 
   const lead = await prisma.lead.findUnique({
@@ -1331,11 +1333,13 @@ export async function updateLeadActiveStatus(formData: FormData) {
 
   let newStatus = lead.status;
   let deadAt = lead.deadAt;
+  let deadReason = lead.deadReason;
   let clientId = lead.clientId;
 
   if (input.status === "CONVERTED") {
     newStatus = LeadStatus.CONVERTED;
     deadAt = null;
+    deadReason = null;
 
     // Graduate converted prospect into a Client under the representative
     if (!clientId) {
@@ -1367,15 +1371,17 @@ export async function updateLeadActiveStatus(formData: FormData) {
         clientId = newClient.id;
       }
     }
-  } else if (input.status === "DEAD" || input.isDead === "true") {
+  } else if (input.status === "DEAD" || input.status === "IRRELEVANT" || input.isDead === "true" || !!input.deadReason) {
     newStatus = LeadStatus.NOT_INTERESTED;
     deadAt = new Date();
+    deadReason = input.deadReason || (input.status === "IRRELEVANT" ? "IRRELEVANT" : "DEAD");
   } else if (input.status === "ACTIVE" || input.isDead === "false") {
     newStatus =
       lead.status === LeadStatus.NOT_INTERESTED || lead.status === LeadStatus.CONVERTED
         ? LeadStatus.CONTACTED
         : lead.status;
     deadAt = null;
+    deadReason = null;
   }
 
   await prisma.lead.update({
@@ -1383,12 +1389,14 @@ export async function updateLeadActiveStatus(formData: FormData) {
     data: {
       status: newStatus,
       deadAt,
+      deadReason,
       ...(clientId ? { clientId } : {}),
     },
   });
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");
+  revalidatePath("/employee/dead-leads");
   revalidatePath("/employee/clients");
   revalidatePath("/employee/follow-ups");
   revalidatePath("/admin/clients");

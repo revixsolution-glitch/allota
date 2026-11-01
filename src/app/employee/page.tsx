@@ -591,7 +591,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         {/* Status: Active / Converted / Dead */}
                         <td className="px-5 py-4 text-right">
                           <div className="inline-flex justify-end">
-                            <LeadStatusToggle leadId={lead.id} status={lead.status} />
+                            <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
                           </div>
                         </td>
                       </tr>
@@ -670,7 +670,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
                         size="sm"
                       />
-                      <LeadStatusToggle leadId={lead.id} status={lead.status} />
+                      <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
                     </div>
 
                     {cleanPhone && (

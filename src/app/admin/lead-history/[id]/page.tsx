@@ -82,9 +82,10 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
   });
 
   const isDead = lead.status === LeadStatus.NOT_INTERESTED;
+  const isIrrelevant = isDead && lead.deadReason === "IRRELEVANT";
   const summaries = lead.calls.filter((c) => c.aiSummary && c.aiSummary.trim());
   const backHref = isDead ? "/admin/dead-leads" : "/admin/leads";
-  const backLabel = isDead ? "Dead Leads" : "Lead Center";
+  const backLabel = isDead ? (isIrrelevant ? "Irrelevant Leads" : "Dead Leads") : "Lead Center";
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -94,17 +95,35 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
 
       {/* Who is this lead */}
       <section
-        className={`rounded-3xl border-2 bg-white p-5 sm:p-7 ${isDead ? "border-rose-200" : "border-emerald-200"}`}
+        className={`rounded-3xl border-2 bg-white p-5 sm:p-7 ${
+          isDead
+            ? isIrrelevant
+              ? "border-amber-200"
+              : "border-rose-200"
+            : "border-emerald-200"
+        }`}
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <span
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${
-                isDead ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"
+                isDead
+                  ? isIrrelevant
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-rose-100 text-rose-800"
+                  : "bg-emerald-100 text-emerald-800"
               }`}
             >
-              <span className={`h-2.5 w-2.5 rounded-full ${isDead ? "bg-rose-500" : "bg-emerald-500"}`} />
-              {isDead ? "Dead lead" : "Active lead"}
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  isDead
+                    ? isIrrelevant
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
+                    : "bg-emerald-500"
+                }`}
+              />
+              {isDead ? (isIrrelevant ? "Irrelevant inquiry" : "Dead lead") : "Active lead"}
             </span>
             <h1 className="mt-3 text-3xl font-extrabold text-ink">{lead.name || "Unnamed prospect"}</h1>
             <p className="mt-1 text-xl font-bold text-ink-muted">{lead.phoneNumber || "No phone number"}</p>

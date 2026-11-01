@@ -459,7 +459,7 @@ export default async function EmployeeLeadsPage({
                       {/* Status: Active / Converted / Dead */}
                       <td className="px-5 py-4 text-right">
                         <div className="inline-flex justify-end">
-                          <LeadStatusToggle leadId={lead.id} status={lead.status} />
+                          <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
                         </div>
                       </td>
                     </tr>
@@ -545,7 +545,12 @@ export default async function EmployeeLeadsPage({
                       <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
                         Status
                       </p>
-                      <LeadStatusToggle leadId={lead.id} isDead={lead.status === LeadStatus.NOT_INTERESTED} />
+                      <LeadStatusToggle
+                        leadId={lead.id}
+                        status={lead.status}
+                        isDead={lead.status === LeadStatus.NOT_INTERESTED}
+                        deadReason={lead.deadReason}
+                      />
                     </div>
                   </div>
 

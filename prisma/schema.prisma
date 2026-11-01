@@ -160,6 +160,7 @@ model Lead {
   reassignmentReason String?
   followUpAt         DateTime?
   deadAt             DateTime?
+  deadReason         String?    // "DEAD" | "IRRELEVANT"
   reassignmentLogs   LeadReassignmentLog[]
   remarks            LeadRemark[]
   followUpLogs       LeadFollowUpLog[]

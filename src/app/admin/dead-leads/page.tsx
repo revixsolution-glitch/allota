@@ -43,6 +43,8 @@ interface DeadLeadsPageProps {
     to?: string;
     page?: string;
     search?: string;
+    type?: string;
+    category?: string;
   }>;
 }
 
@@ -50,6 +52,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
   const resolvedParams = props.searchParams ? await props.searchParams : {};
   const employeeId = resolvedParams.employeeId || "";
   const search = (resolvedParams.search || "").trim().toLowerCase();
+  const rawType = (resolvedParams.type || resolvedParams.category || "all").toLowerCase();
+  const activeType = rawType === "dead" || rawType === "irrelevant" ? rawType : "all";
 
   const dateFilter = parseDashboardDateFilter(
     resolvedParams.range,
@@ -89,9 +93,9 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
   });
 
   // Apply search filter if present
-  let visibleLeads = allDeadLeads;
+  let filteredBySearch = allDeadLeads;
   if (search) {
-    visibleLeads = visibleLeads.filter((l) => {
+    filteredBySearch = filteredBySearch.filter((l) => {
       const name = (l.name || "").toLowerCase();
       const phone = (l.phoneNumber || "").toLowerCase();
       const details = (l.inquiryDetails || "").toLowerCase();
@@ -107,6 +111,19 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
     });
   }
 
+  // Counts for tabs
+  const totalAllCount = filteredBySearch.length;
+  const totalDeadCount = filteredBySearch.filter((l) => l.deadReason !== "IRRELEVANT").length;
+  const totalIrrelevantCount = filteredBySearch.filter((l) => l.deadReason === "IRRELEVANT").length;
+
+  // Apply category filter (All / Dead / Irrelevant)
+  let visibleLeads = filteredBySearch;
+  if (activeType === "dead") {
+    visibleLeads = filteredBySearch.filter((l) => l.deadReason !== "IRRELEVANT");
+  } else if (activeType === "irrelevant") {
+    visibleLeads = filteredBySearch.filter((l) => l.deadReason === "IRRELEVANT");
+  }
+
   const LEADS_PER_PAGE = 15;
   const rawPage = parseInt(resolvedParams.page || "1", 10);
   const requestedPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
@@ -120,8 +137,10 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
     ? (await prisma.employee.findUnique({ where: { id: employeeId }, select: { name: true } }))?.name ?? null
     : null;
 
-  const buildDeadLeadsUrl = (page: number) => {
+  const buildDeadLeadsUrl = (page: number, newType?: string) => {
     const sp = new URLSearchParams();
+    const t = newType !== undefined ? newType : (activeType !== "all" ? activeType : undefined);
+    if (t && t !== "all") sp.set("type", t);
     if (resolvedParams.employeeId) sp.set("employeeId", resolvedParams.employeeId);
     if (resolvedParams.search) sp.set("search", resolvedParams.search);
     if (resolvedParams.range) sp.set("range", resolvedParams.range);
@@ -159,6 +178,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
 
           {/* Live Search Form */}
           <form method="GET" action="/admin/dead-leads" className="flex items-center gap-2">
+            {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
             {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
             {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
             <input
@@ -170,19 +190,76 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
             />
             <button
               type="submit"
-              className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition"
+              className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
             >
               Filter
             </button>
             {resolvedParams.search && (
               <Link
-                href="/admin/dead-leads"
+                href={activeType !== "all" ? `/admin/dead-leads?type=${activeType}` : "/admin/dead-leads"}
                 className="rounded-xl border border-line bg-white px-2.5 py-2 text-xs font-bold text-ink-muted hover:bg-slate-50 transition"
               >
                 Clear
               </Link>
             )}
           </form>
+        </div>
+
+        {/* Classification Filter Tabs */}
+        <div className="mt-5 pt-4 border-t border-line-soft flex flex-wrap items-center gap-2">
+          <Link
+            href={buildDeadLeadsUrl(1, "all")}
+            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-bold transition shadow-2xs ${
+              activeType === "all"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-50 text-ink-muted border border-line hover:bg-slate-100 hover:text-ink"
+            }`}
+          >
+            <span>All</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeType === "all" ? "bg-slate-800 text-white" : "bg-white text-ink border border-line-soft"
+              }`}
+            >
+              {totalAllCount}
+            </span>
+          </Link>
+
+          <Link
+            href={buildDeadLeadsUrl(1, "dead")}
+            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-bold transition shadow-2xs ${
+              activeType === "dead"
+                ? "bg-rose-600 text-white"
+                : "bg-white text-ink-muted border border-line hover:border-rose-300 hover:text-rose-700 hover:bg-rose-50/50"
+            }`}
+          >
+            <span>🔴 Dead</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeType === "dead" ? "bg-rose-700 text-white" : "bg-rose-50 text-rose-700 border border-rose-200"
+              }`}
+            >
+              {totalDeadCount}
+            </span>
+          </Link>
+
+          <Link
+            href={buildDeadLeadsUrl(1, "irrelevant")}
+            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-bold transition shadow-2xs ${
+              activeType === "irrelevant"
+                ? "bg-amber-600 text-white"
+                : "bg-white text-ink-muted border border-line hover:border-amber-300 hover:text-amber-800 hover:bg-amber-50/50"
+            }`}
+          >
+            <span>🚫 Irrelevant</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                activeType === "irrelevant" ? "bg-amber-700 text-white" : "bg-amber-50 text-amber-800 border border-amber-200"
+              }`}
+            >
+              {totalIrrelevantCount}
+            </span>
+          </Link>
         </div>
       </section>
 
@@ -191,9 +268,15 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
             ✅
           </div>
-          <h3 className="mt-3 text-sm font-bold text-ink">No Dead Leads</h3>
+          <h3 className="mt-3 text-sm font-bold text-ink">
+            {activeType === "dead"
+              ? "No Dead Leads Found"
+              : activeType === "irrelevant"
+              ? "No Irrelevant Leads Found"
+              : "No Closed Leads"}
+          </h3>
           <p className="mt-1 text-xs text-ink-muted">
-            {search ? "No dead leads matched your search query." : "Every inquiry in the pipeline is still active."}
+            {search ? "No dead leads matched your search query in this category." : "No leads currently meet the selected filter criteria."}
           </p>
         </div>
       ) : (
@@ -204,6 +287,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th className="py-3 px-4">Prospect</th>
+                  <th className="py-3 px-4">Category</th>
                   <th className="py-3 px-4">Source</th>
                   <th className="py-3 px-4">Representative</th>
                   <th className="py-3 px-4">Last Activity</th>
@@ -215,9 +299,11 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                 {paginatedDeadLeads.map((lead) => {
                   const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
                   const aiReason = buildAiReason(lead);
+                  const isIrrelevant = lead.deadReason === "IRRELEVANT";
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
+                      {/* Prospect */}
                       <td className="py-3 px-4">
                         <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
@@ -226,19 +312,42 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                           <ProtectedData text={lead.phoneNumber || "No phone"} />
                         </p>
                       </td>
+
+                      {/* Category Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {isIrrelevant ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
+                            <span>🚫</span>
+                            <span>Irrelevant</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 shadow-2xs">
+                            <span>🔴</span>
+                            <span>Dead</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Source */}
                       <td className="py-3 px-4">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
+
+                      {/* Representative */}
                       <td className="py-3 px-4 font-semibold text-ink">
                         {lead.assignedEmployee?.name || (
                           <span className="text-ink-faint">Unassigned</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-ink-muted">
+
+                      {/* Last Activity */}
+                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap">
                         {lead.deadAt
                           ? new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                           : new Date(lead.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
+
+                      {/* Reason / Notes */}
                       <td className="py-3 px-4 max-w-sm">
                         {callWithSummary ? (
                           <Link
@@ -262,7 +371,9 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                           </p>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right">
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/admin/lead-history/${lead.id}`}
@@ -270,9 +381,40 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                           >
                             History →
                           </Link>
-                          <form action={updateLeadActiveStatus}>
+
+                          {/* Switch Category Action (Dead <-> Irrelevant) */}
+                          {isIrrelevant ? (
+                            <form action={updateLeadActiveStatus} className="inline-block shrink-0">
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <input type="hidden" name="status" value="DEAD" />
+                              <input type="hidden" name="deadReason" value="DEAD" />
+                              <button
+                                type="submit"
+                                title="Switch classification to Dead Lead"
+                                className="rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-800 hover:bg-rose-100 active:scale-95 transition cursor-pointer"
+                              >
+                                🔴 To Dead
+                              </button>
+                            </form>
+                          ) : (
+                            <form action={updateLeadActiveStatus} className="inline-block shrink-0">
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <input type="hidden" name="status" value="IRRELEVANT" />
+                              <input type="hidden" name="deadReason" value="IRRELEVANT" />
+                              <button
+                                type="submit"
+                                title="Switch classification to Irrelevant Inquiry"
+                                className="rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 active:scale-95 transition cursor-pointer"
+                              >
+                                🚫 To Irrelevant
+                              </button>
+                            </form>
+                          )}
+
+                          {/* Reactivate Lead */}
+                          <form action={updateLeadActiveStatus} className="inline-block shrink-0">
                             <input type="hidden" name="leadId" value={lead.id} />
-                            <input type="hidden" name="isDead" value="false" />
+                            <input type="hidden" name="status" value="ACTIVE" />
                             <button
                               type="submit"
                               title="Reactivate lead back into active pipeline"
@@ -281,7 +423,9 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                               ↺ Reactivate
                             </button>
                           </form>
-                          <form action={deleteLeadAction}>
+
+                          {/* Delete Lead */}
+                          <form action={deleteLeadAction} className="inline-block shrink-0">
                             <input type="hidden" name="leadId" value={lead.id} />
                             <button
                               type="submit"
@@ -305,6 +449,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
             {paginatedDeadLeads.map((lead) => {
               const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
               const aiReason = buildAiReason(lead);
+              const isIrrelevant = lead.deadReason === "IRRELEVANT";
 
               return (
                 <div key={lead.id} className="p-4 space-y-3">
@@ -319,9 +464,17 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                         </p>
                       </Link>
                     </div>
-                    <span className="rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 shrink-0">
-                      💀 Dead Lead
-                    </span>
+
+                    {/* Mobile Category Badge */}
+                    {isIrrelevant ? (
+                      <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shrink-0 shadow-2xs">
+                        🚫 Irrelevant
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 shrink-0 shadow-2xs">
+                        🔴 Dead Lead
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -367,9 +520,39 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                     </Link>
 
                     <div className="flex items-center gap-2">
+                      {/* Switch Category Action (Dead <-> Irrelevant) */}
+                      {isIrrelevant ? (
+                        <form action={updateLeadActiveStatus}>
+                          <input type="hidden" name="leadId" value={lead.id} />
+                          <input type="hidden" name="status" value="DEAD" />
+                          <input type="hidden" name="deadReason" value="DEAD" />
+                          <button
+                            type="submit"
+                            title="Switch classification to Dead Lead"
+                            className="rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-800 active:bg-rose-100 transition shadow-2xs cursor-pointer"
+                          >
+                            🔴 To Dead
+                          </button>
+                        </form>
+                      ) : (
+                        <form action={updateLeadActiveStatus}>
+                          <input type="hidden" name="leadId" value={lead.id} />
+                          <input type="hidden" name="status" value="IRRELEVANT" />
+                          <input type="hidden" name="deadReason" value="IRRELEVANT" />
+                          <button
+                            type="submit"
+                            title="Switch classification to Irrelevant Inquiry"
+                            className="rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 active:bg-amber-100 transition shadow-2xs cursor-pointer"
+                          >
+                            🚫 To Irrelevant
+                          </button>
+                        </form>
+                      )}
+
+                      {/* Reactivate Lead */}
                       <form action={updateLeadActiveStatus}>
                         <input type="hidden" name="leadId" value={lead.id} />
-                        <input type="hidden" name="isDead" value="false" />
+                        <input type="hidden" name="status" value="ACTIVE" />
                         <button
                           type="submit"
                           className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 active:bg-emerald-100 transition shadow-2xs cursor-pointer"
@@ -377,6 +560,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                           ↺ Reactivate
                         </button>
                       </form>
+
+                      {/* Delete Lead */}
                       <form action={deleteLeadAction}>
                         <input type="hidden" name="leadId" value={lead.id} />
                         <button
@@ -400,7 +585,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
             totalItems={totalItems}
             pageSize={LEADS_PER_PAGE}
             itemName="dead leads"
-            buildHref={buildDeadLeadsUrl}
+            buildHref={(page) => buildDeadLeadsUrl(page)}
           />
         </div>
       )}
