@@ -19,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const ALLOTA_WEBHOOK_URL = process.env.ALLOTA_WEBHOOK_URL || "https://allota.vercel.app/api/whatsapp-companion/incoming";
+const ALLOTA_WEBHOOK_URL = process.env.ALLOTA_WEBHOOK_URL || "https://crm.allota.in/api/whatsapp-companion/incoming";
 const SAVI_PHONE = process.env.SAVI_PHONE || "917889107964";
 const BASE_AUTH_DIR = process.env.AUTH_DIR || path.join(process.cwd(), "data", "wa_auth");
 
