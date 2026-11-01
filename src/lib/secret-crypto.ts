@@ -35,8 +35,8 @@ function candidateKeys(): Buffer[] {
     if (seed) add(createHash("sha256").update(seed).digest());
   };
 
-  add(currentKey());
-  add(previousKey());
+  add(loadKey(process.env.SETTINGS_ENCRYPTION_KEY));
+  add(loadKey(process.env.SETTINGS_ENCRYPTION_KEY_PREVIOUS));
   addSeed(process.env.JWT_SECRET);
   addSeed(process.env.DATABASE_URL);
   addSeed("postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true");
