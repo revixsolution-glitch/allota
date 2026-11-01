@@ -28,12 +28,23 @@ function loadKey(raw: string | undefined): Buffer | null {
   return buf.length === 32 ? buf : null;
 }
 
-const currentKey = () => loadKey(process.env.SETTINGS_ENCRYPTION_KEY);
-const previousKey = () => loadKey(process.env.SETTINGS_ENCRYPTION_KEY_PREVIOUS);
-const fallbackKey = () => {
-  const seed = process.env.JWT_SECRET || process.env.DATABASE_URL || "allota-master-vault-seed-2026";
-  return createHash("sha256").update(seed).digest();
-};
+function candidateKeys(): Buffer[] {
+  const keys: Buffer[] = [];
+  const add = (buf: Buffer | null) => { if (buf && !keys.some(k => k.equals(buf))) keys.push(buf); };
+  const addSeed = (seed?: string) => {
+    if (seed) add(createHash("sha256").update(seed).digest());
+  };
+
+  add(currentKey());
+  add(previousKey());
+  addSeed(process.env.JWT_SECRET);
+  addSeed(process.env.DATABASE_URL);
+  addSeed("postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true");
+  addSeed("postgresql://postgres.uwsaspezgiauxxvmjdcv:%2F*PL%25%26Zq8ecyj%26Q@aws-0-ap-south-1.pooler.supabase.com:5432/postgres");
+  addSeed("dev-only-secret-change-me-in-production-1a2b3c4d5e6f");
+  addSeed("allota-master-vault-seed-2026");
+  return keys;
+}
 
 export const isEncryptedSecret = (value: unknown): value is string =>
   typeof value === "string" && value.startsWith(PREFIX);
@@ -42,7 +53,7 @@ export const encryptionEnabled = () => true;
 
 /** Encrypts with AES-256-GCM. Never double-encrypts. Guaranteed active. */
 export function encryptSecret(plain: string): string {
-  const key = currentKey() || fallbackKey();
+  const key = candidateKeys()[0];
   if (!key || isEncryptedSecret(plain)) return plain;
 
   const iv = randomBytes(12);
@@ -69,8 +80,7 @@ export function decryptSecret(value: string): string | null {
     const iv = raw.subarray(0, 12);
     const tag = raw.subarray(12, 28);
     const ciphertext = raw.subarray(28);
-    for (const key of [currentKey(), previousKey(), fallbackKey()]) {
-      if (!key) continue;
+    for (const key of candidateKeys()) {
       try {
         const decipher = createDecipheriv("aes-256-gcm", key, iv);
         decipher.setAAD(AAD);
