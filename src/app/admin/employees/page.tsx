@@ -76,6 +76,12 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
       where: companyScope,
       include: {
         user: true,
+        _count: {
+          select: {
+            leads: true,
+            calls: true,
+          },
+        },
         clients: {
           include: {
             orders: Object.keys(orderDateFilter).length > 0 ? { where: orderDateFilter } : true,
@@ -354,9 +360,17 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                   title={`Open ${employee.name}'s leads`}
                   className="block rounded-xl p-3 neo-pressed border border-line text-center bg-indigo-50/50 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
                 >
-                  <p className="text-[10px] uppercase font-bold text-indigo-800 tracking-wider">Leads</p>
+                  <p className="text-[10px] uppercase font-bold text-indigo-800 tracking-wider">
+                    {dateFilter.preset !== "all_time" ? `Leads (${dateFilter.label})` : "Leads"}
+                  </p>
                   <p className="mt-1 text-sm font-black text-indigo-700">
-                    {employee.leads.length} <span className="text-[9px] font-bold text-emerald-700">({convertedLeadsCount}W)</span>
+                    {employee.leads.length}{" "}
+                    {dateFilter.preset !== "all_time" && (
+                      <span className="text-[10px] font-semibold text-ink-faint">
+                        ({employee._count.leads} total)
+                      </span>
+                    )}{" "}
+                    <span className="text-[9px] font-bold text-emerald-700">({convertedLeadsCount}W)</span>
                   </p>
                 </Link>
 
@@ -391,7 +405,14 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                   <p className="text-[10px] uppercase font-black text-purple-800 tracking-wider flex items-center justify-center gap-1">
                     <span>🤖</span> AI Calls
                   </p>
-                  <p className="mt-1 text-sm font-black text-purple-700">{employee.calls.length}</p>
+                  <p className="mt-1 text-sm font-black text-purple-700">
+                    {employee.calls.length}
+                    {dateFilter.preset !== "all_time" && (
+                      <span className="text-[10px] font-semibold text-ink-faint ml-1">
+                        ({employee._count.calls} all-time)
+                      </span>
+                    )}
+                  </p>
                 </Link>
               </div>
 

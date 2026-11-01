@@ -66,6 +66,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     divisionStats,
     callsToday,
     totalCallsCount,
+    allTimeCallsCount,
     callsPickedCount,
     callsMissedCount,
     missedCallsQueue,
@@ -75,6 +76,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     overdueFollowUps,
     todayFollowUps,
     assignedLeadsCount,
+    periodNewLeads,
   ] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
@@ -84,8 +86,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     prisma.lead.findMany({
       where: {
         assignedEmployeeId: employeeId,
-        status: { not: LeadStatus.CONVERTED },
-        ...leadDateFilter,
+        status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
       },
       include: {
         _count: { select: { calls: true } },
@@ -103,7 +104,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       by: ["division"],
       where: {
         assignedEmployeeId: employeeId,
-        ...leadDateFilter,
+        status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
       },
       _count: { _all: true },
     }),
@@ -119,6 +120,11 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       where: {
         employeeId,
         ...callDateFilter,
+      },
+    }),
+    prisma.call.count({
+      where: {
+        employeeId,
       },
     }),
     prisma.call.count({
@@ -189,10 +195,17 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     prisma.lead.count({
       where: {
         assignedEmployeeId: employeeId,
-        status: { not: LeadStatus.CONVERTED },
-        ...leadDateFilter,
+        status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
       },
     }),
+    dateFilter.start
+      ? prisma.lead.count({
+          where: {
+            assignedEmployeeId: employeeId,
+            ...leadDateFilter,
+          },
+        })
+      : Promise.resolve(null),
   ]);
 
   const totalLeadPages = Math.max(1, Math.ceil(assignedLeadsCount / LEADS_PER_PAGE));
@@ -240,9 +253,14 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center shrink-0">
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                My Leads
+                My Pipeline
               </p>
               <p className="mt-1 text-2xl font-black text-ink">{totalLeads}</p>
+              {periodNewLeads !== null && (
+                <p className="text-[10px] font-bold text-primary mt-0.5">
+                  {periodNewLeads} in {dateFilter.label}
+                </p>
+              )}
             </div>
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
@@ -258,7 +276,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
             </div>
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                Total Calls
+                {dateFilter.preset === "all_time" ? "Total Calls" : `Calls (${dateFilter.label})`}
               </p>
               <p className="mt-1 text-2xl font-black text-emerald-700">{totalCallsCount}</p>
             </div>
@@ -269,9 +287,11 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       {/* Field Telecalling Operational Insights (Pure Numbers - Strict Privacy on AI Summaries) */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-rose-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Calls Today</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+            {dateFilter.preset === "all_time" ? "Calls Today" : `Calls (${dateFilter.label})`}
+          </p>
           <p className="mt-1 text-2xl font-black text-rose-600">{callsToday}</p>
-          <p className="mt-0.5 text-[11px] text-ink-muted">{totalCallsCount} all-time calls</p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">{allTimeCallsCount} all-time calls</p>
         </div>
 
         <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-emerald-500">
@@ -515,9 +535,12 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         {/* Remarks */}
                         <td className="px-4 py-4">
                           <details className="inline-block text-left group">
-                            <summary className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
-                              <span>📝 Remarks</span>
-                              <span className="text-[10px] text-amber-600">
+                            <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
+                              <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              <span>Remarks</span>
+                              <span className="text-[10px] text-amber-600 font-semibold">
                                 ({lead.remarks.length})
                               </span>
                             </summary>
@@ -605,8 +628,11 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       <details className="inline-block text-left group">
-                        <summary className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800 cursor-pointer">
-                          <span>📝 Remarks ({lead.remarks.length})</span>
+                        <summary className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800 cursor-pointer select-none">
+                          <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Remarks ({lead.remarks.length})</span>
                         </summary>
                         <div className="mt-2 rounded-xl bg-white p-3 shadow-md border border-line">
                           {lead.remarks.length > 0 && (

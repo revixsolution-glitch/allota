@@ -31,48 +31,26 @@ export function GlobalDateFilter() {
   const urlFrom = searchParams.get("from") || "";
   const urlTo = searchParams.get("to") || "";
 
-  // Get active preset: URL query has highest priority, then cookie, then default 'all_time'
-  const savedCookiePreset = (typeof window !== "undefined" ? getCookie("allota_date_range") : null) as DashboardDatePreset | null;
-  const effectivePreset: DashboardDatePreset = urlRange || savedCookiePreset || "all_time";
+  // Active preset is strictly driven by the URL range query parameter, defaulting to "all_time"
+  const effectivePreset: DashboardDatePreset = urlRange || "all_time";
 
   const [selectedPreset, setSelectedPreset] = useState<DashboardDatePreset>(effectivePreset);
-  const [fromDate, setFromDate] = useState<string>(urlFrom || (typeof window !== "undefined" ? getCookie("allota_date_from") || "" : ""));
-  const [toDate, setToDate] = useState<string>(urlTo || (typeof window !== "undefined" ? getCookie("allota_date_to") || "" : ""));
+  const [fromDate, setFromDate] = useState<string>(urlFrom);
+  const [toDate, setToDate] = useState<string>(urlTo);
   const [showCustomModal, setShowCustomModal] = useState<boolean>(false);
 
   const customModalRef = useRef<HTMLDivElement>(null);
 
-  // Sync state when URL params change
+  // Sync state cleanly when URL params change - never hijack or force-redirect
   useEffect(() => {
     if (urlRange) {
       setSelectedPreset(urlRange);
       setFromDate(urlFrom);
       setToDate(urlTo);
-      // Store in cookie so other pages inherit this selection
-      setCookie("allota_date_range", urlRange);
-      if (urlFrom) setCookie("allota_date_from", urlFrom);
-      if (urlTo) setCookie("allota_date_to", urlTo);
     } else {
-      // If URL has no range param, check if user had a saved active filter in cookie
-      const cookiePreset = getCookie("allota_date_range") as DashboardDatePreset | null;
-      if (cookiePreset && cookiePreset !== "all_time") {
-        setSelectedPreset(cookiePreset);
-        const cookieFrom = getCookie("allota_date_from") || "";
-        const cookieTo = getCookie("allota_date_to") || "";
-        setFromDate(cookieFrom);
-        setToDate(cookieTo);
-
-        // Auto-apply saved date filter to the current page so it works across all pages
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("range", cookiePreset);
-        if (cookieFrom) params.set("from", cookieFrom);
-        if (cookieTo) params.set("to", cookieTo);
-
-        const qs = params.toString();
-        router.replace(`${pathname}?${qs}`);
-      } else {
-        setSelectedPreset("all_time");
-      }
+      setSelectedPreset("all_time");
+      setFromDate("");
+      setToDate("");
     }
   }, [pathname, urlRange, urlFrom, urlTo]);
 

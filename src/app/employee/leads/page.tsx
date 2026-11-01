@@ -52,17 +52,19 @@ export default async function EmployeeLeadsPage({
 
   const where: Record<string, any> = {
     assignedEmployeeId: employeeId,
-    status: { not: LeadStatus.CONVERTED },
+    status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
   };
 
   if (selectedDivision === "PCD_FRANCHISE" || selectedDivision === "THIRD_PARTY") {
     where.division = selectedDivision;
   }
 
-  if (dateFilter.start && dateFilter.end) {
-    where.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
-  } else if (dateFilter.start) {
-    where.createdAt = { gte: dateFilter.start };
+  if (params?.range && params.range !== "all_time") {
+    if (dateFilter.start && dateFilter.end) {
+      where.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
+    } else if (dateFilter.start) {
+      where.createdAt = { gte: dateFilter.start };
+    }
   }
 
   const [leads, employee, divisionCounts] = await Promise.all([
@@ -89,7 +91,7 @@ export default async function EmployeeLeadsPage({
       by: ["division"],
       where: {
         assignedEmployeeId: employeeId,
-        status: { not: LeadStatus.CONVERTED },
+        status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
       },
       _count: { _all: true },
     }),
@@ -401,9 +403,12 @@ export default async function EmployeeLeadsPage({
                       {/* Remarks */}
                       <td className="px-4 py-4">
                         <details className="inline-block text-left group">
-                          <summary className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
-                            <span>📝 Remarks</span>
-                            <span className="text-[10px] text-amber-600">
+                          <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
+                            <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Remarks</span>
+                            <span className="text-[10px] text-amber-600 font-semibold">
                               ({lead.remarks.length})
                             </span>
                           </summary>
@@ -548,8 +553,11 @@ export default async function EmployeeLeadsPage({
                   <details className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 group">
                     <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-amber-900 select-none list-none">
                       <div className="flex items-center gap-1.5">
-                        <span>📝 Remarks</span>
-                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                        <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>Remarks</span>
+                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full font-bold">
                           {lead.remarks.length}
                         </span>
                       </div>
