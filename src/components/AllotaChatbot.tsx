@@ -132,6 +132,20 @@ export function AllotaChatbot() {
     }
   }
 
+  const lastToggleTimeRef = useRef<number>(0);
+
+  function toggleChatbot(e?: React.SyntheticEvent) {
+    if (e) {
+      e.stopPropagation();
+    }
+    const now = Date.now();
+    if (now - lastToggleTimeRef.current < 350) {
+      return;
+    }
+    lastToggleTimeRef.current = now;
+    setIsOpen((prev) => !prev);
+  }
+
   function handleLauncherPointerUp(e: React.PointerEvent<HTMLDivElement>) {
     const drag = dragStateRef.current;
     const wrap = launcherWrapRef.current;
@@ -163,19 +177,14 @@ export function AllotaChatbot() {
       return;
     }
 
-    dragStateRef.current = null;
+    // Direct click / tap (no drag movement)
     setIsDragging(false);
+    dragStateRef.current = null;
+    toggleChatbot();
   }
 
   function handleToggleOpen(e?: React.MouseEvent) {
-    if (e) {
-      e.stopPropagation();
-    }
-    // Prevent opening if the user was dragging
-    if (dragStateRef.current?.hasMoved || isDragging) {
-      return;
-    }
-    setIsOpen((prev) => !prev);
+    toggleChatbot(e);
   }
 
   const [messages, setMessages] = useState<ChatMessage[]>([
