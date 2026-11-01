@@ -8,6 +8,7 @@ import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
+import { formatLeadDateTime } from "@/lib/date-format";
 
 export const dynamic = "force-dynamic";
 
@@ -320,10 +321,10 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Closed Date */}
-                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap">
+                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap text-xs">
                         {lead.deadAt
-                          ? new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-                          : new Date(lead.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          ? formatLeadDateTime(lead.deadAt)
+                          : formatLeadDateTime(lead.updatedAt)}
                       </td>
 
                       {/* Remarks History */}
@@ -564,9 +565,9 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
 
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                    {lead.deadAt && (
+                    {(lead.deadAt || lead.updatedAt) && (
                       <span className="text-ink-faint text-[11px]">
-                        Closed: {new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        Closed: {formatLeadDateTime(lead.deadAt || lead.updatedAt)}
                       </span>
                     )}
                   </div>

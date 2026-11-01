@@ -9,6 +9,7 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
+import { formatLeadDateTime } from "@/lib/date-format";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -341,10 +342,10 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Last Activity */}
-                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap">
+                      <td className="py-3 px-4 text-ink-muted whitespace-nowrap text-xs">
                         {lead.deadAt
-                          ? new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-                          : new Date(lead.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          ? formatLeadDateTime(lead.deadAt)
+                          : formatLeadDateTime(lead.updatedAt)}
                       </td>
 
                       {/* Reason / Notes */}
@@ -493,9 +494,9 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                     <span className="text-ink-muted text-xs">
                       Rep: <strong className="text-ink">{lead.assignedEmployee?.name || "Unassigned"}</strong>
                     </span>
-                    {lead.deadAt && (
+                    {(lead.deadAt || lead.updatedAt) && (
                       <span className="text-ink-faint text-[11px]">
-                        Closed: {new Date(lead.deadAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        Closed: {formatLeadDateTime(lead.deadAt || lead.updatedAt)}
                       </span>
                     )}
                   </div>

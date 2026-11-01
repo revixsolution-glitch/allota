@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { getSession } from "@/lib/auth";
 import { addLeadRemark, completeFollowupTask, updateEmployeeLeadStatus } from "@/lib/admin-actions";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,7 @@ import { LeadStatus } from "@/generated/prisma/enums";
 import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 import { FollowUpPicker } from "@/components/FollowUpPicker";
 import { LeadStatusToggle } from "@/components/LeadStatusToggle";
+import { formatLeadDateTime } from "@/lib/date-format";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
@@ -62,7 +64,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
   const [
     employee,
     clientCount,
-    leads,
+    allLeads,
     divisionStats,
     callsToday,
     totalCallsCount,
@@ -96,9 +98,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: { updatedAt: "desc" },
-      skip: (requestedPage - 1) * LEADS_PER_PAGE,
-      take: LEADS_PER_PAGE,
+      orderBy: { createdAt: "desc" },
     }),
     prisma.lead.groupBy({
       by: ["division"],
@@ -208,8 +208,30 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       : Promise.resolve(null),
   ]);
 
-  const totalLeadPages = Math.max(1, Math.ceil(assignedLeadsCount / LEADS_PER_PAGE));
+  // Fresh Uncontacted Leads:
+  // Status NEW or ASSIGNED, zero remarks, no scheduled follow-up date, and zero calls
+  const isFreshLead = (l: (typeof allLeads)[number]) =>
+    (l.status === "NEW" || l.status === "ASSIGNED") &&
+    l.remarks.length === 0 &&
+    !l.followUpAt &&
+    (l._count?.calls || 0) === 0;
+
+  const freshCount = allLeads.filter(isFreshLead).length;
+
+  // Solid ordering: Fresh uncontacted leads always float to the top
+  const sortedLeads = [...allLeads].sort((a, b) => {
+    const aFresh = isFreshLead(a);
+    const bFresh = isFreshLead(b);
+    if (aFresh !== bFresh) return aFresh ? -1 : 1;
+    if (aFresh && bFresh) {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+
+  const totalLeadPages = Math.max(1, Math.ceil(sortedLeads.length / LEADS_PER_PAGE));
   const currentLeadPage = Math.min(requestedPage, totalLeadPages);
+  const leads = sortedLeads.slice((currentLeadPage - 1) * LEADS_PER_PAGE, currentLeadPage * LEADS_PER_PAGE);
 
   const buildDashboardUrl = (p: number) => {
     const sp = new URLSearchParams();
@@ -464,62 +486,100 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {leads.map((lead) => {
+                  {leads.map((lead, idx) => {
                     const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
                     const isThirdParty = lead.division === "THIRD_PARTY";
+                    const isCurrentFresh = isFreshLead(lead);
+                    const prevLead = idx > 0 ? leads[idx - 1] : null;
+                    const isTransitionToPipeline = prevLead && isFreshLead(prevLead) && !isCurrentFresh;
+                    const isFirstLead = idx === 0;
 
                     return (
-                      <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                        {/* Prospect & Contact */}
-                        <td className="px-5 py-4">
-                          <div className="font-extrabold text-ink text-sm">
-                            {lead.name || "Anonymous Prospect"}
-                          </div>
-                          <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
-                            <span>{lead.phoneNumber || "No Phone"}</span>
-                            {cleanPhone && (
-                              <>
-                                <a
-                                  href={`tel:${cleanPhone}`}
-                                  title="Click to Call"
-                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
-                                >
-                                  📞
-                                </a>
-                                <a
-                                  href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open WhatsApp Chat"
-                                  className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
-                                >
-                                  💬
-                                </a>
-                              </>
+                      <Fragment key={lead.id}>
+                        {isFirstLead && isCurrentFresh && (
+                          <tr className="bg-gradient-to-r from-emerald-100/90 via-emerald-50/80 to-teal-50/90 border-y-2 border-emerald-400">
+                            <td colSpan={6} className="px-5 py-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                                  <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
+                                    ✨ Fresh Uncontacted Leads ({freshCount})
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-emerald-700 hidden sm:inline">
+                                    — Reach out first! Once contacted, remarks added, or scheduled, leads move below into the follow-up pipeline.
+                                  </span>
+                                </div>
+                                <span className="rounded-full bg-emerald-200 border border-emerald-300 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                                  Priority Action
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        {isTransitionToPipeline && (
+                          <tr className="bg-gradient-to-r from-slate-100 via-indigo-50/50 to-slate-100 border-y-2 border-slate-300">
+                            <td colSpan={6} className="px-5 py-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-sm">🔄</span>
+                                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                    In-Progress Follow-Up Pipeline
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-slate-600 hidden sm:inline">
+                                    — Active leads with logged remarks, calls, or scheduled follow-up dates
+                                  </span>
+                                </div>
+                                <span className="rounded-full bg-slate-200 border border-slate-300 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-700">
+                                  Pipeline Active
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        <tr className={`hover:bg-slate-50/70 transition ${isCurrentFresh ? "bg-emerald-50/20" : ""}`}>
+                          {/* Prospect & Contact */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2 font-extrabold text-ink text-sm">
+                              <span>{lead.name || "Anonymous Prospect"}</span>
+                              {isCurrentFresh && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-800 animate-pulse">
+                                  ✨ FRESH
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
+                              <span>{lead.phoneNumber || "No Phone"}</span>
+                              {cleanPhone && (
+                                <>
+                                  <a
+                                    href={`tel:${cleanPhone}`}
+                                    title="Click to Call"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                                  >
+                                    📞
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open WhatsApp Chat"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                                  >
+                                    💬
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+                              <span className="text-xs">📅</span>
+                              <span>{formatLeadDateTime(lead.createdAt)}</span>
+                            </div>
+                            {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
+                              <p className="text-[10px] text-teal-700 font-bold mt-1">
+                                ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
+                              </p>
                             )}
-                          </div>
-                          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted">
-                            <span className="text-xs">📅</span>
-                            <span>
-                              {new Date(lead.createdAt).toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                              {" • "}
-                              {new Date(lead.createdAt).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })}
-                            </span>
-                          </div>
-                          {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
-                            <p className="text-[10px] text-teal-700 font-bold mt-1">
-                              ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
-                            </p>
-                          )}
-                        </td>
+                          </td>
 
                         {/* Division Category */}
                         <td className="px-4 py-4">
@@ -611,6 +671,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                           </div>
                         </td>
                       </tr>
+                    </Fragment>
                     );
                   })}
                 </tbody>
@@ -619,43 +680,69 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
             {/* Mobile Touch Cards View (md:hidden) */}
             <div className="md:hidden divide-y divide-line">
-              {leads.map((lead) => {
+              {leads.map((lead, idx) => {
                 const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
                 const isThirdParty = lead.division === "THIRD_PARTY";
+                const isCurrentFresh = isFreshLead(lead);
+                const prevLead = idx > 0 ? leads[idx - 1] : null;
+                const isTransitionToPipeline = prevLead && isFreshLead(prevLead) && !isCurrentFresh;
+                const isFirstLead = idx === 0;
 
                 return (
-                  <div key={lead.id} className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
-                        <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
-                        <div className="flex items-center gap-1 text-[11px] font-medium text-ink-muted mt-1">
-                          <span>📅</span>
-                          <span>
-                            {new Date(lead.createdAt).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                            {" • "}
-                            {new Date(lead.createdAt).toLocaleTimeString("en-IN", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
+                  <Fragment key={lead.id}>
+                    {isFirstLead && isCurrentFresh && (
+                      <div className="bg-emerald-50 border-l-4 border-emerald-500 p-3 mx-3 my-2 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-xs font-black uppercase tracking-wider text-emerald-900">
+                            ✨ Fresh Uncontacted Leads ({freshCount})
                           </span>
                         </div>
+                        <span className="rounded bg-emerald-200/80 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">
+                          Priority #1
+                        </span>
                       </div>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
-                          isThirdParty
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {isThirdParty ? "Third-Party" : "PCD Franchise"}
-                      </span>
-                    </div>
+                    )}
+                    {isTransitionToPipeline && (
+                      <div className="bg-slate-100 border-l-4 border-slate-400 p-3 mx-3 my-3 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">🔄</span>
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                            In-Progress Follow-Up Pipeline
+                          </span>
+                        </div>
+                        <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-700">
+                          Pipeline
+                        </span>
+                      </div>
+                    )}
+                    <div className={`p-4 space-y-3 ${isCurrentFresh ? "bg-emerald-50/20" : ""}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
+                            {isCurrentFresh && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-800 animate-pulse">
+                                ✨ FRESH
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
+                          <div className="flex items-center gap-1 text-[11px] font-medium text-ink-muted mt-1">
+                            <span>📅</span>
+                            <span>{formatLeadDateTime(lead.createdAt)}</span>
+                          </div>
+                        </div>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
+                            isThirdParty
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                        </span>
+                      </div>
 
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
@@ -726,6 +813,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                       </div>
                     )}
                   </div>
+                </Fragment>
                 );
               })}
             </div>

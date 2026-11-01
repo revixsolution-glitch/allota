@@ -9,6 +9,7 @@ import { SourceIcon } from "@/components/SourceIcon";
 import { ExcelUploader } from "@/app/admin/sources/ExcelUploader";
 import { formatInquiryDetails } from "@/lib/lead-format";
 import { ProtectedData } from "@/components/ProtectedData";
+import { formatLeadDateTime } from "@/lib/date-format";
 
 const leadSources = [
   {
@@ -999,12 +1000,9 @@ export default async function AdminLeadsPage({
                             <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
                           </p>
                         </div>
-                        <p className="text-[10px] text-ink-faint">
-                          Received: {new Date(lead.createdAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                        <p className="text-[10px] text-ink-faint flex items-center gap-1 mt-0.5">
+                          <span>📅</span>
+                          <span>{formatLeadDateTime(lead.createdAt)}</span>
                         </p>
                       </div>
                     </td>
