@@ -32,11 +32,17 @@ export function AllotaChatbot() {
   });
 
   // Draggable launcher position — lets the user move the bubble off whatever
-  // it's covering (e.g. table pagination controls). Persisted per-browser.
+  // it's covering (e.g. table status/actions columns). Persisted globally in localStorage.
   const [launcherPos, setLauncherPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const launcherWrapRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-  const justDraggedRef = useRef(false);
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    hasMoved: boolean;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -44,21 +50,27 @@ export function AllotaChatbot() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
-          setLauncherPos(parsed);
+          setLauncherPos(clampToViewport(parsed.x, parsed.y));
         }
       }
     } catch {}
+
+    const handleResize = () => {
+      setLauncherPos((prev) => (prev ? clampToViewport(prev.x, prev.y) : null));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   function clampToViewport(x: number, y: number) {
     const wrap = launcherWrapRef.current;
-    const w = wrap?.offsetWidth ?? 84;
-    const h = wrap?.offsetHeight ?? 84;
-    const maxX = window.innerWidth - w - 8;
-    const maxY = window.innerHeight - h - 8;
+    const w = wrap?.offsetWidth || 110;
+    const h = wrap?.offsetHeight || 110;
+    const maxX = Math.max(12, window.innerWidth - w - 12);
+    const maxY = Math.max(12, window.innerHeight - h - 12);
     return {
-      x: Math.min(Math.max(8, x), Math.max(8, maxX)),
-      y: Math.min(Math.max(8, y), Math.max(8, maxY)),
+      x: Math.min(Math.max(12, x), maxX),
+      y: Math.min(Math.max(12, y), maxY),
     };
   }
 
@@ -66,57 +78,75 @@ export function AllotaChatbot() {
     if (e.button !== 0) return;
     const wrap = launcherWrapRef.current;
     if (!wrap) return;
+
+    // Immediately capture pointer so moving finger or mouse never loses capture
+    try {
+      wrap.setPointerCapture(e.pointerId);
+    } catch {}
+
     const rect = wrap.getBoundingClientRect();
     dragStateRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       origX: launcherPos?.x ?? rect.left,
       origY: launcherPos?.y ?? rect.top,
+      hasMoved: false,
     };
-    justDraggedRef.current = false;
   }
 
   function handleLauncherPointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const drag = dragStateRef.current;
     if (!drag) return;
+
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
 
-    if (!justDraggedRef.current && Math.hypot(dx, dy) > 8) {
-      justDraggedRef.current = true;
-      try {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      } catch {}
+    // Threshold to distinguish click from intentional reposition drag
+    if (!drag.hasMoved && Math.hypot(dx, dy) > 4) {
+      drag.hasMoved = true;
+      setIsDragging(true);
     }
 
-    if (!justDraggedRef.current) return;
-    setLauncherPos(clampToViewport(drag.origX + dx, drag.origY + dy));
+    if (drag.hasMoved) {
+      setLauncherPos(clampToViewport(drag.origX + dx, drag.origY + dy));
+    }
   }
 
   function handleLauncherPointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    if (justDraggedRef.current) {
+    const drag = dragStateRef.current;
+    const wrap = launcherWrapRef.current;
+    if (wrap) {
       try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+        wrap.releasePointerCapture(e.pointerId);
       } catch {}
+    }
+
+    if (drag?.hasMoved) {
+      setIsDragging(false);
       setLauncherPos((pos) => {
         try {
-          if (pos) window.localStorage.setItem("allota-launcher-pos", JSON.stringify(pos));
+          if (pos) {
+            window.localStorage.setItem("allota-launcher-pos", JSON.stringify(pos));
+          }
         } catch {}
         return pos;
       });
       setTimeout(() => {
-        justDraggedRef.current = false;
-      }, 150);
+        dragStateRef.current = null;
+      }, 120);
+      return;
     }
+
     dragStateRef.current = null;
+    setIsDragging(false);
   }
 
   function handleToggleOpen(e?: React.MouseEvent) {
     if (e) {
       e.stopPropagation();
     }
-    if (justDraggedRef.current) {
-      justDraggedRef.current = false;
+    // Prevent opening if the user was dragging
+    if (dragStateRef.current?.hasMoved || isDragging) {
       return;
     }
     setIsOpen((prev) => !prev);
@@ -297,19 +327,49 @@ export function AllotaChatbot() {
       {/* ============================================================ */}
       <div
         ref={launcherWrapRef}
-        className="fixed right-4 sm:right-6 bottom-20 lg:bottom-6 z-50 flex flex-col items-end pointer-events-auto"
-        style={launcherPos ? { left: launcherPos.x, top: launcherPos.y, right: "auto", bottom: "auto" } : undefined}
+        className={`fixed z-50 flex flex-col items-center select-none ${
+          isDragging ? "cursor-grabbing allota-is-dragging scale-105 opacity-90 shadow-2xl" : "cursor-grab"
+        } ${
+          launcherPos ? "" : "right-4 sm:right-6 bottom-20 lg:bottom-6"
+        }`}
+        style={{
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          ...(launcherPos
+            ? { left: `${launcherPos.x}px`, top: `${launcherPos.y}px`, right: "auto", bottom: "auto" }
+            : {}),
+        }}
         onPointerDown={handleLauncherPointerDown}
         onPointerMove={handleLauncherPointerMove}
         onPointerUp={handleLauncherPointerUp}
         onPointerCancel={handleLauncherPointerUp}
-        onDoubleClick={() => {
+        onDoubleClick={(e) => {
+          e.stopPropagation();
           setLauncherPos(null);
           try {
             window.localStorage.removeItem("allota-launcher-pos");
           } catch {}
         }}
       >
+        {/* Reset corner button when repositioned */}
+        {launcherPos && !isOpen && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLauncherPos(null);
+              try {
+                window.localStorage.removeItem("allota-launcher-pos");
+              } catch {}
+            }}
+            title="Reset position to default corner (or double-click)"
+            className="absolute -top-2.5 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 border border-slate-700 text-[10px] text-white hover:bg-rose-600 transition shadow-md z-20 cursor-pointer"
+          >
+            ↺
+          </button>
+        )}
+
         {/* UPPER JUMPING TEXT PILL (USER REQ: UPPER TEXT KEEPS JUMPING & ANIMATED) */}
         {!isOpen && (
           <div
@@ -322,9 +382,10 @@ export function AllotaChatbot() {
                 setIsOpen(true);
               }
             }}
-            className="allota-jumping-text mb-1.5 select-none cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 transition"
-            title="Click to chat with Allota AI — drag to move, double-click to reset position"
+            className="allota-jumping-text mb-1.5 select-none flex items-center gap-1.5 shadow-md active:scale-95 transition"
+            title="Click to chat with Allota AI — drag to move anywhere, double-click to reset"
           >
+            <span className="text-xs text-sky-400 select-none opacity-70">⠿</span>
             <span className="text-[#FFB347] animate-pulse text-xs">✦</span>
             <span>Ask Allota AI</span>
           </div>
@@ -334,24 +395,25 @@ export function AllotaChatbot() {
         <button
           type="button"
           onClick={handleToggleOpen}
-          className={`allota-3d-launcher group cursor-pointer ${isOpen ? "allota-launcher-active" : ""}`}
-          aria-label={isOpen ? "Close Allota AI Chatbot" : "Open Allota AI Chatbot (drag to move)"}
-          title={isOpen ? "Close Allota AI" : "Open Allota AI Copilot — drag to move, double-click to reset position"}
+          className={`allota-3d-launcher group ${isOpen ? "allota-launcher-active" : ""}`}
+          aria-label={isOpen ? "Close Allota AI Chatbot" : "Open Allota AI Chatbot (drag anywhere)"}
+          title={isOpen ? "Close Allota AI" : "Allota AI Copilot — drag anywhere on screen, double-click to reset"}
         >
           {/* A. OUTER 2 RINGS ANIMATED IN CIRCLE ORBIT (USER REQ) */}
-          <div className="allota-orbit-layer">
+          <div className="allota-orbit-layer pointer-events-none select-none">
             <Image
               src="/allota-orbit-rings.png"
               alt="Orbiting Neon Rings"
               width={96}
               height={96}
-              className="allota-orbiting-rings"
+              className="allota-orbiting-rings pointer-events-none select-none"
+              draggable={false}
               priority
             />
             {/* Neon SVG Glow Track that continuously rotates 360° in orbit */}
             <svg
               viewBox="0 0 100 100"
-              className="allota-svg-orbit"
+              className="allota-svg-orbit pointer-events-none select-none"
               xmlns="http://www.w3.org/2000/svg"
             >
               <circle
@@ -381,29 +443,31 @@ export function AllotaChatbot() {
           </div>
 
           {/* B. EXACT 3D VOLUMETRIC GLASS ORB */}
-          <div className="allota-core-orb-wrapper">
+          <div className="allota-core-orb-wrapper pointer-events-none select-none">
             <Image
               src="/allota-3d-orb.png"
               alt="Allota AI 3D Identity"
               width={82}
               height={82}
-              className="allota-core-orb-img"
+              className="allota-core-orb-img pointer-events-none select-none"
+              draggable={false}
               priority
             />
           </div>
 
           {/* C. UPPER 3D ORANGE CHAT BUBBLE BADGE (JUMPING & ANIMATED) */}
-          <div className="allota-jumping-badge">
+          <div className="allota-jumping-badge pointer-events-none select-none">
             <Image
               src="/allota-speech-badge.png"
               alt="Chat Indicator"
               width={26}
               height={26}
-              className="allota-badge-img"
+              className="allota-badge-img pointer-events-none select-none"
+              draggable={false}
               priority
             />
             {/* Pulsing 3 dots inside badge */}
-            <div className="allota-badge-dots">
+            <div className="allota-badge-dots pointer-events-none select-none">
               <span className="b-dot b-dot-1" />
               <span className="b-dot b-dot-2" />
               <span className="b-dot b-dot-3" />
@@ -680,6 +744,14 @@ export function AllotaChatbot() {
       {/* 3. RAZOR-SHARP CSS ANIMATIONS & ORBIT PHYSICS                */}
       {/* ============================================================ */}
       <style jsx global>{`
+        /* Dragging state override */
+        .allota-is-dragging,
+        .allota-is-dragging * {
+          cursor: grabbing !important;
+          animation: none !important;
+          transition: none !important;
+        }
+
         /* Launcher Button Container */
         .allota-3d-launcher {
           width: 78px;
