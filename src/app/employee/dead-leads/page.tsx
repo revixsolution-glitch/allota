@@ -447,75 +447,79 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap min-w-[320px]">
-                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                      <td className="py-3 px-4 text-right whitespace-nowrap w-44">
+                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                           {cleanPhone && (
                             <>
                               <a
                                 href={`tel:${cleanPhone}`}
                                 title="Call prospect"
-                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-100 active:scale-95 transition shadow-2xs"
+                                className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs hover:bg-blue-100 active:scale-95 transition shadow-2xs"
                               >
-                                <span className="text-xs leading-none">📞</span>
-                                <span className="leading-none">Call</span>
+                                📞
                               </a>
                               <a
                                 href={`https://wa.me/${cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Open WhatsApp chat"
-                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 active:scale-95 transition shadow-2xs"
+                                className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs hover:bg-emerald-100 active:scale-95 transition shadow-2xs"
                               >
-                                <span className="text-xs leading-none">💬</span>
-                                <span className="leading-none">WhatsApp</span>
+                                💬
                               </a>
                             </>
                           )}
 
-                          {/* Switch Category Action (Dead <-> Irrelevant) */}
-                          {isIrrelevant ? (
-                            <form action={updateLeadActiveStatus} className="inline-block shrink-0">
-                              <input type="hidden" name="leadId" value={lead.id} />
-                              <input type="hidden" name="status" value="DEAD" />
-                              <input type="hidden" name="deadReason" value="DEAD" />
-                              <button
-                                type="submit"
-                                title="Switch classification to Dead Lead"
-                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-100 active:scale-95 transition shadow-2xs cursor-pointer"
-                              >
-                                <span>🔴</span>
-                                <span>To Dead</span>
-                              </button>
-                            </form>
-                          ) : (
-                            <form action={updateLeadActiveStatus} className="inline-block shrink-0">
-                              <input type="hidden" name="leadId" value={lead.id} />
-                              <input type="hidden" name="status" value="IRRELEVANT" />
-                              <input type="hidden" name="deadReason" value="IRRELEVANT" />
-                              <button
-                                type="submit"
-                                title="Switch classification to Irrelevant Inquiry"
-                                className="inline-flex items-center justify-center gap-1 whitespace-nowrap shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 active:scale-95 transition shadow-2xs cursor-pointer"
-                              >
-                                <span>🚫</span>
-                                <span>To Irrelevant</span>
-                              </button>
-                            </form>
-                          )}
+                          {/* Actions Dropdown Menu */}
+                          <details className="group/action relative inline-block text-left">
+                            <summary className="list-none cursor-pointer inline-flex items-center gap-1 rounded-xl border border-line bg-white px-2.5 py-1 text-xs font-bold text-ink hover:bg-slate-50 active:scale-95 transition shadow-2xs select-none">
+                              <span>Actions</span>
+                              <span className="text-[10px] text-ink-muted">▾</span>
+                            </summary>
+                            <div className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-white p-1.5 shadow-xl border border-line z-30 space-y-1 text-left">
+                              {/* Reactivate Lead */}
+                              <form action={updateLeadActiveStatus}>
+                                <input type="hidden" name="leadId" value={lead.id} />
+                                <input type="hidden" name="status" value="ACTIVE" />
+                                <button
+                                  type="submit"
+                                  className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition cursor-pointer text-left"
+                                >
+                                  <span>↺</span>
+                                  <span>Reactivate to Pipeline</span>
+                                </button>
+                              </form>
 
-                          {/* Reactivate Lead */}
-                          <form action={updateLeadActiveStatus} className="inline-block shrink-0">
-                            <input type="hidden" name="leadId" value={lead.id} />
-                            <input type="hidden" name="status" value="ACTIVE" />
-                            <button
-                              type="submit"
-                              title="Reactivate lead back into active pipeline"
-                              className="inline-flex items-center justify-center gap-1 whitespace-nowrap shrink-0 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 active:scale-95 transition shadow-2xs cursor-pointer"
-                            >
-                              <span>↺</span>
-                              <span>Reactivate</span>
-                            </button>
-                          </form>
+                              {/* Switch Category Action (Dead <-> Irrelevant) */}
+                              {isIrrelevant ? (
+                                <form action={updateLeadActiveStatus}>
+                                  <input type="hidden" name="leadId" value={lead.id} />
+                                  <input type="hidden" name="status" value="DEAD" />
+                                  <input type="hidden" name="deadReason" value="DEAD" />
+                                  <button
+                                    type="submit"
+                                    className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-50 transition cursor-pointer text-left"
+                                  >
+                                    <span>🔴</span>
+                                    <span>Move to Dead Leads</span>
+                                  </button>
+                                </form>
+                              ) : (
+                                <form action={updateLeadActiveStatus}>
+                                  <input type="hidden" name="leadId" value={lead.id} />
+                                  <input type="hidden" name="status" value="IRRELEVANT" />
+                                  <input type="hidden" name="deadReason" value="IRRELEVANT" />
+                                  <button
+                                    type="submit"
+                                    className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-50 transition cursor-pointer text-left"
+                                  >
+                                    <span>🚫</span>
+                                    <span>Move to Irrelevant</span>
+                                  </button>
+                                </form>
+                              )}
+                            </div>
+                          </details>
                         </div>
                       </td>
                     </tr>
@@ -683,49 +687,55 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Switch Category Action (Dead <-> Irrelevant) */}
-                      {isIrrelevant ? (
-                        <form action={updateLeadActiveStatus}>
-                          <input type="hidden" name="leadId" value={lead.id} />
-                          <input type="hidden" name="status" value="DEAD" />
-                          <input type="hidden" name="deadReason" value="DEAD" />
-                          <button
-                            type="submit"
-                            title="Switch classification to Dead Lead"
-                            className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-800 active:bg-rose-100 transition shadow-2xs cursor-pointer"
-                          >
-                            <span>🔴</span>
-                            <span>To Dead</span>
-                          </button>
-                        </form>
-                      ) : (
-                        <form action={updateLeadActiveStatus}>
-                          <input type="hidden" name="leadId" value={lead.id} />
-                          <input type="hidden" name="status" value="IRRELEVANT" />
-                          <input type="hidden" name="deadReason" value="IRRELEVANT" />
-                          <button
-                            type="submit"
-                            title="Switch classification to Irrelevant Inquiry"
-                            className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 active:bg-amber-100 transition shadow-2xs cursor-pointer"
-                          >
-                            <span>🚫</span>
-                            <span>To Irrelevant</span>
-                          </button>
-                        </form>
-                      )}
+                      <details className="group/action relative inline-block text-left">
+                        <summary className="list-none cursor-pointer inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink hover:bg-slate-50 active:scale-95 transition shadow-2xs select-none">
+                          <span>Actions</span>
+                          <span className="text-[10px] text-ink-muted">▾</span>
+                        </summary>
+                        <div className="absolute right-0 bottom-full mb-1.5 w-48 rounded-2xl bg-white p-1.5 shadow-xl border border-line z-30 space-y-1 text-left">
+                          {/* Reactivate Lead */}
+                          <form action={updateLeadActiveStatus}>
+                            <input type="hidden" name="leadId" value={lead.id} />
+                            <input type="hidden" name="status" value="ACTIVE" />
+                            <button
+                              type="submit"
+                              className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition cursor-pointer text-left"
+                            >
+                              <span>↺</span>
+                              <span>Reactivate to Pipeline</span>
+                            </button>
+                          </form>
 
-                      {/* Reactivate Lead */}
-                      <form action={updateLeadActiveStatus}>
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <input type="hidden" name="status" value="ACTIVE" />
-                        <button
-                          type="submit"
-                          className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 active:bg-emerald-100 transition shadow-2xs cursor-pointer"
-                        >
-                          <span>↺</span>
-                          <span>Reactivate</span>
-                        </button>
-                      </form>
+                          {/* Switch Category Action (Dead <-> Irrelevant) */}
+                          {isIrrelevant ? (
+                            <form action={updateLeadActiveStatus}>
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <input type="hidden" name="status" value="DEAD" />
+                              <input type="hidden" name="deadReason" value="DEAD" />
+                              <button
+                                type="submit"
+                                className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-50 transition cursor-pointer text-left"
+                              >
+                                <span>🔴</span>
+                                <span>Move to Dead Leads</span>
+                              </button>
+                            </form>
+                          ) : (
+                            <form action={updateLeadActiveStatus}>
+                              <input type="hidden" name="leadId" value={lead.id} />
+                              <input type="hidden" name="status" value="IRRELEVANT" />
+                              <input type="hidden" name="deadReason" value="IRRELEVANT" />
+                              <button
+                                type="submit"
+                                className="w-full flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-50 transition cursor-pointer text-left"
+                              >
+                                <span>🚫</span>
+                                <span>Move to Irrelevant</span>
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      </details>
                     </div>
                   </div>
                 </div>
