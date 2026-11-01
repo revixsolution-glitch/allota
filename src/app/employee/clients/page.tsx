@@ -101,16 +101,16 @@ export default async function EmployeeClientsPage({
         </div>
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto crm-table-container w-full">
+            <table className="w-full text-left text-xs min-w-[1100px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-5 py-3.5">Client & Business Name</th>
-                  <th className="px-4 py-3.5">Contact Number</th>
-                  <th className="px-4 py-3.5">Territory</th>
-                  <th className="px-4 py-3.5">Business Type</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Orders History</th>
+                  <th className="px-5 py-3.5 w-[300px] min-w-[280px] whitespace-nowrap">Client & Business Name</th>
+                  <th className="px-4 py-3.5 w-[180px] min-w-[160px] whitespace-nowrap">Contact Number</th>
+                  <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Territory</th>
+                  <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Business Type</th>
+                  <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 w-[160px] min-w-[150px] text-right whitespace-nowrap">Orders History</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">

@@ -473,16 +473,16 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
         ) : (
           <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
             {/* Desktop Table View matching Allotted Leads Desk */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="hidden md:block overflow-x-auto crm-table-container w-full">
+              <table className="w-full text-left text-xs min-w-[1240px]">
                 <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   <tr>
-                    <th className="px-5 py-3.5">Prospect & Contact</th>
-                    <th className="px-4 py-3.5">Division Category</th>
-                    <th className="px-4 py-3.5">Channel / Source</th>
-                    <th className="px-4 py-3.5">Follow Up</th>
-                    <th className="px-4 py-3.5">Remarks</th>
-                    <th className="px-5 py-3.5 text-right">Status</th>
+                    <th className="px-5 py-3.5 w-[300px] min-w-[280px] whitespace-nowrap">Prospect & Contact</th>
+                    <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Division Category</th>
+                    <th className="px-4 py-3.5 w-[200px] min-w-[190px] whitespace-nowrap">Channel / Source</th>
+                    <th className="px-4 py-3.5 w-[230px] min-w-[220px] whitespace-nowrap">Follow Up</th>
+                    <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
+                    <th className="px-5 py-3.5 w-[210px] min-w-[200px] text-right whitespace-nowrap">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -525,9 +525,9 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         )}
                         <tr className="hover:bg-slate-50/70 transition">
                           {/* Prospect & Contact */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2 font-extrabold text-ink text-sm">
-                              <span>{lead.name || "Anonymous Prospect"}</span>
+                          <td className="px-5 py-4 w-[300px] min-w-[280px]">
+                            <div className="flex items-center gap-2 font-extrabold text-ink text-sm min-w-0">
+                              <span className="truncate">{lead.name || "Anonymous Prospect"}</span>
                               {isCurrentFresh && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
                                   <span>✨</span>
@@ -535,14 +535,14 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                                 </span>
                               )}
                             </div>
-                            <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted">
+                            <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted whitespace-nowrap">
                               <span>{lead.phoneNumber || "No Phone"}</span>
                               {cleanPhone && (
                                 <>
                                   <a
                                     href={`tel:${cleanPhone}`}
                                     title="Click to Call"
-                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition shrink-0"
                                   >
                                     📞
                                   </a>
@@ -551,28 +551,28 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="Open WhatsApp Chat"
-                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition shrink-0"
                                   >
                                     💬
                                   </a>
                                 </>
                               )}
                             </div>
-                            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+                            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted whitespace-nowrap">
                               <span className="text-xs">📅</span>
                               <span>{formatLeadDateTime(lead.createdAt)}</span>
                             </div>
                             {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
-                              <p className="text-[10px] text-teal-700 font-bold mt-1">
+                              <p className="text-[10px] text-teal-700 font-bold mt-1 truncate">
                                 ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
                               </p>
                             )}
                           </td>
 
                         {/* Division Category */}
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
                           <span
-                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                               isThirdParty
                                 ? "bg-purple-100 text-purple-800"
                                 : "bg-blue-100 text-blue-800"
@@ -583,12 +583,12 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Channel / Source */}
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 w-[200px] min-w-[190px]">
                           <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                         </td>
 
                         {/* Follow Up */}
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 w-[230px] min-w-[220px]">
                           <FollowUpPicker
                             leadId={lead.id}
                             followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
@@ -597,7 +597,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Remarks */}
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 w-[140px] min-w-[130px] whitespace-nowrap">
                           <details className="inline-block text-left group">
                             <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
                               <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -653,7 +653,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Status: Active / Converted / Dead */}
-                        <td className="px-5 py-4 text-right">
+                        <td className="px-5 py-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">
                           <div className="inline-flex justify-end">
                             <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
                           </div>

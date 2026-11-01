@@ -262,17 +262,17 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
+            <table className="w-full text-left text-xs min-w-[1200px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4">Prospect</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">City / State</th>
-                  <th className="py-3 px-4">Closed Date</th>
-                  <th className="py-3 px-4">Remarks History</th>
-                  <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[280px] min-w-[260px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">City / State</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Closed Date</th>
+                  <th className="py-3 px-4 w-[200px] min-w-[180px] whitespace-nowrap">Remarks History</th>
+                  <th className="py-3 px-4 w-[140px] min-w-[130px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">

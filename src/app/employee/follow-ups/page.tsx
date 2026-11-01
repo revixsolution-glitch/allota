@@ -318,17 +318,17 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
       ) : (
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden shadow-xs">
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="hidden md:block overflow-x-auto crm-table-container w-full">
+            <table className="w-full text-left text-xs min-w-[1240px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-5 py-3.5">Prospect & Contact</th>
-                  <th className="px-4 py-3.5">Category</th>
-                  <th className="px-4 py-3.5">Channel / Source</th>
-                  <th className="px-4 py-3.5">Scheduled Date</th>
-                  <th className="px-4 py-3.5">Remarks</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Instant Action</th>
+                  <th className="px-5 py-3.5 w-[280px] min-w-[260px] whitespace-nowrap">Prospect & Contact</th>
+                  <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
+                  <th className="px-4 py-3.5 w-[180px] min-w-[170px] whitespace-nowrap">Channel / Source</th>
+                  <th className="px-4 py-3.5 w-[200px] min-w-[180px] whitespace-nowrap">Scheduled Date</th>
+                  <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="px-4 py-3.5 w-[200px] min-w-[180px] whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 w-[180px] min-w-[160px] text-right whitespace-nowrap">Instant Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
