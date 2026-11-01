@@ -16,13 +16,25 @@ export function GlobalNotificationBell() {
     label: "View Telephony & CRM Alerts →",
   });
   const [toast, setToast] = useState<CrmNotification | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("unsupported");
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotifPermission(Notification.permission);
     }
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, []);
+
+  // When notification bell dropdown opens, hide the toast so it doesn't overlap
+  useEffect(() => {
+    if (isOpen && toast) {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      setToast(null);
+    }
+  }, [isOpen, toast]);
 
   // Pop-up + desktop alert the first time a follow-up becomes due (once per reminder, per browser tab session).
   function alertForDueFollowUps(list: CrmNotification[]) {
@@ -49,7 +61,8 @@ export function GlobalNotificationBell() {
           }
         : first
     );
-    setTimeout(() => setToast(null), 10000);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 12000);
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       try {
         new Notification(fresh.length > 1 ? `${fresh.length} follow-ups are due` : first.title, {
@@ -58,6 +71,14 @@ export function GlobalNotificationBell() {
         });
       } catch {}
     }
+  }
+
+  function handleToastOpenNotifications(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast(null);
+    setIsOpen(true);
   }
 
   async function enableDesktopAlerts() {
@@ -317,18 +338,83 @@ export function GlobalNotificationBell() {
         </div>
       )}
 
-      {toast && (
+      {toast && !isOpen && (
         <div
-          role="button"
-          tabIndex={0}
-          onClick={(e) => handleNotificationClick(e, toast)}
-          className="fixed right-4 top-20 z-[60] flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-sky-200 bg-white p-3.5 shadow-2xl cursor-pointer hover:shadow-lg transition"
+          className="fixed right-4 top-20 z-[60] w-84 max-w-[calc(100vw-2rem)] rounded-2xl border border-sky-300 bg-white p-3.5 shadow-2xl transition animate-in fade-in slide-in-from-top-2 duration-200"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-lg">⏰</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs font-extrabold text-ink">{toast.title}</span>
-            <span className="mt-0.5 block text-[11px] text-ink-muted">{toast.description}</span>
-          </span>
+          {/* Header connected to Notifications with Close (Cross) button */}
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-sky-100">
+            <button
+              type="button"
+              onClick={handleToastOpenNotifications}
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#0284c7] hover:underline cursor-pointer"
+            >
+              <span className="flex h-2 w-2 rounded-full bg-[#0284c7] animate-pulse" />
+              <span>🔔 Notifications</span>
+              <span className="text-[9px] font-bold text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.2 rounded-full">
+                Due Reminder
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                setToast(null);
+              }}
+              title="Close notification"
+              aria-label="Close notification"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Toast Body */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handleToastOpenNotifications}
+            className="flex items-start gap-3 cursor-pointer group"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-lg group-hover:scale-105 transition">
+              ⏰
+            </span>
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs font-extrabold text-ink group-hover:text-[#0284c7] transition">
+                {toast.title}
+              </span>
+              <span className="mt-0.5 block text-[11px] text-ink-muted line-clamp-2">
+                {toast.description}
+              </span>
+            </div>
+          </div>
+
+          {/* Footer Action Links */}
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handleToastOpenNotifications}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0284c7] hover:underline cursor-pointer"
+            >
+              <span>View All in Bell</span>
+              <span>▾</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+                setToast(null);
+                handleNotificationClick(e, toast);
+              }}
+              className="inline-flex items-center gap-1 rounded-lg bg-[#0284c7] hover:bg-sky-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-2xs transition cursor-pointer"
+            >
+              <span>Open Follow-ups</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
         </div>
       )}
 
