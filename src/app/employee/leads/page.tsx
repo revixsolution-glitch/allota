@@ -366,6 +366,22 @@ export default async function EmployeeLeadsPage({
                             </>
                           )}
                         </div>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+                          <span className="text-xs">📅</span>
+                          <span>
+                            {new Date(lead.createdAt).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {" • "}
+                            {new Date(lead.createdAt).toLocaleTimeString("en-IN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
                         {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
                           <p className="text-[10px] text-teal-700 font-bold mt-1">
                             ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
@@ -485,6 +501,22 @@ export default async function EmployeeLeadsPage({
                       </h3>
                       <div className="font-mono text-ink-muted text-xs mt-0.5">
                         <ProtectedData text={lead.phoneNumber || "No phone"} />
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-medium text-ink-muted mt-1">
+                        <span>📅</span>
+                        <span>
+                          {new Date(lead.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                          {" • "}
+                          {new Date(lead.createdAt).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>
                       </div>
                     </div>
                     <span
