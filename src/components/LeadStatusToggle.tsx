@@ -53,11 +53,27 @@ export function LeadStatusToggle({
 
   const isConverted = currentStatus === "CONVERTED";
   const isDeadState = currentStatus === "NOT_INTERESTED" || (isDead === true && !isConverted);
-  const isActive = !isConverted && !isDeadState;
+  // Fresh leads (NEW or ASSIGNED) should NEVER be active by default.
+  // Only leads explicitly clicked/marked as Active (CONTACTED / INTERESTED / ACTIVE) are active.
+  const isActive = currentStatus === "CONTACTED" || currentStatus === "INTERESTED" || currentStatus === "ACTIVE";
   const isIrrelevant = isDeadState && currentDeadReason === "IRRELEVANT";
 
   const handleStatusChange = (newStat: "ACTIVE" | "CONVERTED") => {
     setIsOpen(false);
+    // If clicking an already-selected status, toggle off back to unselected
+    if ((newStat === "ACTIVE" && isActive) || (newStat === "CONVERTED" && isConverted)) {
+      setCurrentStatus("ASSIGNED");
+      setCurrentDeadReason(null);
+
+      startTransition(async () => {
+        const fd = new FormData();
+        fd.set("leadId", leadId);
+        fd.set("status", "UNSET");
+        await updateLeadActiveStatus(fd);
+      });
+      return;
+    }
+
     setCurrentStatus(newStat === "ACTIVE" ? "CONTACTED" : "CONVERTED");
     setCurrentDeadReason(null);
 
@@ -71,6 +87,20 @@ export function LeadStatusToggle({
 
   const handleDeadSelection = (reason: "DEAD" | "IRRELEVANT") => {
     setIsOpen(false);
+    // If clicking the same dead reason, toggle back to unselected
+    if (isDeadState && ((reason === "IRRELEVANT" && isIrrelevant) || (reason === "DEAD" && !isIrrelevant))) {
+      setCurrentStatus("ASSIGNED");
+      setCurrentDeadReason(null);
+
+      startTransition(async () => {
+        const fd = new FormData();
+        fd.set("leadId", leadId);
+        fd.set("status", "UNSET");
+        await updateLeadActiveStatus(fd);
+      });
+      return;
+    }
+
     setCurrentStatus("NOT_INTERESTED");
     setCurrentDeadReason(reason);
 

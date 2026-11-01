@@ -1301,7 +1301,7 @@ export async function setLeadFollowUp(formData: FormData) {
 
 const leadActiveStatusSchema = z.object({
   leadId: requiredText,
-  status: z.enum(["ACTIVE", "CONVERTED", "DEAD", "IRRELEVANT"]).optional(),
+  status: z.enum(["ACTIVE", "CONVERTED", "DEAD", "IRRELEVANT", "UNSET"]).optional(),
   isDead: z.enum(["true", "false"]).optional(),
   deadReason: z.string().optional(),
 });
@@ -1336,7 +1336,11 @@ export async function updateLeadActiveStatus(formData: FormData) {
   let deadReason = lead.deadReason;
   let clientId = lead.clientId;
 
-  if (input.status === "CONVERTED") {
+  if (input.status === "UNSET") {
+    newStatus = lead.assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW;
+    deadAt = null;
+    deadReason = null;
+  } else if (input.status === "CONVERTED") {
     newStatus = LeadStatus.CONVERTED;
     deadAt = null;
     deadReason = null;
@@ -1377,7 +1381,10 @@ export async function updateLeadActiveStatus(formData: FormData) {
     deadReason = input.deadReason || (input.status === "IRRELEVANT" ? "IRRELEVANT" : "DEAD");
   } else if (input.status === "ACTIVE" || input.isDead === "false") {
     newStatus =
-      lead.status === LeadStatus.NOT_INTERESTED || lead.status === LeadStatus.CONVERTED
+      lead.status === LeadStatus.NOT_INTERESTED ||
+      lead.status === LeadStatus.CONVERTED ||
+      lead.status === LeadStatus.NEW ||
+      lead.status === LeadStatus.ASSIGNED
         ? LeadStatus.CONTACTED
         : lead.status;
     deadAt = null;

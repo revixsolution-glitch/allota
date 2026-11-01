@@ -1092,7 +1092,7 @@ export default async function AdminLeadsPage({
                       />
                     </td>
 
-                    {/* Status: Active (green) / Dead (red) / Irrelevant (amber), as chosen by the representative */}
+                    {/* Status: Active (green) / Dead (red) / Irrelevant (amber) / Fresh (slate) */}
                     <td className="px-6 py-4">
                       {lead.status === LeadStatus.NOT_INTERESTED ? (
                         lead.deadReason === "IRRELEVANT" ? (
@@ -1114,6 +1114,19 @@ export default async function AdminLeadsPage({
                             Dead
                           </Link>
                         )
+                      ) : lead.status === LeadStatus.CONVERTED ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+                          <span className="h-2 w-2 rounded-full bg-purple-500" />
+                          Converted
+                        </span>
+                      ) : lead.status === LeadStatus.NEW || lead.status === LeadStatus.ASSIGNED ? (
+                        <span
+                          title="Fresh uncontacted lead"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-slate-400" />
+                          Fresh
+                        </span>
                       ) : (
                         <span
                           title="Marked active by the representative"
@@ -1214,7 +1227,13 @@ export default async function AdminLeadsPage({
                     }))}
                   />
                   <span className="text-[11px] font-bold text-ink-muted">
-                    {lead.status === LeadStatus.NOT_INTERESTED ? (lead.deadReason === "IRRELEVANT" ? "🚫 Irrelevant" : "🔴 Dead") : "🟢 Active"}
+                    {lead.status === LeadStatus.NOT_INTERESTED
+                      ? (lead.deadReason === "IRRELEVANT" ? "🚫 Irrelevant" : "🔴 Dead")
+                      : lead.status === LeadStatus.CONVERTED
+                      ? "🟣 Converted"
+                      : lead.status === LeadStatus.NEW || lead.status === LeadStatus.ASSIGNED
+                      ? "⚪ Fresh"
+                      : "🟢 Active"}
                   </span>
                 </div>
 
