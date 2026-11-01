@@ -27,6 +27,7 @@ export default async function EmployeeLayout({
     { href: "/employee", label: "Dashboard" },
     { href: "/employee/leads", label: "My Allotted Leads" },
     { href: "/employee/follow-ups", label: "Follow-ups" },
+    { href: "/employee/dead-leads", label: "Dead Leads" },
     { href: "/employee/clients", label: "My Clients" },
   ];
 
