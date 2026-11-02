@@ -993,6 +993,8 @@ export async function updateCompanyPlanSettings(formData: FormData) {
   const metaPhoneNumberId = (formData.get("metaPhoneNumberId") as string)?.trim() || undefined;
   const metaApiKey = (formData.get("metaApiKey") as string)?.trim() || metaAccessToken || undefined;
   const pharmaHopperApiKey = (formData.get("pharmaHopperApiKey") as string)?.trim() || undefined;
+  const pharmaHopperUsername = (formData.get("pharmaHopperUsername") as string)?.trim() || undefined;
+  const pharmaHopperPassword = (formData.get("pharmaHopperPassword") as string)?.trim() || undefined;
   const pharmaKhabarApiKey = (formData.get("pharmaKhabarApiKey") as string)?.trim() || undefined;
   const pharmaVentApiKey = (formData.get("pharmaVentApiKey") as string)?.trim() || undefined;
 
@@ -1010,6 +1012,8 @@ export async function updateCompanyPlanSettings(formData: FormData) {
     ...(metaPhoneNumberId !== undefined ? { metaPhoneNumberId } : {}),
     ...(metaApiKey !== undefined ? { metaApiKey } : {}),
     ...(pharmaHopperApiKey !== undefined ? { pharmaHopperApiKey } : {}),
+    ...(pharmaHopperUsername !== undefined ? { pharmaHopperUsername } : {}),
+    ...(pharmaHopperPassword !== undefined ? { pharmaHopperPassword } : {}),
     ...(pharmaKhabarApiKey !== undefined ? { pharmaKhabarApiKey } : {}),
     ...(pharmaVentApiKey !== undefined ? { pharmaVentApiKey } : {}),
   };

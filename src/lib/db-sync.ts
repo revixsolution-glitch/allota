@@ -32,6 +32,8 @@ export async function ensureCompanySettingsColumns() {
       ["whatsappConnected", 'BOOLEAN NOT NULL DEFAULT false'],
       ["whatsappCompanionPhone", "TEXT"],
       ["pharmaHopperApiKey", "TEXT"],
+      ["pharmaHopperUsername", "TEXT"],
+      ["pharmaHopperPassword", "TEXT"],
       ["pharmaKhabarApiKey", "TEXT"],
       ["pharmaVentApiKey", "TEXT"],
       ["enableAdsInsights", 'BOOLEAN NOT NULL DEFAULT false'],

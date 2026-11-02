@@ -668,6 +668,8 @@ export default async function AdminSettingsPage() {
             <PharmaHopersWebhookSection
               companyId={activeCompanyId || settings.companyId || "cmvaqedgb000008jtxjxb8jxm"}
               initialApiKey={settings.pharmaHopperApiKey}
+              initialUsername={settings.pharmaHopperUsername}
+              initialPassword={settings.pharmaHopperPassword}
             />
 
             {/* PharmaKhabar Webhook Integration */}

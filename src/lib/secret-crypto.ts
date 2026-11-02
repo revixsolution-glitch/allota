@@ -112,6 +112,7 @@ export const COMPANY_SECRET_COLUMNS = [
   "metaAccessToken",
   "metaApiKey",
   "pharmaHopperApiKey",
+  "pharmaHopperPassword",
   "pharmaKhabarApiKey",
   "pharmaVentApiKey",
   "whatsappCompanionCreds",
