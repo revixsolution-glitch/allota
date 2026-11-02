@@ -14,6 +14,7 @@ import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
 import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
+import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -157,7 +158,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     }),
     prisma.company.findFirst({
       where: { employees: { some: { id: employeeId } } },
-      select: { name: true },
+      select: { id: true, name: true, slug: true },
     }),
     prisma.followupTask.findMany({
       where: {
@@ -249,6 +250,12 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     divisionStats.find((d) => d.division === "THIRD_PARTY")?._count._all || 0;
   const totalLeads = pcdCount + tpCount;
 
+  const isKesrox = Boolean(
+    company?.id === "cmubi8zf6000004l8y45hhuds" ||
+    company?.slug?.toLowerCase().includes("kesrox") ||
+    company?.name?.toLowerCase().includes("kesrox")
+  );
+
   const answerRate = totalCallsCount > 0 ? Math.round((callsPickedCount / totalCallsCount) * 100) : 0;
 
   return (
@@ -305,6 +312,13 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           </div>
         </div>
       </section>
+
+      {/* WhatsApp Business Phone Connector (Kesrox Employee Testing Only) */}
+      {isKesrox && (
+        <WhatsAppCompanionSection
+          initialPhone={employee?.phoneNumber || undefined}
+        />
+      )}
 
       {/* Field Telecalling Operational Insights (Pure Numbers - Strict Privacy on AI Summaries) */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">

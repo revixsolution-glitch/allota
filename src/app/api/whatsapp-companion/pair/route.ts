@@ -27,12 +27,45 @@ const activeSockets = new Map<string, {
   updatedAt: Date;
 }>();
 
-function getAuthDirs(companyId: string): string[] {
-  if (!companyId || companyId === "default") {
+function getAuthDirs(targetId: string): string[] {
+  if (!targetId || targetId === "default") {
     return [];
   }
-  // os.tmpdir() is guaranteed writable in both Vercel AWS Lambda (/tmp) and local environments
-  return [path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`)];
+  return [
+    path.join(os.tmpdir(), "allota_wa", `wa_${targetId}`),
+    path.join(process.cwd(), "companion-service", "data", "wa_auth", `wa_${targetId}`),
+    path.join(process.cwd(), "companion-service", "data", "wa_auth", targetId),
+  ];
+}
+
+async function getCompanionHost(): Promise<string> {
+  if (process.env.COMPANION_SERVICE_URL) {
+    return process.env.COMPANION_SERVICE_URL.replace(/\/$/, "");
+  }
+  try {
+    const localRes = await fetch("http://127.0.0.1:10000/health", { signal: AbortSignal.timeout(1000) });
+    if (localRes.ok) {
+      return "http://127.0.0.1:10000";
+    }
+  } catch {}
+  return "https://allota-whatsapp-companion.onrender.com";
+}
+
+async function verifyKesroxAccess(session: any, companyId: string | null): Promise<boolean> {
+  if (companyId === "cmubi8zf6000004l8y45hhuds") return true;
+  if (!companyId) return false;
+  try {
+    const comp = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { name: true, slug: true },
+    });
+    return Boolean(
+      comp?.name?.toLowerCase().includes("kesrox") ||
+      comp?.slug?.toLowerCase().includes("kesrox")
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
@@ -47,30 +80,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No organization workspace selected." }, { status: 400 });
     }
 
+    const isEmployee = session.role === "EMPLOYEE";
+    if (isEmployee) {
+      const isKesrox = await verifyKesroxAccess(session, companyId);
+      if (!isKesrox) {
+        return NextResponse.json(
+          { error: "WhatsApp connector for employees is currently available for Kesrox testing only." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const targetId = isEmployee && session.employeeId ? `emp_${session.employeeId}` : companyId;
+
     const body = await request.json().catch(() => ({}));
     const mode = body.mode || (body.phone ? "code" : "qr");
     const rawPhone = String(body.phone || "").replace(/\D/g, "").trim();
 
-    // Persist entered contact phone on the company record
-    if (rawPhone && companyId && companyId !== "default") {
+    // Persist entered contact phone on the employee or company record
+    if (rawPhone) {
       const formatted = rawPhone.length === 10
         ? `+91 ${rawPhone.slice(0, 5)} ${rawPhone.slice(5)}`
         : rawPhone.length === 12 && rawPhone.startsWith("91")
         ? `+91 ${rawPhone.slice(2, 7)} ${rawPhone.slice(7)}`
         : `+${rawPhone}`;
-      await prisma.company.update({
-        where: { id: companyId },
-        data: { contactPhone: formatted },
-      }).catch(() => null);
+
+      if (isEmployee && session.employeeId) {
+        await prisma.employee.update({
+          where: { id: session.employeeId },
+          data: { phoneNumber: formatted },
+        }).catch(() => null);
+      } else if (companyId && companyId !== "default") {
+        await prisma.company.update({
+          where: { id: companyId },
+          data: { contactPhone: formatted },
+        }).catch(() => null);
+      }
     }
 
-    // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
-    const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
+    // 1. Delegate directly to the persistent companion service
+    const companionHost = await getCompanionHost();
     if (companionHost) {
       try {
         if (mode === "code") {
           const targetPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
-          const remoteRes = await fetch(`${companionHost}/api/${companyId}/pair-code`, {
+          const remoteRes = await fetch(`${companionHost}/api/${targetId}/pair-code`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone: targetPhone }),
@@ -81,7 +135,7 @@ export async function POST(request: Request) {
             return NextResponse.json(remoteData);
           }
         } else {
-          const remoteRes = await fetch(`${companionHost}/api/${companyId}/qr`, { cache: "no-store" });
+          const remoteRes = await fetch(`${companionHost}/api/${targetId}/qr`, { cache: "no-store" });
           if (remoteRes.ok) {
             const remoteData = await remoteRes.json();
             return NextResponse.json({
@@ -97,13 +151,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const authDir = path.join(os.tmpdir(), "allota_wa", `wa_${companyId}`);
+    const authDir = path.join(os.tmpdir(), "allota_wa", `wa_${targetId}`);
     
     // Clean socket if already running
-    const existing = activeSockets.get(companyId);
+    const existing = activeSockets.get(targetId);
     if (existing?.sock) {
       try { existing.sock.end(undefined); } catch {}
-      activeSockets.delete(companyId);
+      activeSockets.delete(targetId);
     }
 
     // CRITICAL FIX: If generating a fresh QR code and not already registered,
@@ -158,11 +212,11 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
     };
 
-    activeSockets.set(companyId, currentSocketRecord);
+    activeSockets.set(targetId, currentSocketRecord);
 
     sock.ev.on("creds.update", async () => {
       await saveCreds();
-      if (sock.authState.creds.registered) {
+      if (sock.authState.creds.registered && !isEmployee) {
         try {
           const credsPhone = sock.authState.creds.me?.id
             ? sock.authState.creds.me.id.split(":")[0]
@@ -200,16 +254,18 @@ export async function POST(request: Request) {
         currentSocketRecord.phone = connectedUserPhone;
         currentSocketRecord.connectedAt = new Date();
 
-        try {
-          await prisma.companySettings.updateMany({
-            where: { companyId },
-            data: {
-              whatsappConnected: true,
-              whatsappCompanionPhone: connectedUserPhone,
-            },
-          });
-        } catch (e) {
-          console.warn("DB update on connection.open:", e);
+        if (!isEmployee) {
+          try {
+            await prisma.companySettings.updateMany({
+              where: { companyId },
+              data: {
+                whatsappConnected: true,
+                whatsappCompanionPhone: connectedUserPhone,
+              },
+            });
+          } catch (e) {
+            console.warn("DB update on connection.open:", e);
+          }
         }
       } else if (connection === "close") {
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
@@ -288,23 +344,37 @@ export async function GET() {
     return NextResponse.json({ status: "NOT_CONNECTED", phone: null });
   }
 
-  // 1. Delegate directly to the persistent 24/7 Render companion service strictly for this company
-  const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
+  const isEmployee = session.role === "EMPLOYEE";
+  if (isEmployee) {
+    const isKesrox = await verifyKesroxAccess(session, companyId);
+    if (!isKesrox) {
+      return NextResponse.json(
+        { status: "NOT_CONNECTED", phone: null, disabled: true, reason: "Kesrox only" }
+      );
+    }
+  }
+
+  const targetId = isEmployee && session.employeeId ? `emp_${session.employeeId}` : companyId;
+
+  // 1. Delegate directly to the persistent companion service
+  const companionHost = await getCompanionHost();
   if (companionHost) {
     try {
-      const remoteRes = await fetch(`${companionHost}/api/${companyId}/status`, { cache: "no-store" });
+      const remoteRes = await fetch(`${companionHost}/api/${targetId}/status`, { cache: "no-store" });
       if (remoteRes.ok) {
         const remoteData = await remoteRes.json();
         if (remoteData.status === "CONNECTED") {
-          try {
-            await prisma.companySettings.updateMany({
-              where: { companyId },
-              data: {
-                whatsappConnected: true,
-                whatsappCompanionPhone: remoteData.phone,
-              },
-            });
-          } catch {}
+          if (!isEmployee) {
+            try {
+              await prisma.companySettings.updateMany({
+                where: { companyId },
+                data: {
+                  whatsappConnected: true,
+                  whatsappCompanionPhone: remoteData.phone,
+                },
+              });
+            } catch {}
+          }
           return NextResponse.json({
             status: "CONNECTED",
             phone: remoteData.phone,
@@ -314,7 +384,7 @@ export async function GET() {
     } catch {}
   }
 
-  const current = activeSockets.get(companyId);
+  const current = activeSockets.get(targetId);
 
   // 1. If currently active in memory
   if (current?.status === "CONNECTED" && current.phone) {
@@ -332,8 +402,8 @@ export async function GET() {
     });
   }
 
-  // 2. Check company-isolated persisted credentials on disk in os.tmpdir()
-  const authDirs = getAuthDirs(companyId);
+  // 2. Check persisted credentials on disk
+  const authDirs = getAuthDirs(targetId);
   let savedPhone: string | null = null;
   let isSaved = false;
 
@@ -351,8 +421,8 @@ export async function GET() {
     }
   }
 
-  // 3. Fallback to PostgreSQL database
-  if (!isSaved) {
+  // 3. Fallback to PostgreSQL database for company admin
+  if (!isSaved && !isEmployee) {
     try {
       const settings = await prisma.companySettings.findFirst({
         where: { companyId },
@@ -402,36 +472,41 @@ export async function DELETE() {
     return NextResponse.json({ success: true, status: "NOT_CONNECTED" });
   }
 
-  const companionHost = (process.env.COMPANION_SERVICE_URL || "https://allota-whatsapp-companion.onrender.com").replace(/\/$/, "");
+  const isEmployee = session.role === "EMPLOYEE";
+  const targetId = isEmployee && session.employeeId ? `emp_${session.employeeId}` : companyId;
+
+  const companionHost = await getCompanionHost();
   if (companionHost) {
     try {
-      await fetch(`${companionHost}/api/${companyId}/disconnect`, { method: "POST" });
+      await fetch(`${companionHost}/api/${targetId}/disconnect`, { method: "POST" });
     } catch {}
   }
 
-  const current = activeSockets.get(companyId);
+  const current = activeSockets.get(targetId);
 
   if (current?.sock) {
     try {
       current.sock.end(undefined);
     } catch {}
   }
-  activeSockets.delete(companyId);
+  activeSockets.delete(targetId);
 
-  try {
-    await prisma.companySettings.updateMany({
-      where: { companyId },
-      data: {
-        whatsappConnected: false,
-        whatsappCompanionPhone: null,
-        whatsappCompanionCreds: null,
-      },
-    });
-  } catch (err) {
-    console.warn("[Encrypted Vault] Clear DB creds:", err);
+  if (!isEmployee) {
+    try {
+      await prisma.companySettings.updateMany({
+        where: { companyId },
+        data: {
+          whatsappConnected: false,
+          whatsappCompanionPhone: null,
+          whatsappCompanionCreds: null,
+        },
+      });
+    } catch (err) {
+      console.warn("[Encrypted Vault] Clear DB creds:", err);
+    }
   }
 
-  const authDirs = getAuthDirs(companyId);
+  const authDirs = getAuthDirs(targetId);
   for (const dir of authDirs) {
     if (fs.existsSync(dir)) {
       try {
