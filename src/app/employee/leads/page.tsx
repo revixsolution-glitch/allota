@@ -14,6 +14,7 @@ import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -74,6 +75,18 @@ export default async function EmployeeLeadsPage({
       where,
       include: {
         _count: { select: { calls: true } },
+        calls: {
+          select: {
+            id: true,
+            aiSummary: true,
+            transcript: true,
+            occurredAt: true,
+            durationSec: true,
+            missed: true,
+            recordingUrl: true,
+          },
+          orderBy: { occurredAt: "desc" },
+        },
         reassignmentLogs: {
           take: 1,
           orderBy: { reassignedAt: "desc" },
@@ -202,7 +215,7 @@ export default async function EmployeeLeadsPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {/* Top Banner */}
       <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-primary/70 bg-white">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
@@ -470,60 +483,32 @@ export default async function EmployeeLeadsPage({
                         />
                       </td>
 
-                      {/* Remarks */}
-                      <td className="px-4 py-4 w-[140px] min-w-[130px] whitespace-nowrap">
-                        <details className="inline-block text-left group">
-                          <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
-                            <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Remarks</span>
-                            <span className="text-[10px] text-amber-600 font-semibold">
-                              ({lead.remarks.length})
-                            </span>
-                          </summary>
-
-                          <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
-                            <h4 className="text-xs font-extrabold text-ink mb-2">
-                              Remarks for {lead.name || "this lead"}
-                            </h4>
-
-                            {lead.remarks.length > 0 && (
-                              <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
-                                {lead.remarks.map((r) => (
-                                  <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
-                                    <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
-                                    <p className="mt-1 text-[10px] text-ink-faint">
-                                      {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
-                                        day: "numeric",
-                                        month: "short",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <form action={addLeadRemark} className="space-y-2">
-                              <input type="hidden" name="leadId" value={lead.id} />
-                              <textarea
-                                name="remark"
-                                rows={2}
-                                required
-                                placeholder="Write a short remark for admin..."
-                                className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                              <button
-                                type="submit"
-                                className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
-                              >
-                                Add Remark
-                              </button>
-                            </form>
-                          </div>
-                        </details>
+                      {/* Remarks (Global Unified Modal with AI Summaries) */}
+                      <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                        <LeadRemarksModal
+                          leadId={lead.id}
+                          leadName={lead.name ?? "Unnamed Prospect"}
+                          leadPhone={lead.phoneNumber ?? ""}
+                          leadStatus={lead.status}
+                          followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                          remarks={lead.remarks.map((r) => ({
+                            id: r.id,
+                            remark: r.remark,
+                            createdAt: r.createdAt.toISOString(),
+                            employeeName: r.employee.name,
+                          }))}
+                          callSummaries={lead.calls
+                            .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                            .map((c) => ({
+                              id: c.id,
+                              aiSummary: c.aiSummary,
+                              transcript: c.transcript,
+                              occurredAt: c.occurredAt.toISOString(),
+                              durationSec: c.durationSec,
+                              missed: c.missed,
+                              recordingUrl: c.recordingUrl,
+                            }))}
+                        />
                       </td>
 
                       {/* Status: Active / Converted / Dead */}
@@ -661,58 +646,33 @@ export default async function EmployeeLeadsPage({
                     </div>
                   </div>
 
-                  {/* Inline Remarks accordion */}
-                  <details className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 group">
-                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-amber-900 select-none list-none">
-                      <div className="flex items-center gap-1.5">
-                        <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>Remarks</span>
-                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full font-bold">
-                          {lead.remarks.length}
-                        </span>
-                      </div>
-                      <span className="text-amber-700 font-bold transition-transform group-open:rotate-180">▾</span>
-                    </summary>
-
-                    <div className="mt-3 pt-2 border-t border-amber-200/60 space-y-2.5">
-                      {lead.remarks.length > 0 && (
-                        <div className="max-h-40 overflow-y-auto space-y-2">
-                          {lead.remarks.map((r) => (
-                            <div key={r.id} className="rounded-xl bg-white border border-line-soft p-2">
-                              <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
-                              <p className="mt-1 text-[10px] text-ink-faint">
-                                {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <form action={addLeadRemark} className="space-y-2">
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <textarea
-                          name="remark"
-                          rows={2}
-                          required
-                          placeholder="Write a short remark for admin..."
-                          className="w-full rounded-xl border border-line bg-white p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                        <button
-                          type="submit"
-                          className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
-                        >
-                          Add Remark
-                        </button>
-                      </form>
-                    </div>
-                  </details>
+                  {/* Unified Remarks Modal */}
+                  <div className="pt-2 border-t border-line-soft">
+                    <LeadRemarksModal
+                      leadId={lead.id}
+                      leadName={lead.name ?? "Unnamed Prospect"}
+                      leadPhone={lead.phoneNumber ?? ""}
+                      leadStatus={lead.status}
+                      followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                      remarks={lead.remarks.map((r) => ({
+                        id: r.id,
+                        remark: r.remark,
+                        createdAt: r.createdAt.toISOString(),
+                        employeeName: r.employee.name,
+                      }))}
+                      callSummaries={lead.calls
+                        .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                        .map((c) => ({
+                          id: c.id,
+                          aiSummary: c.aiSummary,
+                          transcript: c.transcript,
+                          occurredAt: c.occurredAt.toISOString(),
+                          durationSec: c.durationSec,
+                          missed: c.missed,
+                          recordingUrl: c.recordingUrl,
+                        }))}
+                    />
+                  </div>
                 </div>
               </Fragment>
               );

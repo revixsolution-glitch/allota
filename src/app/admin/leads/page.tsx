@@ -177,6 +177,10 @@ export default async function AdminLeadsPage({
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
         },
+        calls: {
+          select: { id: true, aiSummary: true, transcript: true, occurredAt: true, durationSec: true, missed: true, recordingUrl: true },
+          orderBy: { occurredAt: "desc" },
+        },
       },
       // Keep the newest inquiries at the top for every source and category.
       // The id tie-breaker makes the order stable when leads share a timestamp.
@@ -390,7 +394,7 @@ export default async function AdminLeadsPage({
   };
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-7 pb-28">
       {repFilterId && !unassignedOnly && (
         <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
           Showing only <strong>{employees.find((e) => e.id === repFilterId)?.name ?? "this representative"}</strong>&apos;s leads
@@ -1085,6 +1089,17 @@ export default async function AdminLeadsPage({
                           createdAt: r.createdAt.toISOString(),
                           employeeName: r.employee.name,
                         }))}
+                        callSummaries={(lead.calls || [])
+                          .filter((c: any) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                          .map((c: any) => ({
+                            id: c.id,
+                            aiSummary: c.aiSummary,
+                            transcript: c.transcript,
+                            occurredAt: c.occurredAt.toISOString(),
+                            durationSec: c.durationSec,
+                            missed: c.missed,
+                            recordingUrl: c.recordingUrl,
+                          }))}
                       />
                     </td>
 
@@ -1221,6 +1236,17 @@ export default async function AdminLeadsPage({
                       createdAt: r.createdAt.toISOString(),
                       employeeName: r.employee.name,
                     }))}
+                    callSummaries={(lead.calls || [])
+                      .filter((c: any) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                      .map((c: any) => ({
+                        id: c.id,
+                        aiSummary: c.aiSummary,
+                        transcript: c.transcript,
+                        occurredAt: c.occurredAt.toISOString(),
+                        durationSec: c.durationSec,
+                        missed: c.missed,
+                        recordingUrl: c.recordingUrl,
+                      }))}
                   />
                   <span className="text-[11px] font-bold text-ink-muted">
                     {lead.status === LeadStatus.NOT_INTERESTED

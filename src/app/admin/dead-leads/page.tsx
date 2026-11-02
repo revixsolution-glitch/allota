@@ -84,7 +84,16 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
       assignedEmployee: { select: { id: true, name: true, phoneNumber: true } },
       calls: {
         orderBy: { occurredAt: "desc" },
-        select: { id: true, occurredAt: true, durationSec: true, missed: true, aiSummary: true, direction: true },
+        select: {
+          id: true,
+          occurredAt: true,
+          durationSec: true,
+          missed: true,
+          aiSummary: true,
+          direction: true,
+          transcript: true,
+          recordingUrl: true,
+        },
       },
       remarks: {
         include: { employee: { select: { name: true } } },
@@ -155,7 +164,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {repName && (
         <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
           Showing only <strong>{repName}</strong>
@@ -285,25 +294,16 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1050px] table-fixed">
-              <colgroup>
-                <col className="w-[210px]" />
-                <col className="w-[120px]" />
-                <col className="w-[160px]" />
-                <col className="w-[180px]" />
-                <col className="w-[140px]" />
-                <col className="w-[130px]" />
-                <col className="w-[150px]" />
-              </colgroup>
+            <table className="w-full text-left text-xs min-w-[1190px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[210px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[120px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[160px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[180px] whitespace-nowrap">Representative</th>
-                  <th className="py-3 px-4 w-[140px] whitespace-nowrap">Last Activity</th>
-                  <th className="py-3 px-4 w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[150px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[220px] min-w-[200px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-4 w-[170px] min-w-[160px] whitespace-nowrap">Representative</th>
+                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Last Activity</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -325,7 +325,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 w-[120px] whitespace-nowrap">
+                      <td className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -340,19 +340,19 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[160px]">
+                      <td className="py-3 px-4 w-[160px] min-w-[150px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Representative */}
-                      <td className="py-3 px-4 w-[180px] font-semibold text-ink whitespace-nowrap truncate">
+                      <td className="py-3 px-4 w-[170px] min-w-[160px] font-semibold text-ink whitespace-nowrap truncate">
                         {lead.assignedEmployee?.name || (
                           <span className="text-ink-faint">Unassigned</span>
                         )}
                       </td>
 
                       {/* Last Activity (Date with Time Stacked Below) */}
-                      <td className="py-3 px-4 w-[140px] text-xs whitespace-nowrap">
+                      <td className="py-3 px-4 w-[140px] min-w-[130px] text-xs whitespace-nowrap">
                         <div className="flex flex-col leading-tight">
                           <span className="font-semibold text-ink">{dateStr || "—"}</span>
                           {timeStr && (
@@ -363,8 +363,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                         </div>
                       </td>
 
-                      {/* Remarks (Global Component) */}
-                      <td className="py-3 px-4 w-[130px] whitespace-nowrap">
+                      {/* Remarks (Global Component with AI Summaries) */}
+                      <td className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -379,11 +379,22 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                             createdAt: r.createdAt.toISOString(),
                             employeeName: r.employee?.name || "Representative",
                           }))}
+                          callSummaries={lead.calls
+                            .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                            .map((c) => ({
+                              id: c.id,
+                              aiSummary: c.aiSummary,
+                              transcript: c.transcript,
+                              occurredAt: c.occurredAt.toISOString(),
+                              durationSec: c.durationSec,
+                              missed: c.missed,
+                              recordingUrl: c.recordingUrl,
+                            }))}
                         />
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">
+                      <td className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/admin/lead-history/${lead.id}`}
@@ -554,6 +565,17 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                           createdAt: r.createdAt.toISOString(),
                           employeeName: r.employee?.name || "Representative",
                         }))}
+                        callSummaries={lead.calls
+                          .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                          .map((c) => ({
+                            id: c.id,
+                            aiSummary: c.aiSummary,
+                            transcript: c.transcript,
+                            occurredAt: c.occurredAt.toISOString(),
+                            durationSec: c.durationSec,
+                            missed: c.missed,
+                            recordingUrl: c.recordingUrl,
+                          }))}
                       />
                     </div>
 

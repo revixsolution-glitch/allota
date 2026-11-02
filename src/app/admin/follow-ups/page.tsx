@@ -143,7 +143,7 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {repName && (
         <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
           Showing only <strong>{repName}</strong>

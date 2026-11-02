@@ -15,6 +15,7 @@ interface AdminCallsPageProps {
     search?: string;
     callId?: string;
     leadId?: string;
+    companyId?: string;
   }>;
 }
 
@@ -25,6 +26,17 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
   }
   const activeCompanyId = getActiveCompanyId(session);
   const searchParams = props.searchParams ? await props.searchParams : {};
+
+  // Resilient Multi-Tenant & Super Admin Context Resolution
+  let targetCompanyId = (searchParams?.companyId as string | undefined) || activeCompanyId;
+  if (!targetCompanyId && session.role === "SUPER_ADMIN") {
+    const compWithCalls = (await prisma.company.findFirst({
+      where: { employees: { some: { calls: { some: {} } } } },
+      select: { id: true },
+    })) || (await prisma.company.findFirst({ select: { id: true } }));
+    targetCompanyId = compWithCalls?.id || null;
+  }
+
   const hasDirectCall = Boolean(searchParams.callId || searchParams.leadId);
   const dateFilter = parseDashboardDateFilter(
     hasDirectCall ? "all_time" : searchParams.range,
@@ -39,17 +51,17 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
       ? { occurredAt: { gte: dateFilter.start } }
       : {};
 
-  // A call belongs to the company of the rep who made it. Fails (throws) if no
-  // company is selected, instead of returning every company's calls.
   const callWhere: any = {
-    ...scopeViaRelation(activeCompanyId, "employee"),
+    ...(targetCompanyId ? scopeViaRelation(targetCompanyId, "employee") : {}),
     ...callDateFilter,
   };
 
-  const companyPromise = prisma.company.findUnique({
-    where: { id: scopeToCompany(activeCompanyId).companyId },
-    select: { name: true },
-  });
+  const companyPromise = targetCompanyId
+    ? prisma.company.findUnique({
+        where: { id: targetCompanyId },
+        select: { name: true },
+      })
+    : Promise.resolve(null);
 
   let company: any = null;
   let calls: any[] = [];
@@ -74,13 +86,20 @@ export default async function AdminCallsPage(props: AdminCallsPageProps) {
         orderBy: { occurredAt: "desc" },
       }),
 
-      prisma.employee.findMany({
-        where: scopeToCompany(activeCompanyId),
-        include: {
-          calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
-        },
-        orderBy: { name: "asc" },
-      }),
+      targetCompanyId
+        ? prisma.employee.findMany({
+            where: { companyId: targetCompanyId },
+            include: {
+              calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
+            },
+            orderBy: { name: "asc" },
+          })
+        : prisma.employee.findMany({
+            include: {
+              calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
+            },
+            orderBy: { name: "asc" },
+          }),
     ]);
     company = comp;
     calls = fetchedCalls;

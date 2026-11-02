@@ -9,6 +9,7 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
 import { formatLeadDateTime, formatLeadDateParts } from "@/lib/date-format";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,18 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
         },
+        calls: {
+          select: {
+            id: true,
+            aiSummary: true,
+            transcript: true,
+            occurredAt: true,
+            durationSec: true,
+            missed: true,
+            recordingUrl: true,
+          },
+          orderBy: { occurredAt: "desc" },
+        },
       },
       orderBy: [{ deadAt: "desc" }, { updatedAt: "desc" }],
     }),
@@ -136,7 +149,7 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {/* Top Banner */}
       <section className="rounded-3xl p-6 neo-panel border-t-2 border-t-rose-500/70 bg-white">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -263,23 +276,15 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[960px] table-fixed">
-              <colgroup>
-                <col className="w-[210px]" />
-                <col className="w-[120px]" />
-                <col className="w-[170px]" />
-                <col className="w-[140px]" />
-                <col className="w-[130px]" />
-                <col className="w-[150px]" />
-              </colgroup>
+            <table className="w-full text-left text-xs min-w-[1050px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[210px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[120px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[170px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[140px] whitespace-nowrap">Closed Date</th>
-                  <th className="py-3 px-4 w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[150px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[220px] min-w-[200px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[170px] min-w-[160px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Closed Date</th>
+                  <th className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -333,64 +338,38 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                         </div>
                       </td>
 
-                      {/* Remarks */}
-                      <td className="py-3 px-4 w-[130px] whitespace-nowrap">
-                        <details className="inline-block text-left group">
-                          <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
-                            <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Remarks</span>
-                            <span className="text-[10px] text-amber-600 font-semibold">
-                              ({lead.remarks.length})
-                            </span>
-                          </summary>
-
-                          <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
-                            <h4 className="text-xs font-extrabold text-ink mb-2">
-                              Remarks for {lead.name || "this lead"}
-                            </h4>
-
-                            {lead.remarks.length > 0 && (
-                              <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
-                                {lead.remarks.map((r) => (
-                                  <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
-                                    <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
-                                    <p className="mt-1 text-[10px] text-ink-faint">
-                                      {r.employee?.name || "Representative"} • {new Date(r.createdAt).toLocaleString("en-IN", {
-                                        day: "numeric",
-                                        month: "short",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <form action={addLeadRemark} className="space-y-2">
-                              <input type="hidden" name="leadId" value={lead.id} />
-                              <textarea
-                                name="remark"
-                                rows={2}
-                                required
-                                placeholder="Write a short remark..."
-                                className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                              />
-                              <button
-                                type="submit"
-                                className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
-                              >
-                                Add Remark
-                              </button>
-                            </form>
-                          </div>
-                        </details>
+                      {/* Remarks (Global Unified Modal with AI Summaries) */}
+                      <td className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                        <LeadRemarksModal
+                          leadId={lead.id}
+                          leadName={lead.name ?? "Unnamed Prospect"}
+                          leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                          leadStatus={lead.status}
+                          followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                          assignedRepName={employee?.name}
+                          assignedRepPhone={employee?.phoneNumber}
+                          remarks={lead.remarks.map((r) => ({
+                            id: r.id,
+                            remark: r.remark,
+                            createdAt: r.createdAt.toISOString(),
+                            employeeName: r.employee?.name || "Representative",
+                          }))}
+                          callSummaries={lead.calls
+                            .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                            .map((c) => ({
+                              id: c.id,
+                              aiSummary: c.aiSummary,
+                              transcript: c.transcript,
+                              occurredAt: c.occurredAt.toISOString(),
+                              durationSec: c.durationSec,
+                              missed: c.missed,
+                              recordingUrl: c.recordingUrl,
+                            }))}
+                        />
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap w-44">
+                      <td className="py-3 px-4 text-right whitespace-nowrap w-[210px] min-w-[200px]">
                         <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                           {cleanPhone && (
                             <>
@@ -514,58 +493,35 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                     )}
                   </div>
 
-                  {/* Remarks Accordion */}
-                  <details className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 group">
-                    <summary className="flex items-center justify-between cursor-pointer text-xs font-bold text-amber-900 select-none list-none">
-                      <div className="flex items-center gap-1.5">
-                        <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>Remarks</span>
-                        <span className="text-[10px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full font-bold">
-                          {lead.remarks.length}
-                        </span>
-                      </div>
-                      <span className="text-amber-700 font-bold transition-transform group-open:rotate-180">▾</span>
-                    </summary>
-
-                    <div className="mt-3 pt-2 border-t border-amber-200/60 space-y-2.5">
-                      {lead.remarks.length > 0 && (
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                          {lead.remarks.map((r) => (
-                            <div key={r.id} className="rounded-xl bg-white border border-amber-200/60 p-2.5">
-                              <p className="text-xs text-ink leading-relaxed">{r.remark}</p>
-                              <p className="mt-1 text-[10px] text-ink-faint">
-                                {r.employee?.name || "Representative"} • {new Date(r.createdAt).toLocaleString("en-IN", {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <form action={addLeadRemark} className="space-y-2">
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <textarea
-                          name="remark"
-                          rows={2}
-                          required
-                          placeholder="Write a remark..."
-                          className="w-full rounded-xl border border-line bg-white p-2.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                        <button
-                          type="submit"
-                          className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
-                        >
-                          Add Remark
-                        </button>
-                      </form>
-                    </div>
-                  </details>
+                  {/* Remarks Button & Modal */}
+                  <div className="pt-1">
+                    <LeadRemarksModal
+                      leadId={lead.id}
+                      leadName={lead.name ?? "Unnamed Prospect"}
+                      leadPhone={lead.phoneNumber ?? "No phone recorded"}
+                      leadStatus={lead.status}
+                      followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                      assignedRepName={employee?.name}
+                      assignedRepPhone={employee?.phoneNumber}
+                      remarks={lead.remarks.map((r) => ({
+                        id: r.id,
+                        remark: r.remark,
+                        createdAt: r.createdAt.toISOString(),
+                        employeeName: r.employee?.name || "Representative",
+                      }))}
+                      callSummaries={lead.calls
+                        .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                        .map((c) => ({
+                          id: c.id,
+                          aiSummary: c.aiSummary,
+                          transcript: c.transcript,
+                          occurredAt: c.occurredAt.toISOString(),
+                          durationSec: c.durationSec,
+                          missed: c.missed,
+                          recordingUrl: c.recordingUrl,
+                        }))}
+                    />
+                  </div>
 
                   {/* Actions Footer */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">

@@ -11,6 +11,16 @@ export interface RemarkItem {
   employeeName: string;
 }
 
+export interface CallSummaryItem {
+  id: string;
+  aiSummary?: string | null;
+  transcript?: string | null;
+  occurredAt: string;
+  durationSec?: number | null;
+  missed?: boolean;
+  recordingUrl?: string | null;
+}
+
 export function LeadRemarksModal({
   leadId,
   leadName,
@@ -20,6 +30,7 @@ export function LeadRemarksModal({
   assignedRepName,
   assignedRepPhone,
   remarks: initialRemarks,
+  callSummaries = [],
 }: {
   leadId: string;
   leadName: string;
@@ -29,6 +40,7 @@ export function LeadRemarksModal({
   assignedRepName?: string | null;
   assignedRepPhone?: string | null;
   remarks: RemarkItem[];
+  callSummaries?: CallSummaryItem[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [remarks, setRemarks] = useState<RemarkItem[]>(initialRemarks);
@@ -73,10 +85,25 @@ export function LeadRemarksModal({
         type="button"
         onClick={() => setIsOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100 hover:border-amber-300 shadow-2xs cursor-pointer select-none"
-        title={remarks.length > 0 ? remarks[0]?.remark : "Click to view representative remarks"}
+        title={
+          callSummaries.length > 0 && callSummaries[0]?.aiSummary
+            ? `AI Call Summary: ${callSummaries[0].aiSummary}`
+            : remarks.length > 0
+            ? remarks[0]?.remark
+            : "Click to view representative remarks and AI summaries"
+        }
       >
         <span>📝 Remarks</span>
         <span className="text-[10px] text-amber-700 font-extrabold">({remarks.length})</span>
+        {callSummaries.length > 0 && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded-md bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-[9px] font-black text-purple-800"
+            title={`${callSummaries.length} AI telephony summary available`}
+          >
+            <span>🤖</span>
+            <span>{callSummaries.length}</span>
+          </span>
+        )}
       </button>
 
       {/* Pop-up Modal */}
@@ -165,6 +192,73 @@ export function LeadRemarksModal({
                   </p>
                 </div>
               </div>
+
+              {/* AI Telephony Intelligence & Summaries */}
+              {callSummaries && callSummaries.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                      <span>🤖</span>
+                      <span>AI Telephony Intelligence ({callSummaries.length})</span>
+                    </h4>
+                    <Link
+                      href={`/admin/calls?callId=${callSummaries[0].id}`}
+                      className="text-[10px] font-bold text-purple-700 hover:text-purple-950 hover:underline"
+                    >
+                      Open Dossier in AI Calls →
+                    </Link>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {callSummaries.map((call) => (
+                      <div
+                        key={call.id}
+                        className="rounded-2xl bg-gradient-to-br from-purple-50/90 via-violet-50/60 to-sky-50/50 border border-purple-200 p-3.5 space-y-2 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                          <span className="inline-flex items-center gap-1 font-bold text-purple-950">
+                            <span>{call.missed ? "📵 Missed" : "📞 Connected"}</span>
+                            {call.durationSec ? ` · ${Math.round(call.durationSec)}s` : ""}
+                          </span>
+                          <span>
+                            {new Date(call.occurredAt).toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-800 leading-relaxed font-serif font-medium whitespace-pre-line">
+                          {call.aiSummary || call.transcript || "Call logged without written summary."}
+                        </p>
+
+                        {call.recordingUrl && (
+                          <div className="pt-2 border-t border-purple-200/50 flex items-center justify-between">
+                            <a
+                              href={call.recordingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-950 hover:underline"
+                            >
+                              <span>🎧 Listen Audio Recording</span>
+                              <span className="text-[10px]">↗</span>
+                            </a>
+                            <Link
+                              href={`/admin/calls?callId=${call.id}`}
+                              className="text-[10px] font-bold text-slate-600 hover:text-purple-800"
+                            >
+                              Full Transcript →
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Exact Written Remarks History */}
               <div className="space-y-2 mb-4">

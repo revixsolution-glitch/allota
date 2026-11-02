@@ -68,6 +68,18 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
       },
       include: {
         _count: { select: { calls: true } },
+        calls: {
+          select: {
+            id: true,
+            aiSummary: true,
+            transcript: true,
+            occurredAt: true,
+            durationSec: true,
+            missed: true,
+            recordingUrl: true,
+          },
+          orderBy: { occurredAt: "desc" },
+        },
         remarks: {
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
@@ -138,7 +150,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28">
       {/* Header Banner */}
       <section className="relative overflow-hidden rounded-3xl p-5 sm:p-7 neo-panel border-t-2 border-t-amber-500/80 bg-white shadow-sm">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
@@ -419,6 +431,17 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                             createdAt: r.createdAt.toISOString(),
                             employeeName: r.employee.name,
                           }))}
+                          callSummaries={lead.calls
+                            .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                            .map((c) => ({
+                              id: c.id,
+                              aiSummary: c.aiSummary,
+                              transcript: c.transcript,
+                              occurredAt: c.occurredAt.toISOString(),
+                              durationSec: c.durationSec,
+                              missed: c.missed,
+                              recordingUrl: c.recordingUrl,
+                            }))}
                         />
                       </td>
 
@@ -543,11 +566,37 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       )}
                     </div>
 
-                    <FollowUpPicker
-                      leadId={lead.id}
-                      followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
-                      size="sm"
-                    />
+                    <div className="flex items-center gap-2">
+                      <LeadRemarksModal
+                        leadId={lead.id}
+                        leadName={lead.name ?? "Unnamed Prospect"}
+                        leadPhone={lead.phoneNumber ?? ""}
+                        leadStatus={lead.status}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        remarks={lead.remarks.map((r) => ({
+                          id: r.id,
+                          remark: r.remark,
+                          createdAt: r.createdAt.toISOString(),
+                          employeeName: r.employee.name,
+                        }))}
+                        callSummaries={lead.calls
+                          .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                          .map((c) => ({
+                            id: c.id,
+                            aiSummary: c.aiSummary,
+                            transcript: c.transcript,
+                            occurredAt: c.occurredAt.toISOString(),
+                            durationSec: c.durationSec,
+                            missed: c.missed,
+                            recordingUrl: c.recordingUrl,
+                          }))}
+                      />
+                      <FollowUpPicker
+                        leadId={lead.id}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                 </div>
               );
