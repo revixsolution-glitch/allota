@@ -389,14 +389,22 @@ async function handleSync(req: NextRequest) {
         ...dikshaFiles.map((f) => ({ ...f, assignedRepName: "Diksha" as const })),
       ];
     } else if (isEkonmed) {
-      // Ekonmed has Khushboo (Master folder + subfolders) and Paramjeet (phone DriveSync folder)
+      // Ekonmed has Khushboo (phone DriveSync folder: 1rIILtK_W6DmK8wssrqrOBeOtWGGCNk-k) and Paramjeet (phone DriveSync folder: 159KOSrWYRMDBAVGMCzBOv3yh6kGmtAn8)
+      const KHUSHBOO_DRIVE_FOLDER_ID = "1rIILtK_W6DmK8wssrqrOBeOtWGGCNk-k";
       const PARAMJEET_DRIVE_FOLDER_ID = "159KOSrWYRMDBAVGMCzBOv3yh6kGmtAn8";
-      const [masterFiles, paramjeetFiles] = await Promise.all([
-        fetchDriveFolderFiles(activeFolderId || "1hqCiXq4sWXRdYEslt9mRFZI6Pb8zfPyJ", "Khushboo"),
+      const [khushbooFiles, paramjeetFiles, masterFiles] = await Promise.all([
+        fetchDriveFolderFiles(KHUSHBOO_DRIVE_FOLDER_ID, "Khushboo"),
         fetchDriveFolderFiles(PARAMJEET_DRIVE_FOLDER_ID, "Paramjeet"),
+        fetchDriveFolderFiles(activeFolderId || "1hqCiXq4sWXRdYEslt9mRFZI6Pb8zfPyJ", "Khushboo"),
       ]);
-      const combined = [...masterFiles, ...paramjeetFiles];
-      driveFiles = combined.map((f) => ({
+      // Deduplicate by drive file ID
+      const fileMap = new Map<string, { id: string; name: string; repHint?: string }>();
+      for (const f of [...khushbooFiles, ...paramjeetFiles, ...masterFiles]) {
+        if (!fileMap.has(f.id)) {
+          fileMap.set(f.id, f);
+        }
+      }
+      driveFiles = Array.from(fileMap.values()).map((f) => ({
         ...f,
         assignedRepName: "Employee" as const,
         repHint: f.repHint,
