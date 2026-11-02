@@ -24,10 +24,10 @@ export function CategoryBadge({
   if (isThirdParty) {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-xl px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 leading-tight shrink-0 select-none ${className}`}
+        className={`inline-flex items-center gap-1 rounded-xl px-1.5 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-800 leading-tight shrink-0 select-none whitespace-nowrap ${className}`}
       >
-        <span className="text-xs">🏭</span>
-        <span className="inline-flex flex-col text-left leading-[1.1]">
+        <span className="text-[11px]">🏭</span>
+        <span className="inline-flex flex-col text-left leading-[1.05]">
           <span>Third-</span>
           <span>Party</span>
         </span>
@@ -37,10 +37,10 @@ export function CategoryBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-xl px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 leading-tight shrink-0 select-none ${className}`}
+      className={`inline-flex items-center gap-1 rounded-xl px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 leading-tight shrink-0 select-none whitespace-nowrap ${className}`}
     >
-      <span className="text-xs">🏢</span>
-      <span className="inline-flex flex-col text-left leading-[1.1]">
+      <span className="text-[11px]">🏢</span>
+      <span className="inline-flex flex-col text-left leading-[1.05]">
         <span>PCD</span>
         <span>Franchise</span>
       </span>

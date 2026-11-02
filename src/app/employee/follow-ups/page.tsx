@@ -332,16 +332,16 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden shadow-xs">
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1240px]">
+            <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-5 py-3.5 w-[280px] min-w-[260px] whitespace-nowrap">Prospect & Contact</th>
-                  <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
-                  <th className="px-4 py-3.5 w-[180px] min-w-[170px] whitespace-nowrap">Channel / Source</th>
-                  <th className="px-4 py-3.5 w-[200px] min-w-[180px] whitespace-nowrap">Scheduled Date</th>
-                  <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="px-4 py-3.5 w-[200px] min-w-[180px] whitespace-nowrap">Status</th>
-                  <th className="px-5 py-3.5 w-[180px] min-w-[160px] text-right whitespace-nowrap">Instant Action</th>
+                  <th className="px-3.5 py-3 min-w-[180px]">Prospect &amp; Contact</th>
+                  <th className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">Category</th>
+                  <th className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">Platform</th>
+                  <th className="px-3 py-3 w-[180px] min-w-[140px] whitespace-nowrap">Scheduled Date</th>
+                  <th className="px-2 py-3 w-px min-w-[85px] whitespace-nowrap">Remarks</th>
+                  <th className="px-3 py-3 w-px min-w-[105px] whitespace-nowrap">Status</th>
+                  <th className="px-3.5 py-3 w-px min-w-[120px] text-right whitespace-nowrap">Instant Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -369,12 +369,12 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       </td>
 
                       {/* Category */}
-                      <td className="px-4 py-3.5">
+                      <td className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">
                         <CategoryBadge division={lead.division} />
                       </td>
 
                       {/* Channel / Source with Official Brand Logo */}
-                      <td className="px-4 py-3.5">
+                      <td className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
