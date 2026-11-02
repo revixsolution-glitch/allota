@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 
 interface PharmaHopersWebhookSectionProps {
   companyId: string;
@@ -17,9 +16,16 @@ export function PharmaHopersWebhookSection({
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedHeader, setCopiedHeader] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [origin, setOrigin] = useState("https://crm.allota.in");
 
-  // The official inbound webhook URL on the production domain
-  const webhookUrl = `https://allotacrm.com/api/pharmahopers/webhook/${companyId}`;
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
+  // The official inbound webhook URL on the active domain
+  const webhookUrl = `${origin}/api/pharmahopers/webhook/${companyId}`;
 
   const isConnected = Boolean(apiKey.trim());
 
