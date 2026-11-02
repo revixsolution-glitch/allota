@@ -532,15 +532,21 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         )}
                         <tr className="hover:bg-slate-50/70 transition">
                           {/* Prospect & Contact */}
-                          <td className="px-5 py-4 w-[300px] min-w-[280px]">
-                            <div className="flex items-center gap-2 font-extrabold text-ink text-sm min-w-0">
-                              <span className="truncate">{lead.name || "Anonymous Prospect"}</span>
-                              {isCurrentFresh && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
-                                  <span>✨</span>
-                                  <span>NEW LEAD</span>
-                                </span>
-                              )}
+                          <td className="px-5 py-4 w-[300px] min-w-[280px] relative">
+                            {/* Floating small NEW tag on top-left, floating outside flow */}
+                            {isCurrentFresh && (
+                              <span
+                                title="Fresh uncontacted lead"
+                                className="absolute top-1.5 left-2 inline-flex items-center gap-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0 text-[8px] font-black uppercase tracking-wider shadow-2xs select-none pointer-events-none z-10"
+                              >
+                                <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>NEW</span>
+                              </span>
+                            )}
+                            <div className={`space-y-0.5 ${isCurrentFresh ? "pt-2.5" : ""}`}>
+                              <p className="font-extrabold text-ink text-sm min-w-0 truncate">
+                                <span>{lead.name || "Anonymous Prospect"}</span>
+                              </p>
                             </div>
                             <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted whitespace-nowrap">
                               <span>{lead.phoneNumber || "No Phone"}</span>
@@ -704,18 +710,20 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         <div className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-300 to-transparent" />
                       </div>
                     )}
-                    <div className="p-4 space-y-3 transition rounded-2xl mx-1.5 my-1.5 bg-white border border-line">
-                      <div className="flex items-start justify-between gap-2">
+                    <div className="p-4 space-y-3 transition rounded-2xl mx-1.5 my-1.5 bg-white border border-line relative">
+                      {/* Floating small NEW tag on mobile card */}
+                      {isCurrentFresh && (
+                        <span
+                          title="Fresh uncontacted lead"
+                          className="absolute top-2 left-3 inline-flex items-center gap-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0 text-[8px] font-black uppercase tracking-wider shadow-2xs select-none pointer-events-none"
+                        >
+                          <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>NEW</span>
+                        </span>
+                      )}
+                      <div className={`flex items-start justify-between gap-2 ${isCurrentFresh ? "pt-2" : ""}`}>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
-                            {isCurrentFresh && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
-                                <span>✨</span>
-                                <span>NEW LEAD</span>
-                              </span>
-                            )}
-                          </div>
+                          <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
                           <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
                           <div className="flex items-center gap-1 text-[11px] font-medium text-ink-muted mt-1">
                             <span>📅</span>
