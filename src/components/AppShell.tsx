@@ -228,26 +228,34 @@ export function AppShell({
                     setMobileMenuOpen(false);
                     setWhatsAppModalOpen(true);
                   }}
-                  className={`w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 cursor-pointer shadow-xs active:scale-98 ${
+                  className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 cursor-pointer active:scale-98 ${
                     whatsAppStatus === "CONNECTED"
-                      ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200"
-                      : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-500/20"
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-600/25"
+                      : "bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-900 border border-emerald-200/80 shadow-2xs"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/20">
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl p-1 ${
+                        whatsAppStatus === "CONNECTED"
+                          ? "bg-white/20 text-white"
+                          : "bg-white border border-emerald-200/80 shadow-2xs"
+                      }`}
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4.5 w-4.5">
                         <path fill="#25D366" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
                         <path fill="#fff" d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.06 4.47.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.12-.27-.2-.57-.35z"/>
                       </svg>
                     </div>
-                    <span className="truncate">Connect WhatsApp</span>
+                    <span className="truncate">
+                      {whatsAppStatus === "CONNECTED" ? "WhatsApp Connected" : "Connect WhatsApp"}
+                    </span>
                   </div>
                   <span
                     className={`h-2.5 w-2.5 rounded-full shrink-0 ${
                       whatsAppStatus === "CONNECTED"
-                        ? "bg-emerald-500 animate-pulse"
-                        : "bg-white/80 animate-pulse"
+                        ? "bg-white animate-pulse ring-2 ring-white/50"
+                        : "bg-slate-300 ring-2 ring-emerald-100"
                     }`}
                   />
                 </button>
@@ -344,26 +352,34 @@ export function AppShell({
                 <button
                   type="button"
                   onClick={() => setWhatsAppModalOpen(true)}
-                  className={`w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 cursor-pointer shadow-xs active:scale-98 ${
+                  className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-300 cursor-pointer active:scale-98 ${
                     whatsAppStatus === "CONNECTED"
-                      ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200"
-                      : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-500/20"
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-600/25"
+                      : "bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-900 border border-emerald-200/80 shadow-2xs"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/20">
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl p-1 ${
+                        whatsAppStatus === "CONNECTED"
+                          ? "bg-white/20 text-white"
+                          : "bg-white border border-emerald-200/80 shadow-2xs"
+                      }`}
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4.5 w-4.5">
                         <path fill="#25D366" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
                         <path fill="#fff" d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.06 4.47.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.12-.27-.2-.57-.35z"/>
                       </svg>
                     </div>
-                    <span className="truncate">Connect WhatsApp</span>
+                    <span className="truncate">
+                      {whatsAppStatus === "CONNECTED" ? "WhatsApp Connected" : "Connect WhatsApp"}
+                    </span>
                   </div>
                   <span
                     className={`h-2.5 w-2.5 rounded-full shrink-0 ${
                       whatsAppStatus === "CONNECTED"
-                        ? "bg-emerald-500 animate-pulse"
-                        : "bg-white/80 animate-pulse"
+                        ? "bg-white animate-pulse ring-2 ring-white/50"
+                        : "bg-slate-300 ring-2 ring-emerald-100"
                     }`}
                   />
                 </button>
