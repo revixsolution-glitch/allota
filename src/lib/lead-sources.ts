@@ -6,6 +6,7 @@ export const HIDDEN_SOURCES: LeadSource[] = [LeadSource.WHATSAPP, LeadSource.SOC
 export const SOURCE_META: { value: LeadSource; label: string; icon: string }[] = [
   { value: LeadSource.META, label: "Meta Ads", icon: "🌐" },
   { value: LeadSource.INDIAMART, label: "IndiaMART", icon: "🛒" },
+  { value: LeadSource.PHARMAHOPERS, label: "PharmaHopers", icon: "💊" },
   { value: LeadSource.WHATSAPP, label: "WhatsApp", icon: "💬" },
   { value: LeadSource.WEBSITE, label: "Website", icon: "🖥️" },
   { value: LeadSource.SOCIAL, label: "Social", icon: "📣" },

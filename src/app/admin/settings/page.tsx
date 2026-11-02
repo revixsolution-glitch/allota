@@ -6,6 +6,7 @@ import { UpgradePlanCard } from "@/components/UpgradePlanCard";
 import { GradientText } from "@/components/GradientText";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
 import { ChangePasswordSection } from "@/components/ChangePasswordSection";
+import { PharmaHopersWebhookSection } from "@/components/PharmaHopersWebhookSection";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -666,6 +667,12 @@ export default async function AdminSettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* PharmaHopers Webhook Integration */}
+            <PharmaHopersWebhookSection
+              companyId={activeCompanyId || settings.companyId || "cmvaqedgb000008jtxjxb8jxm"}
+              initialApiKey={settings.pharmaHopperApiKey}
+            />
 
             {/* Other APIs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

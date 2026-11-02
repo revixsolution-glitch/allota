@@ -48,6 +48,7 @@ enum LeadSource {
   SOCIAL
   MANUAL
   EXCEL_IMPORT
+  PHARMAHOPERS
 }
 
 enum LeadStatus {

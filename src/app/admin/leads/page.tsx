@@ -25,6 +25,12 @@ const leadSources = [
     detail: "Buyer enquiries and PCD franchise intent",
   },
   {
+    value: LeadSource.PHARMAHOPERS,
+    label: "PharmaHopers Leads",
+    shortLabel: "PharmaHopers",
+    detail: "B2B pharma marketplace inquiries & buyer leads",
+  },
+  {
     value: LeadSource.WEBSITE,
     label: "Website Forms",
     shortLabel: "Website",

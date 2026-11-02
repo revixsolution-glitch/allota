@@ -637,14 +637,14 @@ export default function OnboardCompanyPage() {
                   <p className="text-[10px] text-slate-500">Connects live Marg ERP / Busy inventory & distributor balances.</p>
                 </div>
 
-                {/* Pharma Hopper API */}
+                {/* PharmaHopers Webhook Secret Key */}
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-white">
-                      Pharma Hopper API Key
+                    <label className="block text-xs font-semibold text-white flex items-center gap-1.5">
+                      <span className="text-sm">💊</span> PharmaHopers Webhook Secret Key
                     </label>
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                      Portal
+                    <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold text-sky-400 border border-sky-500/20">
+                      Webhook Ingestion
                     </span>
                   </div>
                   <input
@@ -653,7 +653,9 @@ export default function OnboardCompanyPage() {
                     placeholder="ph_live_xxxxxxxxxxxx"
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
                   />
-                  <p className="text-[10px] text-slate-500">Syncs leads from PharmaHopper B2B PCD marketplace.</p>
+                  <p className="text-[10px] text-slate-500">
+                    Webhook Header key (x-api-key) for receiving real-time B2B PCD leads from supplier.pharmahopers.com.
+                  </p>
                 </div>
 
                 {/* Pharma Vent API */}

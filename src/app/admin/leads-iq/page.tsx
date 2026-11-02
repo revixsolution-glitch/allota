@@ -235,6 +235,13 @@ export default async function LeadsIqPage(props: LeadsIqPageProps) {
       border: "border-l-amber-500",
     },
     {
+      source: LeadSource.PHARMAHOPERS,
+      name: "PharmaHopers Portal",
+      icon: "💊",
+      color: "text-sky-700",
+      border: "border-l-sky-600",
+    },
+    {
       source: LeadSource.WHATSAPP,
       name: "WhatsApp Inbound",
       icon: "💬",

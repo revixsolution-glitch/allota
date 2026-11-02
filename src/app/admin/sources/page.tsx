@@ -101,6 +101,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
   // Inspect API integration status
   const isMetaConnected = Boolean(settings?.metaAppId && (settings?.metaAccessToken || settings?.metaApiKey));
   const isIndiaMartConnected = Boolean(settings?.indiaMartApiKey);
+  const isPharmaHopersConnected = Boolean(settings?.pharmaHopperApiKey);
   const isWhatsAppConnected = Boolean(settings?.metaPhoneNumberId && (settings?.metaAccessToken || settings?.metaApiKey));
   const isDriveConnected = Boolean(settings?.driveFolderUrl);
   const isPortalsConnected = Boolean(settings?.pharmaHopperApiKey || settings?.pharmaVentApiKey);
@@ -108,6 +109,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
   const disconnectedApis: { name: string; keyName: string }[] = [];
   if (!isMetaConnected) disconnectedApis.push({ name: "Meta Lead Ads (Facebook & Instagram)", keyName: "App ID & Access Token" });
   if (!isIndiaMartConnected) disconnectedApis.push({ name: "IndiaMART BuyLead", keyName: "Push API Key" });
+  if (!isPharmaHopersConnected) disconnectedApis.push({ name: "PharmaHopers Webhook", keyName: "Webhook Key" });
   if (!isWhatsAppConnected) disconnectedApis.push({ name: "WhatsApp Cloud API", keyName: "WhatsApp Phone ID" });
   if (!isDriveConnected) disconnectedApis.push({ name: "Google Drive Call Storage", keyName: "Drive Folder URL" });
 
@@ -262,7 +264,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {/* Meta Lead Ads */}
           <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isMetaConnected ? "border-t-blue-600 bg-white" : "border-t-rose-500 bg-rose-50/15"}`}>
             <div className="flex items-center justify-between">
@@ -316,6 +318,36 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
                 <span className="text-xs text-ink-muted">Inquiries</span>
                 <span className="text-base font-extrabold text-amber-700">
                   {sourceMap.get(LeadSource.INDIAMART) || 0}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* PharmaHopers */}
+          <div className={`rounded-2xl p-5 neo-panel border-t-2 ${isPharmaHopersConnected ? "border-t-sky-500 bg-white" : "border-t-rose-500 bg-rose-50/15"}`}>
+            <div className="flex items-center justify-between">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/pharmahopers-icon.png" alt="PharmaHopers" className="h-6 w-6 object-contain" />
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${isPharmaHopersConnected ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-rose-50 text-rose-800 border-rose-200"}`}>
+                {isPharmaHopersConnected ? "● Webhook Active" : "⚠️ Needs Setup"}
+              </span>
+            </div>
+            <h3 className="font-bold text-ink text-sm mt-3">PharmaHopers Portal</h3>
+            <p className="text-xs text-ink-faint mt-0.5">B2B PCD & Franchise Webhook</p>
+            {!isPharmaHopersConnected ? (
+              <div className="mt-3 pt-3 border-t border-line">
+                <p className="text-[11px] text-rose-700 font-semibold leading-tight">
+                  Webhook key not configured. Leads will not auto-import.
+                </p>
+                <Link href="/admin/settings#pharmahopers" className="mt-2 text-[11px] font-bold text-sky-800 hover:underline inline-flex items-center gap-1">
+                  Setup Webhook &rarr;
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+                <span className="text-xs text-ink-muted">Inquiries</span>
+                <span className="text-base font-extrabold text-sky-700">
+                  {sourceMap.get(LeadSource.PHARMAHOPERS) || 0}
                 </span>
               </div>
             )}

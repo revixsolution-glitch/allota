@@ -34,6 +34,10 @@ export function SourceIcon({ source, className = "h-5 w-5" }: { source: LeadSour
     // eslint-disable-next-line @next/next/no-img-element
     return <img src="/indiamart-logo.png" alt="IndiaMART" className={`${className} object-contain`} />;
   }
+  if (s === "PHARMAHOPERS" || s === LeadSource.PHARMAHOPERS || s === "PHARMA_HOPERS" || s === "PHARMAHOPPER") {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/pharmahopers-icon.png" alt="PharmaHopers" className={`${className} object-contain`} />;
+  }
   if (s === "EXCEL_IMPORT" || s === "EXCEL" || s === LeadSource.EXCEL_IMPORT) {
     return <BrandSvg path={EXCEL_PATH} color="#217346" className={className} />;
   }

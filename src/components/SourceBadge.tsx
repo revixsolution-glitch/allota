@@ -26,6 +26,12 @@ export function SourceBadge({
   const isMeta = source === LeadSource.META || source === "META";
   const isWhatsApp = source === LeadSource.WHATSAPP || source === "WHATSAPP";
   const isIndiaMart = source === LeadSource.INDIAMART || source === "INDIAMART";
+  const isPharmaHopers =
+    source === LeadSource.PHARMAHOPERS ||
+    source === "PHARMAHOPERS" ||
+    source === "PHARMA_HOPERS" ||
+    source === "PHARMAHOPPER" ||
+    (sourceTag || "").toLowerCase().includes("pharmahoper");
   const isExcel = source === LeadSource.EXCEL_IMPORT || source === "EXCEL_IMPORT" || source === "SHEET";
   const isWebsite = source === LeadSource.WEBSITE || source === "WEBSITE";
   const isManual = source === LeadSource.MANUAL || source === "MANUAL";
@@ -42,6 +48,9 @@ export function SourceBadge({
   } else if (isIndiaMart) {
     label = "IndiaMART";
     themeClass = "bg-amber-50/80 text-amber-900 border-amber-200/80";
+  } else if (isPharmaHopers) {
+    label = "PharmaHopers";
+    themeClass = "bg-sky-50/90 text-sky-950 border-sky-300 shadow-xs";
   } else if (isExcel) {
     label = "Sheet Import";
     themeClass = "bg-emerald-50/80 text-emerald-900 border-emerald-200/80";
@@ -86,7 +95,9 @@ export function SourceBadge({
 
   const shouldShowTag = showTag && sourceTag && (!isIgnoredTag || isSheet);
 
-  const displaySource = isExcel
+  const displaySource = isPharmaHopers
+    ? LeadSource.PHARMAHOPERS
+    : isExcel
     ? LeadSource.EXCEL_IMPORT
     : isManual || (!isMeta && !isWhatsApp && !isIndiaMart && !isWebsite)
     ? LeadSource.MANUAL
