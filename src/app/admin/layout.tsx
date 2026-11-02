@@ -1,7 +1,6 @@
 import { hasDashboard } from "@/types/company";
 import { AppShell } from "@/components/AppShell";
 import { SupportModeBanner } from "@/components/SupportModeBanner";
-import { AntiScrapeShield } from "@/components/AntiScrapeShield";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId } from "@/lib/auth";
 import { ensureCompanySettingsColumns } from "@/lib/db-sync";
@@ -89,8 +88,7 @@ export default async function AdminLayout({
   const displayTitle = company?.name?.trim() || "Allota AI";
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas select-none">
-      <AntiScrapeShield />
+    <div className="flex min-h-screen flex-col bg-canvas">
       {isImpersonating && (
         <SupportModeBanner
           companyName={displayTitle}
