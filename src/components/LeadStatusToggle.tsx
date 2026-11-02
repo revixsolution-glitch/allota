@@ -8,6 +8,7 @@ interface LeadStatusToggleProps {
   status?: string;
   isDead?: boolean;
   deadReason?: string | null;
+  layout?: "vertical" | "horizontal";
 }
 
 export function LeadStatusToggle({
@@ -15,6 +16,7 @@ export function LeadStatusToggle({
   status,
   isDead,
   deadReason,
+  layout = "vertical",
 }: LeadStatusToggleProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
@@ -113,30 +115,34 @@ export function LeadStatusToggle({
     });
   };
 
+  const isVertical = layout === "vertical";
+
   return (
     <div
       ref={menuRef}
-      className={`relative inline-flex items-center gap-1 ${
-        isPending ? "opacity-75" : ""
-      }`}
+      className={`relative inline-flex ${
+        isVertical ? "flex-col items-stretch gap-1 w-[84px]" : "items-center gap-1"
+      } ${isPending ? "opacity-75" : ""}`}
     >
       {/* 1. Active */}
       <button
         type="button"
         onClick={() => handleStatusChange("ACTIVE")}
         title="Active prospect in pipeline"
-        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
+        className={`${
+          isVertical ? "w-full justify-start" : ""
+        } inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
           isActive
             ? "bg-emerald-500 border-emerald-500 text-white shadow-2xs"
             : "bg-white border-line text-ink-faint hover:border-emerald-300 hover:text-emerald-700"
         }`}
       >
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
+          className={`h-1.5 w-1.5 rounded-full shrink-0 ${
             isActive ? "bg-white" : "bg-emerald-500"
           }`}
         />
-        Active
+        <span>Active</span>
       </button>
 
       {/* 2. Converted */}
@@ -144,27 +150,31 @@ export function LeadStatusToggle({
         type="button"
         onClick={() => handleStatusChange("CONVERTED")}
         title="Mark converted — graduates to My Clients tab"
-        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
+        className={`${
+          isVertical ? "w-full justify-start" : ""
+        } inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
           isConverted
             ? "bg-purple-600 border-purple-600 text-white shadow-2xs"
             : "bg-white border-line text-ink-faint hover:border-purple-300 hover:text-purple-700"
         }`}
       >
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
+          className={`h-1.5 w-1.5 rounded-full shrink-0 ${
             isConverted ? "bg-white" : "bg-purple-600"
           }`}
         />
-        Converted
+        <span>Converted</span>
       </button>
 
       {/* 3. Dead / Irrelevant Dropdown Trigger */}
-      <div className="relative inline-block">
+      <div className={`relative ${isVertical ? "w-full" : "inline-block"}`}>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           title="Mark dead or irrelevant inquiry"
-          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
+          className={`${
+            isVertical ? "w-full justify-between" : ""
+          } inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold cursor-pointer transition select-none ${
             isDeadState
               ? isIrrelevant
                 ? "bg-amber-600 border-amber-600 text-white shadow-2xs"
@@ -172,20 +182,22 @@ export function LeadStatusToggle({
               : "bg-white border-line text-ink-faint hover:border-rose-300 hover:text-rose-700"
           }`}
         >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isDeadState ? "bg-white" : "bg-rose-500"
-            }`}
-          />
-          <span>
-            {isDeadState
-              ? isIrrelevant
-                ? "🚫 Irrelevant"
-                : "🔴 Dead"
-              : "Dead"}
-          </span>
+          <div className="inline-flex items-center gap-1.5 min-w-0">
+            <span
+              className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                isDeadState ? "bg-white" : "bg-rose-500"
+              }`}
+            />
+            <span className="truncate">
+              {isDeadState
+                ? isIrrelevant
+                  ? "Irrelevant"
+                  : "Dead"
+                : "Dead"}
+            </span>
+          </div>
           <svg
-            className={`h-2.5 w-2.5 transition-transform duration-150 ${
+            className={`h-2.5 w-2.5 shrink-0 transition-transform duration-150 ${
               isOpen ? "rotate-180" : ""
             } ${isDeadState ? "text-white" : "text-ink-faint"}`}
             fill="none"

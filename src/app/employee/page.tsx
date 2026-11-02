@@ -482,15 +482,15 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
             {/* Desktop Table View matching Allotted Leads Desk */}
             <div className="hidden md:block overflow-x-auto crm-table-container w-full">
-              <table className="w-full text-left text-xs min-w-[1240px]">
+              <table className="w-full text-left text-xs">
                 <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   <tr>
-                    <th className="px-5 py-3.5 w-[300px] min-w-[280px] whitespace-nowrap">Prospect & Contact</th>
-                    <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Division Category</th>
-                    <th className="px-4 py-3.5 w-[200px] min-w-[190px] whitespace-nowrap">Channel / Source</th>
-                    <th className="px-4 py-3.5 w-[230px] min-w-[220px] whitespace-nowrap">Follow Up</th>
-                    <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
-                    <th className="px-5 py-3.5 w-[210px] min-w-[200px] text-right whitespace-nowrap">Status</th>
+                    <th className="px-3.5 py-3 w-[26%] min-w-[190px] whitespace-nowrap">Prospect &amp; Contact</th>
+                    <th className="px-3 py-3 w-[12%] min-w-[85px] whitespace-nowrap">Category</th>
+                    <th className="px-3 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Platform</th>
+                    <th className="px-3 py-3 w-[18%] min-w-[140px] whitespace-nowrap">Follow-Up Action</th>
+                    <th className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">Remarks</th>
+                    <th className="px-3.5 py-3 w-[16%] min-w-[95px] text-right whitespace-nowrap">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -533,7 +533,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         )}
                         <tr className="hover:bg-slate-50/70 transition">
                           {/* Prospect & Contact */}
-                          <td className="px-5 py-4 w-[300px] min-w-[280px] relative">
+                          <td className="px-3.5 py-3 w-[26%] min-w-[190px] relative">
                             {/* Floating small NEW tag on top-left, floating outside flow */}
                             {isCurrentFresh && (
                               <span
@@ -584,17 +584,17 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                           </td>
 
                         {/* Division Category */}
-                        <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                        <td className="px-3 py-3 w-[12%] min-w-[85px] whitespace-nowrap">
                           <CategoryBadge division={lead.division} />
                         </td>
 
                         {/* Channel / Source */}
-                        <td className="px-4 py-4 w-[200px] min-w-[190px]">
+                        <td className="px-3 py-3 w-[15%] min-w-[110px]">
                           <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                         </td>
 
                         {/* Follow Up */}
-                        <td className="px-4 py-4 w-[230px] min-w-[220px]">
+                        <td className="px-3 py-3 w-[18%] min-w-[140px]">
                           <FollowUpPicker
                             leadId={lead.id}
                             followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
@@ -603,7 +603,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Remarks */}
-                        <td className="px-4 py-4 w-[140px] min-w-[130px] whitespace-nowrap">
+                        <td className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">
                           <details className="inline-block text-left group">
                             <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
                               <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -659,9 +659,9 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Status: Active / Converted / Dead */}
-                        <td className="px-5 py-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">
+                        <td className="px-3.5 py-3 w-[16%] min-w-[95px] text-right whitespace-nowrap">
                           <div className="inline-flex justify-end">
-                            <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
+                            <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} layout="vertical" />
                           </div>
                         </td>
                       </tr>
@@ -771,7 +771,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
                         size="sm"
                       />
-                      <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
+                      <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} layout="horizontal" />
                     </div>
 
                     {cleanPhone && (

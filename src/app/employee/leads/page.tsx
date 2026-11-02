@@ -364,11 +364,11 @@ export default async function EmployeeLeadsPage({
               <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                 <tr>
                   <th className="px-3.5 py-3 w-[26%] min-w-[190px] whitespace-nowrap">Prospect &amp; Contact</th>
-                  <th className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">Category</th>
-                  <th className="px-3 py-3 w-[15%] min-w-[120px] whitespace-nowrap">Platform</th>
-                  <th className="px-3 py-3 w-[18%] min-w-[150px] whitespace-nowrap">Follow Up</th>
+                  <th className="px-3 py-3 w-[12%] min-w-[85px] whitespace-nowrap">Category</th>
+                  <th className="px-3 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Platform</th>
+                  <th className="px-3 py-3 w-[18%] min-w-[140px] whitespace-nowrap">Follow Up</th>
                   <th className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">Remarks</th>
-                  <th className="px-3.5 py-3 w-[15%] min-w-[115px] text-right whitespace-nowrap">Status</th>
+                  <th className="px-3.5 py-3 w-[16%] min-w-[95px] text-right whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -509,9 +509,9 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Status: Active / Converted / Dead */}
-                      <td className="px-3.5 py-3 w-[15%] min-w-[115px] text-right whitespace-nowrap">
+                      <td className="px-3.5 py-3 w-[16%] min-w-[95px] text-right whitespace-nowrap">
                         <div className="inline-flex justify-end">
-                          <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
+                          <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} layout="vertical" />
                         </div>
                       </td>
                     </tr>
@@ -633,6 +633,7 @@ export default async function EmployeeLeadsPage({
                         status={lead.status}
                         isDead={lead.status === LeadStatus.NOT_INTERESTED}
                         deadReason={lead.deadReason}
+                        layout="horizontal"
                       />
                     </div>
                   </div>
