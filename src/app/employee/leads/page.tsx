@@ -359,15 +359,15 @@ export default async function EmployeeLeadsPage({
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1240px]">
+            <table className="w-full text-left text-xs">
               <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                 <tr>
-                  <th className="px-5 py-3.5 w-[300px] min-w-[280px] whitespace-nowrap">Prospect & Contact</th>
-                  <th className="px-4 py-3.5 w-[160px] min-w-[150px] whitespace-nowrap">Division Category</th>
-                  <th className="px-4 py-3.5 w-[200px] min-w-[190px] whitespace-nowrap">Channel / Source</th>
-                  <th className="px-4 py-3.5 w-[230px] min-w-[220px] whitespace-nowrap">Follow Up</th>
-                  <th className="px-4 py-3.5 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="px-5 py-3.5 w-[210px] min-w-[200px] text-right whitespace-nowrap">Status</th>
+                  <th className="px-3.5 py-3 w-[26%] min-w-[190px] whitespace-nowrap">Prospect &amp; Contact</th>
+                  <th className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">Category</th>
+                  <th className="px-3 py-3 w-[15%] min-w-[120px] whitespace-nowrap">Platform</th>
+                  <th className="px-3 py-3 w-[18%] min-w-[150px] whitespace-nowrap">Follow Up</th>
+                  <th className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">Remarks</th>
+                  <th className="px-3.5 py-3 w-[15%] min-w-[115px] text-right whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -383,7 +383,7 @@ export default async function EmployeeLeadsPage({
                     <Fragment key={lead.id}>
                       {isFirstLead && isCurrentFresh && (
                         <tr className="bg-transparent">
-                          <td colSpan={6} className="px-5 py-2">
+                          <td colSpan={6} className="px-3.5 py-2">
                             <div className="flex items-center gap-3">
                               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-300 to-emerald-200" />
                               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 select-none flex items-center gap-1.5 whitespace-nowrap">
@@ -397,7 +397,7 @@ export default async function EmployeeLeadsPage({
                       )}
                       {isTransitionToPipeline && (
                         <tr className="bg-transparent">
-                          <td colSpan={6} className="px-5 py-2">
+                          <td colSpan={6} className="px-3.5 py-2">
                             <div className="flex items-center gap-3">
                               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-200" />
                               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 select-none flex items-center gap-1.5 whitespace-nowrap">
@@ -410,17 +410,18 @@ export default async function EmployeeLeadsPage({
                       )}
                       <tr className="hover:bg-slate-50/70 transition">
                         {/* Prospect & Contact */}
-                        <td className="px-5 py-4 w-[300px] min-w-[280px]">
-                          {/* Top-left widget tag: small NEW LEAD indicator until contacted */}
+                        <td className="px-3.5 py-3 w-[26%] min-w-[190px] relative">
+                          {/* Floating small NEW tag on top-left of lead */}
                           {isCurrentFresh && (
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-300/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none shadow-2xs">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>NEW LEAD</span>
-                              </span>
-                            </div>
+                            <span
+                              title="Fresh uncontacted lead"
+                              className="absolute top-1.5 left-2 inline-flex items-center gap-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0 text-[8px] font-black uppercase tracking-wider shadow-2xs select-none pointer-events-none z-10"
+                            >
+                              <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>NEW</span>
+                            </span>
                           )}
-                          <div className="font-extrabold text-ink text-sm min-w-0">
+                          <div className={`font-extrabold text-ink text-sm min-w-0 ${isCurrentFresh ? "pt-3.5" : ""}`}>
                             <span className="truncate block">
                               <ProtectedData text={lead.name || "Anonymous Prospect"} />
                             </span>
@@ -460,7 +461,7 @@ export default async function EmployeeLeadsPage({
                         </td>
 
                       {/* Division Category */}
-                      <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                      <td className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">
                         <span
                           className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             isThirdParty
@@ -473,12 +474,12 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Channel / Source */}
-                      <td className="px-4 py-4 w-[200px] min-w-[190px]">
+                      <td className="px-3 py-3 w-[15%] min-w-[120px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Follow Up */}
-                      <td className="px-4 py-4 w-[230px] min-w-[220px]">
+                      <td className="px-3 py-3 w-[18%] min-w-[150px]">
                         <FollowUpPicker
                           leadId={lead.id}
                           followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
@@ -487,7 +488,7 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Remarks (Global Unified Modal with AI Summaries) */}
-                      <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                      <td className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -515,7 +516,7 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Status: Active / Converted / Dead */}
-                      <td className="px-5 py-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">
+                      <td className="px-3.5 py-3 w-[15%] min-w-[115px] text-right whitespace-nowrap">
                         <div className="inline-flex justify-end">
                           <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} />
                         </div>
@@ -559,18 +560,20 @@ export default async function EmployeeLeadsPage({
                       <div className="h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-300 to-transparent" />
                     </div>
                   )}
-                  <div className="p-4 space-y-3.5 transition rounded-2xl mx-1.5 my-1.5 bg-white border border-line">
+                  <div className="p-4 space-y-3.5 transition rounded-2xl mx-1.5 my-1.5 bg-white border border-line relative">
+                    {/* Floating small NEW tag on mobile card */}
+                    {isCurrentFresh && (
+                      <span
+                        title="Fresh uncontacted lead"
+                        className="absolute top-2 left-3 inline-flex items-center gap-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 px-1.5 py-0 text-[8px] font-black uppercase tracking-wider shadow-2xs select-none pointer-events-none"
+                      >
+                        <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>NEW</span>
+                      </span>
+                    )}
                     {/* Prospect Header */}
-                    <div className="flex items-start justify-between gap-2">
+                    <div className={`flex items-start justify-between gap-2 ${isCurrentFresh ? "pt-2" : ""}`}>
                       <div>
-                        {isCurrentFresh && (
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-300/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none shadow-2xs">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span>NEW LEAD</span>
-                            </span>
-                          </div>
-                        )}
                         <h3 className="font-extrabold text-ink text-base">
                           <ProtectedData text={lead.name || "Anonymous Prospect"} />
                         </h3>
