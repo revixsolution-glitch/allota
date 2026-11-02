@@ -276,14 +276,13 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1050px]">
+            <table className="w-full text-left text-xs min-w-[950px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[220px] min-w-[200px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[240px] min-w-[220px] whitespace-nowrap">Prospect</th>
                   <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
                   <th className="py-3 px-4 w-[170px] min-w-[160px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Closed Date</th>
-                  <th className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Remarks</th>
                   <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -296,18 +295,25 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                      {/* Prospect */}
-                      <td className="py-3 px-4 w-[210px]">
+                      {/* Prospect (Name, Phone, and Closed Date/Time stacked underneath) */}
+                      <td className="py-3 px-4 w-[240px] min-w-[220px]">
                         <div className="font-bold text-ink truncate">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </div>
                         <p className="font-mono text-[11px] text-ink-muted">
                           <ProtectedData text={lead.phoneNumber || "No phone"} />
                         </p>
+                        {dateStr && (
+                          <p className="text-[10px] text-ink-faint flex items-center gap-1 mt-0.5 whitespace-nowrap font-medium">
+                            <span>📅</span>
+                            <span>{dateStr}</span>
+                            {timeStr && <span className="font-mono">• {timeStr}</span>}
+                          </p>
+                        )}
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 w-[120px] whitespace-nowrap">
+                      <td className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -322,20 +328,8 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[170px]">
+                      <td className="py-3 px-4 w-[170px] min-w-[160px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                      </td>
-
-                      {/* Closed Date (Date with Time Stacked Below) */}
-                      <td className="py-3 px-4 w-[140px] text-xs whitespace-nowrap">
-                        <div className="flex flex-col leading-tight">
-                          <span className="font-semibold text-ink">{dateStr || "—"}</span>
-                          {timeStr && (
-                            <span className="text-[11px] text-ink-faint font-mono mt-0.5">
-                              {timeStr}
-                            </span>
-                          )}
-                        </div>
                       </td>
 
                       {/* Remarks (Global Unified Modal with AI Summaries) */}

@@ -294,14 +294,13 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1190px]">
+            <table className="w-full text-left text-xs min-w-[1050px]">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[220px] min-w-[200px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[240px] min-w-[220px] whitespace-nowrap">Prospect</th>
                   <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
                   <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[170px] min-w-[160px] whitespace-nowrap">Representative</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Last Activity</th>
+                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Representative</th>
                   <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Remarks</th>
                   <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
                 </tr>
@@ -314,14 +313,21 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                      {/* Prospect */}
-                      <td className="py-3 px-4 w-[210px]">
+                      {/* Prospect (Name, Phone, and Activity Date/Time stacked underneath) */}
+                      <td className="py-3 px-4 w-[240px] min-w-[220px]">
                         <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700 truncate block">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </Link>
                         <p className="font-mono text-[11px] text-ink-muted">
                           <ProtectedData text={lead.phoneNumber || "No phone"} />
                         </p>
+                        {dateStr && (
+                          <p className="text-[10px] text-ink-faint flex items-center gap-1 mt-0.5 whitespace-nowrap font-medium">
+                            <span>📅</span>
+                            <span>{dateStr}</span>
+                            {timeStr && <span className="font-mono">• {timeStr}</span>}
+                          </p>
+                        )}
                       </td>
 
                       {/* Category Badge */}
@@ -345,22 +351,10 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Representative */}
-                      <td className="py-3 px-4 w-[170px] min-w-[160px] font-semibold text-ink whitespace-nowrap truncate">
+                      <td className="py-3 px-4 w-[180px] min-w-[170px] font-semibold text-ink whitespace-nowrap truncate">
                         {lead.assignedEmployee?.name || (
                           <span className="text-ink-faint">Unassigned</span>
                         )}
-                      </td>
-
-                      {/* Last Activity (Date with Time Stacked Below) */}
-                      <td className="py-3 px-4 w-[140px] min-w-[130px] text-xs whitespace-nowrap">
-                        <div className="flex flex-col leading-tight">
-                          <span className="font-semibold text-ink">{dateStr || "—"}</span>
-                          {timeStr && (
-                            <span className="text-[11px] text-ink-faint font-mono mt-0.5">
-                              {timeStr}
-                            </span>
-                          )}
-                        </div>
                       </td>
 
                       {/* Remarks (Global Component with AI Summaries) */}
