@@ -370,13 +370,13 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       {/* Category */}
                       <td className="px-4 py-3.5">
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             isThirdParty
                               ? "bg-purple-100 text-purple-800"
                               : "bg-blue-100 text-blue-800"
                           }`}
                         >
-                          {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                          {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                         </span>
                       </td>
 
@@ -524,7 +524,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                         isThirdParty ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                      {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                     </span>
                   </div>
 

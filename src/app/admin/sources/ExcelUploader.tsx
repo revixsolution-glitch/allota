@@ -501,8 +501,14 @@ function ColumnMappingPreview({
                     </td>
                     <td className="px-3 py-2 font-mono text-ink-muted">{lead.phone.formatted}</td>
                     <td className="px-3 py-2">
-                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                        {lead.division === "THIRD_PARTY" ? "Third-Party" : "PCD Franchise"}
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          lead.division === "THIRD_PARTY"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {lead.division === "THIRD_PARTY" ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                       </span>
                     </td>
                     <td className="max-w-[160px] truncate px-3 py-2 text-ink-muted">

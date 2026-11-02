@@ -597,15 +597,15 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
                       </td>
                       <td className="px-4 py-4">
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             batch.division === "THIRD_PARTY"
                               ? "bg-purple-100 text-purple-800"
                               : "bg-blue-100 text-blue-800"
                           }`}
                         >
                           {batch.division === "THIRD_PARTY"
-                            ? "Third-Party Mfg"
-                            : "PCD Franchise"}
+                            ? "🏭 Third-Party Mfg"
+                            : "🏢 PCD Franchise"}
                         </span>
                       </td>
                       <td className="px-4 py-4 font-extrabold text-ink">

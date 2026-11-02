@@ -895,13 +895,13 @@ export function EmployeeDetailView({
                       </td>
                       <td className="py-3">
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[9px] font-bold border ${
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             l.division === "THIRD_PARTY"
-                              ? "bg-purple-50 text-purple-800 border-purple-200"
-                              : "bg-blue-50 text-blue-800 border-blue-200"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-blue-100 text-blue-800"
                           }`}
                         >
-                          {l.division === "THIRD_PARTY" ? "🏭 Third-Party" : "🏢 PCD Franchise"}
+                          {l.division === "THIRD_PARTY" ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                         </span>
                       </td>
                       <td className="py-3 text-ink-muted">{l.phoneNumber || "—"}</td>

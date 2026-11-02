@@ -1073,17 +1073,15 @@ export default async function AdminLeadsPage({
 
                     {/* Category (PCD Franchise vs Third-Party) */}
                     <td className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">
-                      {isPcd ? (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-blue-800">
-                          <span>🏢</span>
-                          <span>PCD Franchise</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1 text-xs font-bold text-purple-800">
-                          <span>🏭</span>
-                          <span>Third-Party</span>
-                        </span>
-                      )}
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          isPcd
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party Mfg"}
+                      </span>
                     </td>
 
                     {/* Platform / Source */}
@@ -1240,7 +1238,7 @@ export default async function AdminLeadsPage({
                         : "bg-purple-100 text-purple-800"
                     }`}
                   >
-                    {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party"}
+                    {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party Mfg"}
                   </span>
                 </div>
 

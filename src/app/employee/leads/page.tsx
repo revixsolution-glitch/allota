@@ -592,7 +592,7 @@ export default async function EmployeeLeadsPage({
                             : "bg-blue-100 text-blue-800"
                         }`}
                       >
-                        {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                        {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                       </span>
                     </div>
 

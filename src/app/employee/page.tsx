@@ -737,7 +737,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                               : "bg-blue-100 text-blue-800"
                           }`}
                         >
-                          {isThirdParty ? "Third-Party" : "PCD Franchise"}
+                          {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                         </span>
                       </div>
 

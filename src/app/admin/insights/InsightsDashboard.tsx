@@ -1837,8 +1837,14 @@ export function InsightsDashboard({ data }: { data: InsightsData }) {
                         <p className="text-[10px] text-ink-faint font-normal">{rec.phoneNumber || "—"}</p>
                       </td>
                       <td className="py-3">
-                        <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-ink-muted">
-                          {rec.businessType === "THIRD_PARTY" ? "Third-Party" : "PCD Franchise"}
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            rec.businessType === "THIRD_PARTY"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {rec.businessType === "THIRD_PARTY" ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
                         </span>
                       </td>
                       <td className="py-3 font-mono font-bold text-primary">{rec.invoiceNumber}</td>
