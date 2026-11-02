@@ -285,6 +285,10 @@ export default async function AdminLeadsPage({
         return Boolean((settings?.enableBulkExcelUpload ?? true) || count > 0);
       case LeadSource.INDIAMART:
         return Boolean(settings?.indiaMartApiKey || count > 0);
+      case LeadSource.PHARMAHOPERS:
+        return Boolean(settings?.pharmaHopperApiKey || settings?.pharmaHopperUsername || count > 0);
+      case LeadSource.PHARMAKHABAR:
+        return Boolean(settings?.pharmaKhabarApiKey || count > 0);
       case LeadSource.WHATSAPP:
         return Boolean((settings?.metaPhoneNumberId && settings?.metaAccessToken) || count > 0);
       case LeadSource.WEBSITE:
@@ -1452,6 +1456,22 @@ function getSourceIconComponent(source: string, active?: boolean) {
           className="h-3.5 w-3.5 rounded-xs object-contain shrink-0"
         />
       );
+    case LeadSource.PHARMAHOPERS:
+      return (
+        <img
+          src="/pharmahopers-icon.png"
+          alt="PharmaHopers"
+          className="h-3.5 w-3.5 rounded-xs object-contain shrink-0"
+        />
+      );
+    case LeadSource.PHARMAKHABAR:
+      return (
+        <img
+          src="/pharmakhabar-icon.png"
+          alt="PharmaKhabar"
+          className="h-3.5 w-3.5 rounded-xs object-contain shrink-0"
+        />
+      );
     case LeadSource.WEBSITE:
       return (
         <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1537,6 +1557,18 @@ function PlatformCard({
       inactive: "border-l-4 border-l-[#283593] hover:border-indigo-600",
       countColor: "text-[#283593]",
       iconBadge: "bg-indigo-50 text-[#283593] border border-indigo-200/60",
+    },
+    [LeadSource.PHARMAHOPERS]: {
+      active: "bg-gradient-to-br from-teal-600 to-emerald-700 text-white shadow-lg shadow-teal-600/25",
+      inactive: "border-l-4 border-l-teal-600 hover:border-teal-500",
+      countColor: "text-teal-700",
+      iconBadge: "bg-teal-50 text-teal-700 border border-teal-200/60",
+    },
+    [LeadSource.PHARMAKHABAR]: {
+      active: "bg-gradient-to-br from-[#e03a3e] to-[#c22026] text-white shadow-lg shadow-rose-600/25",
+      inactive: "border-l-4 border-l-[#e03a3e] hover:border-rose-400",
+      countColor: "text-[#e03a3e]",
+      iconBadge: "bg-rose-50 text-[#e03a3e] border border-rose-200/60",
     },
     [LeadSource.WEBSITE]: {
       active: "bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-600/25",
