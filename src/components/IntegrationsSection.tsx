@@ -68,10 +68,6 @@ export function IntegrationsSection({ companyId, settings }: IntegrationsSection
       } else if (hash === "indiamart") {
         setOpenSources((prev) => ({ ...prev, indiamart: true }));
         setSelectedDropdown("indiamart");
-      } else {
-        // Open the first active source so the user sees their connected source right away
-        setOpenSources((prev) => ({ ...prev, pharmakhabar: true }));
-        setSelectedDropdown("pharmakhabar");
       }
     }
   }, []);
