@@ -242,6 +242,13 @@ export default async function LeadsIqPage(props: LeadsIqPageProps) {
       border: "border-l-sky-600",
     },
     {
+      source: LeadSource.PHARMAKHABAR,
+      name: "PharmaKhabar Portal",
+      icon: "📰",
+      color: "text-orange-700",
+      border: "border-l-orange-600",
+    },
+    {
       source: LeadSource.WHATSAPP,
       name: "WhatsApp Inbound",
       icon: "💬",

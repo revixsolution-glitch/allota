@@ -38,6 +38,10 @@ export function SourceIcon({ source, className = "h-5 w-5" }: { source: LeadSour
     // eslint-disable-next-line @next/next/no-img-element
     return <img src="/pharmahopers-icon.png" alt="PharmaHopers" className={`${className} object-contain`} />;
   }
+  if (s === "PHARMAKHABAR" || s === LeadSource.PHARMAKHABAR || s === "PHARMA_KHABAR") {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/pharmakhabar-icon.png" alt="PharmaKhabar" className={`${className} object-contain`} />;
+  }
   if (s === "EXCEL_IMPORT" || s === "EXCEL" || s === LeadSource.EXCEL_IMPORT) {
     return <BrandSvg path={EXCEL_PATH} color="#217346" className={className} />;
   }

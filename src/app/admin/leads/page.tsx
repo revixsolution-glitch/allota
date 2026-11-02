@@ -31,6 +31,12 @@ const leadSources = [
     detail: "B2B pharma marketplace inquiries & buyer leads",
   },
   {
+    value: LeadSource.PHARMAKHABAR,
+    label: "PharmaKhabar Leads",
+    shortLabel: "PharmaKhabar",
+    detail: "PharmaKhabar portal B2B franchise & PCD buyer enquiries",
+  },
+  {
     value: LeadSource.WEBSITE,
     label: "Website Forms",
     shortLabel: "Website",

@@ -32,6 +32,11 @@ export function SourceBadge({
     source === "PHARMA_HOPERS" ||
     source === "PHARMAHOPPER" ||
     (sourceTag || "").toLowerCase().includes("pharmahoper");
+  const isPharmaKhabar =
+    source === LeadSource.PHARMAKHABAR ||
+    source === "PHARMAKHABAR" ||
+    source === "PHARMA_KHABAR" ||
+    (sourceTag || "").toLowerCase().includes("pharmakhabar");
   const isExcel = source === LeadSource.EXCEL_IMPORT || source === "EXCEL_IMPORT" || source === "SHEET";
   const isWebsite = source === LeadSource.WEBSITE || source === "WEBSITE";
   const isManual = source === LeadSource.MANUAL || source === "MANUAL";
@@ -51,6 +56,9 @@ export function SourceBadge({
   } else if (isPharmaHopers) {
     label = "PharmaHopers";
     themeClass = "bg-sky-50/90 text-sky-950 border-sky-300 shadow-xs";
+  } else if (isPharmaKhabar) {
+    label = "PharmaKhabar";
+    themeClass = "bg-orange-50/90 text-orange-950 border-orange-300 shadow-xs";
   } else if (isExcel) {
     label = "Sheet Import";
     themeClass = "bg-emerald-50/80 text-emerald-900 border-emerald-200/80";
@@ -97,6 +105,8 @@ export function SourceBadge({
 
   const displaySource = isPharmaHopers
     ? LeadSource.PHARMAHOPERS
+    : isPharmaKhabar
+    ? LeadSource.PHARMAKHABAR
     : isExcel
     ? LeadSource.EXCEL_IMPORT
     : isManual || (!isMeta && !isWhatsApp && !isIndiaMart && !isWebsite)

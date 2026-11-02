@@ -49,6 +49,7 @@ enum LeadSource {
   MANUAL
   EXCEL_IMPORT
   PHARMAHOPERS
+  PHARMAKHABAR
 }
 
 enum LeadStatus {
@@ -443,6 +444,7 @@ model CompanySettings {
   whatsappCompanionPhone  String?
 
   pharmaHopperApiKey      String?
+  pharmaKhabarApiKey      String?
   pharmaVentApiKey        String?
 
   // Paid add-ons (default: off). Independent of planTier — a Core or

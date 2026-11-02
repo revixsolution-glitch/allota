@@ -7,6 +7,7 @@ import { GradientText } from "@/components/GradientText";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
 import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import { PharmaHopersWebhookSection } from "@/components/PharmaHopersWebhookSection";
+import { PharmaKhabarWebhookSection } from "@/components/PharmaKhabarWebhookSection";
 import { SecretInput } from "@/components/SecretInput";
 import path from "node:path";
 import fs from "node:fs";
@@ -667,6 +668,12 @@ export default async function AdminSettingsPage() {
             <PharmaHopersWebhookSection
               companyId={activeCompanyId || settings.companyId || "cmvaqedgb000008jtxjxb8jxm"}
               initialApiKey={settings.pharmaHopperApiKey}
+            />
+
+            {/* PharmaKhabar Webhook Integration */}
+            <PharmaKhabarWebhookSection
+              companyId={activeCompanyId || settings.companyId || "cmvaqedgb000008jtxjxb8jxm"}
+              initialApiKey={settings.pharmaKhabarApiKey}
             />
 
             {/* Other APIs Grid */}

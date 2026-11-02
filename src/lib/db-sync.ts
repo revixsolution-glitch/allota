@@ -32,6 +32,7 @@ export async function ensureCompanySettingsColumns() {
       ["whatsappConnected", 'BOOLEAN NOT NULL DEFAULT false'],
       ["whatsappCompanionPhone", "TEXT"],
       ["pharmaHopperApiKey", "TEXT"],
+      ["pharmaKhabarApiKey", "TEXT"],
       ["pharmaVentApiKey", "TEXT"],
       ["enableAdsInsights", 'BOOLEAN NOT NULL DEFAULT false'],
       ["enableSocialInbox", 'BOOLEAN NOT NULL DEFAULT false'],
@@ -45,6 +46,15 @@ export async function ensureCompanySettingsColumns() {
       } catch (err) {
         console.warn(`[DB Sync] Column check for ${col}:`, err);
       }
+    }
+
+    // Ensure LeadSource enum values exist
+    for (const enumVal of ["PHARMAHOPERS", "PHARMAKHABAR"]) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `ALTER TYPE "LeadSource" ADD VALUE IF NOT EXISTS '${enumVal}';`
+        );
+      } catch {}
     }
 
     // Auto-sync active WhatsApp companion status strictly for company records with valid individual creds
