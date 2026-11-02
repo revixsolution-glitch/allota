@@ -8,7 +8,8 @@
     "start": "next start -H 0.0.0.0 -p 3000",
     "postinstall": "prisma generate",
     "lint": "eslint",
-    "check:tenant": "node scripts/check-tenant-safety.mjs"
+    "check:tenant": "node scripts/check-tenant-safety.mjs",
+    "deploy": "./scripts/deploy-production.sh"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
