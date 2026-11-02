@@ -411,16 +411,19 @@ export default async function EmployeeLeadsPage({
                       <tr className="hover:bg-slate-50/70 transition">
                         {/* Prospect & Contact */}
                         <td className="px-5 py-4 w-[300px] min-w-[280px]">
-                          <div className="flex items-center gap-2 font-extrabold text-ink text-sm min-w-0">
-                            <span className="truncate">
-                              <ProtectedData text={lead.name || "Anonymous Prospect"} />
-                            </span>
-                            {isCurrentFresh && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
-                                <span>✨</span>
+                          {/* Top-left widget tag: small NEW LEAD indicator until contacted */}
+                          {isCurrentFresh && (
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-300/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none shadow-2xs">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <span>NEW LEAD</span>
                               </span>
-                            )}
+                            </div>
+                          )}
+                          <div className="font-extrabold text-ink text-sm min-w-0">
+                            <span className="truncate block">
+                              <ProtectedData text={lead.name || "Anonymous Prospect"} />
+                            </span>
                           </div>
                           <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted whitespace-nowrap">
                             <ProtectedData text={lead.phoneNumber || "No Phone"} />
@@ -560,17 +563,17 @@ export default async function EmployeeLeadsPage({
                     {/* Prospect Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-extrabold text-ink text-base">
-                            <ProtectedData text={lead.name || "Anonymous Prospect"} />
-                          </h3>
-                          {isCurrentFresh && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
-                              <span>✨</span>
+                        {isCurrentFresh && (
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-300/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none shadow-2xs">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               <span>NEW LEAD</span>
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
+                        <h3 className="font-extrabold text-ink text-base">
+                          <ProtectedData text={lead.name || "Anonymous Prospect"} />
+                        </h3>
                         <div className="font-mono text-ink-muted text-xs mt-0.5">
                           <ProtectedData text={lead.phoneNumber || "No phone"} />
                         </div>

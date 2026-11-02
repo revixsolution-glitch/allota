@@ -1,5 +1,6 @@
 import { AssignLeadsModal } from "@/components/AssignLeadsModal";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
+import { LeadCenterFilters } from "@/components/LeadCenterFilters";
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
@@ -92,6 +93,7 @@ export default async function AdminLeadsPage({
     unassigned?: string;
     employeeId?: string;
     search?: string;
+    status?: string;
     range?: string;
     from?: string;
     to?: string;
@@ -124,6 +126,8 @@ export default async function AdminLeadsPage({
 
   const unassignedOnly = params?.unassigned === "1";
   const repFilterId = params?.employeeId || "";
+  const selectedStatus =
+    params?.status && params.status !== "all" ? (params.status as LeadStatus) : null;
   const search = (params?.search || "").trim().toLowerCase();
   const requestedPage = Math.max(1, Number.parseInt(params?.page || "1", 10) || 1);
 
@@ -138,6 +142,9 @@ export default async function AdminLeadsPage({
     ...divisionWhere,
     ...companyScope,
   };
+  if (selectedStatus) {
+    leadWhere.status = selectedStatus;
+  }
   if (selectedSource) {
     if (selectedSource === LeadSource.META) {
       leadWhere.OR = [
@@ -374,16 +381,22 @@ export default async function AdminLeadsPage({
     search?: string | null;
     page?: number | null;
     unassigned?: boolean;
+    employeeId?: string | null;
+    status?: string | null;
   }) => {
     const s = overrides.source !== undefined ? overrides.source : (params?.source || null);
     const d = overrides.division !== undefined ? overrides.division : selectedDivision;
     const q = overrides.search !== undefined ? overrides.search : (params?.search || "");
     const onlyUnassigned = overrides.unassigned !== undefined ? overrides.unassigned : unassignedOnly;
+    const empId = overrides.employeeId !== undefined ? overrides.employeeId : repFilterId;
+    const st = overrides.status !== undefined ? overrides.status : selectedStatus;
     const filterChanged =
       overrides.unassigned !== undefined ||
       overrides.source !== undefined ||
       overrides.division !== undefined ||
-      overrides.search !== undefined;
+      overrides.search !== undefined ||
+      overrides.employeeId !== undefined ||
+      overrides.status !== undefined;
     const page = overrides.page !== undefined
       ? overrides.page
       : filterChanged
@@ -394,7 +407,8 @@ export default async function AdminLeadsPage({
     if (s && s !== "all") sp.set("source", s);
     if (d && d !== "ALL") sp.set("division", d);
     if (onlyUnassigned) sp.set("unassigned", "1");
-    else if (repFilterId) sp.set("employeeId", repFilterId);
+    else if (empId) sp.set("employeeId", empId);
+    if (st && st !== "all") sp.set("status", st);
     if (q && q.trim()) sp.set("search", q.trim());
     if (params?.range) sp.set("range", params.range);
     if (params?.from) sp.set("from", params.from);
@@ -700,12 +714,13 @@ export default async function AdminLeadsPage({
       >
         <div className="border-b border-line px-6 py-5 flex flex-col gap-4 bg-slate-50/50">
           {/* Search Bar + Quick Actions */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 ">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <form method="GET" action="/admin/leads" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
               <input type="hidden" name="source" value={selectedSource ?? "all"} />
               <input type="hidden" name="division" value={selectedDivision} />
               {unassignedOnly && <input type="hidden" name="unassigned" value="1" />}
               {repFilterId && !unassignedOnly && <input type="hidden" name="employeeId" value={repFilterId} />}
+              {selectedStatus && <input type="hidden" name="status" value={selectedStatus} />}
               {params?.range && <input type="hidden" name="range" value={params.range} />}
               {params?.from && <input type="hidden" name="from" value={params.from} />}
               {params?.to && <input type="hidden" name="to" value={params.to} />}
@@ -715,7 +730,7 @@ export default async function AdminLeadsPage({
                   name="search"
                   defaultValue={search}
                   placeholder="Search leads, phone, notes..."
-                  className="w-full sm:w-64 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                  className="w-full sm:w-60 rounded-xl border border-line bg-white px-3.5 py-1.5 text-xs text-ink neo-pressed focus:outline-none focus:ring-2 focus:ring-teal-500/40"
                 />
               </div>
               <button
@@ -733,6 +748,21 @@ export default async function AdminLeadsPage({
                 </Link>
               )}
             </form>
+
+            {/* Middle Filters: 1 for Employee / Representative, 1 for Status / Stage */}
+            <div className="flex items-center gap-2">
+              <LeadCenterFilters
+                employees={employees.map((e) => ({
+                  id: e.id,
+                  name: e.name,
+                  leadsCount: e._count.leads,
+                }))}
+                unassignedCount={unassignedInScope}
+                currentEmployeeId={repFilterId}
+                currentStatus={selectedStatus || "all"}
+                unassignedOnly={unassignedOnly}
+              />
+            </div>
 
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               {selectedSource && (
@@ -1009,20 +1039,21 @@ export default async function AdminLeadsPage({
                     {/* Lead & Contact */}
                     <td className="px-6 py-4 w-[280px] min-w-[260px]">
                       <div className="space-y-0.5">
-                        {!lead.assignedEmployeeId && (
-                          <span title="Unassigned" aria-label="Unassigned lead" className="mb-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-200" />
-                        )}
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-ink text-sm">
-                            <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
-                          </p>
+                        {/* Top-left widget tag: small NEW LEAD indicator until contacted */}
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {!lead.assignedEmployeeId && (
+                            <span title="Unassigned lead" className="h-2 w-2 rounded-full bg-red-500 ring-2 ring-red-200 shrink-0" />
+                          )}
                           {isFresh && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none">
-                              <span>✨</span>
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-300/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 whitespace-nowrap shrink-0 select-none shadow-2xs">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               <span>NEW LEAD</span>
                             </span>
                           )}
                         </div>
+                        <p className="font-bold text-ink text-sm leading-tight">
+                          <ProtectedData text={lead.name ?? "Unnamed Prospect"} />
+                        </p>
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <p className="text-xs font-mono text-ink-muted">
                             <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
