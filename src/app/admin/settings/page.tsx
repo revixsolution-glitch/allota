@@ -7,6 +7,7 @@ import { GradientText } from "@/components/GradientText";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
 import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import { PharmaHopersWebhookSection } from "@/components/PharmaHopersWebhookSection";
+import { SecretInput } from "@/components/SecretInput";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -543,12 +544,10 @@ export default async function AdminSettingsPage() {
               <p className="text-[11px] text-ink-muted">
                 Custom API key for this organization&apos;s audio call transcription, doctor intent scoring, and AI chat.
               </p>
-              <input
-                type="password"
+              <SecretInput
                 name="geminiApiKey"
                 defaultValue={settings.geminiApiKey || ""}
                 placeholder="Enter API key for AI use..."
-                className="w-full rounded-xl border border-line bg-white px-3.5 py-2 text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
               />
             </div>
 
@@ -587,12 +586,10 @@ export default async function AdminSettingsPage() {
                   <label className="block text-xs font-bold text-ink mb-1">
                     Meta App Secret
                   </label>
-                  <input
-                    type="password"
+                  <SecretInput
                     name="metaAppSecret"
                     defaultValue={settings.metaAppSecret || ""}
-                    placeholder="••••••••••••••••"
-                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
+                    placeholder="e.g. 00000000000000000000000000000000"
                   />
                   <p className="text-[10px] text-ink-faint mt-1">App Settings &gt; Basic</p>
                 </div>
@@ -600,12 +597,10 @@ export default async function AdminSettingsPage() {
                   <label className="block text-xs font-bold text-ink mb-1">
                     System User Access Token
                   </label>
-                  <input
-                    type="password"
+                  <SecretInput
                     name="metaAccessToken"
                     defaultValue={settings.metaAccessToken || settings.metaApiKey || ""}
                     placeholder="EAAG... (Never Expiring)"
-                    className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
                   />
                   <p className="text-[10px] text-ink-faint mt-1">Meta Business Suite System User</p>
                 </div>
@@ -680,24 +675,20 @@ export default async function AdminSettingsPage() {
                 <label className="block text-xs font-bold text-ink">
                   IndiaMART CRM Key
                 </label>
-                <input
-                  type="text"
+                <SecretInput
                   name="indiaMartApiKey"
                   defaultValue={settings.indiaMartApiKey || ""}
                   placeholder="mKey_9x8a7b6c5d4e3f..."
-                  className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
                 />
               </div>
               <div className="rounded-2xl border border-line bg-slate-50 p-3 space-y-1.5">
                 <label className="block text-xs font-bold text-ink">
                   Marg ERP / Billing Software Key
                 </label>
-                <input
-                  type="text"
+                <SecretInput
                   name="billingSoftwareApiKey"
                   defaultValue={settings.billingSoftwareApiKey || ""}
                   placeholder="Marg ERP 9+ Token"
-                  className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
                 />
               </div>
             </div>

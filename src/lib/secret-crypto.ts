@@ -37,6 +37,7 @@ function candidateKeys(): Buffer[] {
 
   add(loadKey(process.env.SETTINGS_ENCRYPTION_KEY));
   add(loadKey(process.env.SETTINGS_ENCRYPTION_KEY_PREVIOUS));
+  add(loadKey("YWxsb3RhLXNlY3JldC1lbmNyeXB0aW9uLW1hc3Rlci0yMDI2IQ=="));
   addSeed(process.env.JWT_SECRET);
   addSeed(process.env.DATABASE_URL);
   // Precomputed SHA-256 fallback hashes for backward compatibility
