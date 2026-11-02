@@ -144,11 +144,10 @@ STRICT SCOPE & GUARDRAIL:
     // 3. Call Google Gemini API
     if (apiKey && apiKey.length > 10 && !apiKey.includes("[SENSITIVE]")) {
       const candidateModels = [
-        "gemini-3.6-flash",
         "gemini-3.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-3.1-flash-lite",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        process.env.GEMINI_MODEL || "gemini-2.5-flash",
       ];
 
       for (const m of candidateModels) {

@@ -452,7 +452,7 @@ async function handleSync(req: NextRequest) {
     // Check which files already exist in database
     const existingCalls = await prisma.call.findMany({
       where: isKesrox ? undefined : { employee: { companyId: effectiveCompanyId } },
-      select: { id: true, recordingUrl: true, transcript: true, employeeId: true },
+      select: { id: true, recordingUrl: true, transcript: true, aiSummary: true, employeeId: true },
     });
     const existingUrlMap = new Map(existingCalls.map((c) => [c.recordingUrl, c]));
 
@@ -602,12 +602,15 @@ async function handleSync(req: NextRequest) {
           return (
             !existing ||
             !existing.transcript ||
-            existing.transcript.includes("Recording saved")
+            existing.transcript.includes("Recording saved") ||
+            existing.transcript.includes("Direct phone conversation with") ||
+            !existing.aiSummary ||
+            existing.aiSummary.includes("ke sath phone discussion record hua")
           );
         })
       : [];
 
-    const liveBatch = unverifiedFilesToSync.slice(0, 1);
+    const liveBatch = unverifiedFilesToSync.slice(0, 3);
 
     for (const f of liveBatch) {
       let rep = isKesrox
