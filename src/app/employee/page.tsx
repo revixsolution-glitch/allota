@@ -313,13 +313,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
         </div>
       </section>
 
-      {/* WhatsApp Business Phone Connector (Kesrox Employee Testing Only) */}
-      {isKesrox && (
-        <WhatsAppCompanionSection
-          initialPhone={employee?.phoneNumber || undefined}
-        />
-      )}
-
       {/* Field Telecalling Operational Insights (Pure Numbers - Strict Privacy on AI Summaries) */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-rose-500">

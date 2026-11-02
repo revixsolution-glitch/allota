@@ -23,10 +23,12 @@ export function WhatsAppCompanionSection({
   initialPhone,
   initialConnected = false,
   initialConnectedPhone,
+  onClose,
 }: {
   initialPhone?: string;
   initialConnected?: boolean;
   initialConnectedPhone?: string;
+  onClose?: () => void;
 }) {
   const rawInitial = cleanDigits(initialPhone || initialConnectedPhone).replace(/^91/, "");
   const initialLocalPhone = rawInitial === "9800000000" ? "" : rawInitial;
@@ -198,13 +200,23 @@ export function WhatsAppCompanionSection({
 
     return (
       <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-emerald-500/10 p-5 sm:p-6 shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20 backdrop-blur-md transition-all">
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-xl bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 transition cursor-pointer shadow-2xs"
+          >
+            ✕
+          </button>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             {/* Official WhatsApp Logo */}
-            <div className="flex h-12 w-12 items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-11 w-11 shadow-md shadow-emerald-500/20 rounded-full">
-                <path fill="#25D366" d="M24 4C12.95 4 4 12.95 4 24c0 3.53.92 6.85 2.53 9.74L4 44l10.55-2.48A19.86 19.86 0 0 0 24 44c11.05 0 20-8.95 20-20S35.05 4 24 4z"/>
-                <path fill="#FFF" d="M35.18 29.54c-.58-.29-3.44-1.7-3.97-1.9-.53-.19-.92-.29-1.31.29-.39.58-1.5 1.9-1.84 2.29-.34.39-.68.44-1.26.15-2.92-1.46-4.83-2.61-6.75-5.91-.51-.88.51-.82 1.46-2.72.16-.32.08-.6-.04-.84-.12-.24-1.07-2.58-1.47-3.53-.39-.93-.78-.8-1.07-.82h-.91c-.31 0-.82.12-1.25.58-.43.47-1.64 1.6-1.64 3.9 0 2.3 1.67 4.52 1.9 4.83.24.31 3.29 5.03 7.98 7.05 2.89 1.25 4.02 1.36 5.46 1.15 1.56-.23 3.44-1.4 3.92-2.76.49-1.36.49-2.52.34-2.76-.15-.24-.53-.39-1.11-.68z"/>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-emerald-200/80 shadow-xs shrink-0 p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-8 w-8 shrink-0">
+                <path fill="#25D366" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+                <path fill="#fff" d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.06 4.47.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.12-.27-.2-.57-.35z"/>
               </svg>
             </div>
 
@@ -253,13 +265,23 @@ export function WhatsAppCompanionSection({
   // 2. DISCONNECTED / SETUP STATE
   return (
     <section className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 p-5 sm:p-6 neo-panel space-y-4 shadow-sm">
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer shadow-2xs"
+        >
+          ✕
+        </button>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           {/* Official WhatsApp Logo */}
-          <div className="flex h-12 w-12 items-center justify-center shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-11 w-11 shadow-md shadow-emerald-500/20 rounded-full">
-              <path fill="#25D366" d="M24 4C12.95 4 4 12.95 4 24c0 3.53.92 6.85 2.53 9.74L4 44l10.55-2.48A19.86 19.86 0 0 0 24 44c11.05 0 20-8.95 20-20S35.05 4 24 4z"/>
-              <path fill="#FFF" d="M35.18 29.54c-.58-.29-3.44-1.7-3.97-1.9-.53-.19-.92-.29-1.31.29-.39.58-1.5 1.9-1.84 2.29-.34.39-.68.44-1.26.15-2.92-1.46-4.83-2.61-6.75-5.91-.51-.88.51-.82 1.46-2.72.16-.32.08-.6-.04-.84-.12-.24-1.07-2.58-1.47-3.53-.39-.93-.78-.8-1.07-.82h-.91c-.31 0-.82.12-1.25.58-.43.47-1.64 1.6-1.64 3.9 0 2.3 1.67 4.52 1.9 4.83.24.31 3.29 5.03 7.98 7.05 2.89 1.25 4.02 1.36 5.46 1.15 1.56-.23 3.44-1.4 3.92-2.76.49-1.36.49-2.52.34-2.76-.15-.24-.53-.39-1.11-.68z"/>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-emerald-200/80 shadow-xs shrink-0 p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-8 w-8 shrink-0">
+              <path fill="#25D366" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+              <path fill="#fff" d="M17.47 14.38c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.06 4.47.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.08-.12-.27-.2-.57-.35z"/>
             </svg>
           </div>
 

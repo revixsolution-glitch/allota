@@ -33,12 +33,27 @@ export default async function EmployeeLayout({
   // The business name entered when the company was onboarded.
   const displayTitle = company?.name?.trim() || "Allota AI";
 
+  const isKesrox = Boolean(
+    activeCompanyId === "cmubi8zf6000004l8y45hhuds" ||
+    company?.slug?.toLowerCase().includes("kesrox") ||
+    company?.name?.toLowerCase().includes("kesrox")
+  );
+
+  const employee = session?.employeeId
+    ? await prisma.employee.findUnique({
+        where: { id: session.employeeId },
+        select: { phoneNumber: true },
+      })
+    : null;
+
   return (
     <div className="min-h-screen">
       <AppShell
         title={displayTitle}
         portalType="Employee"
         navItems={navItems}
+        showWhatsAppConnector={isKesrox}
+        employeePhone={employee?.phoneNumber || undefined}
       >
         {children}
       </AppShell>
