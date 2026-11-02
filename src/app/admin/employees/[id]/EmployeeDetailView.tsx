@@ -14,6 +14,7 @@ import {
 import { markWhatsAppAlertSent, updateEmployeePhone } from "@/lib/admin-actions";
 import { craftAiWhatsAppMissedMessage } from "@/lib/call-helpers";
 import { CallIntelligenceDocumentModal } from "@/components/CallIntelligenceDocumentModal";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 function formatINR(amount: number): string {
   if (amount >= 10000000) {
@@ -894,15 +895,7 @@ export function EmployeeDetailView({
                         )}
                       </td>
                       <td className="py-3">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            l.division === "THIRD_PARTY"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {l.division === "THIRD_PARTY" ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge division={l.division} />
                       </td>
                       <td className="py-3 text-ink-muted">{l.phoneNumber || "—"}</td>
                       <td className="py-3">

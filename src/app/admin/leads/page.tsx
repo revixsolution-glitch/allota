@@ -1,6 +1,7 @@
 import { AssignLeadsModal } from "@/components/AssignLeadsModal";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import { LeadCenterFilters } from "@/components/LeadCenterFilters";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
@@ -1073,15 +1074,7 @@ export default async function AdminLeadsPage({
 
                     {/* Category (PCD Franchise vs Third-Party) */}
                     <td className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          isPcd
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-purple-100 text-purple-800"
-                        }`}
-                      >
-                        {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party Mfg"}
-                      </span>
+                      <CategoryBadge division={lead.division} />
                     </td>
 
                     {/* Platform / Source */}
@@ -1231,15 +1224,7 @@ export default async function AdminLeadsPage({
                       <ProtectedData text={lead.phoneNumber ?? "No phone recorded"} />
                     </div>
                   </div>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
-                      isPcd
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-purple-100 text-purple-800"
-                    }`}
-                  >
-                    {isPcd ? "🏢 PCD Franchise" : "🏭 Third-Party Mfg"}
-                  </span>
+                  <CategoryBadge division={lead.division} />
                 </div>
 
                 {/* Source & Actions Bar */}

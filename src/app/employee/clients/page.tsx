@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { GradientText } from "@/components/GradientText";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 export default async function EmployeeClientsPage({
   searchParams,
@@ -167,17 +168,7 @@ export default async function EmployeeClientsPage({
                       </td>
 
                       <td className="px-4 py-4">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            client.businessType === "THIRD_PARTY"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {client.businessType === "THIRD_PARTY"
-                            ? "🏭 Third-Party Mfg"
-                            : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge businessType={client.businessType} />
                       </td>
 
                       <td className="px-4 py-4">

@@ -15,6 +15,7 @@ import { GradientText } from "@/components/GradientText";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -584,15 +585,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
                         {/* Division Category */}
                         <td className="px-4 py-4 w-[160px] min-w-[150px] whitespace-nowrap">
-                          <span
-                            className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                              isThirdParty
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                          </span>
+                          <CategoryBadge division={lead.division} />
                         </td>
 
                         {/* Channel / Source */}
@@ -730,15 +723,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                             <span>{formatLeadDateTime(lead.createdAt)}</span>
                           </div>
                         </div>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
-                            isThirdParty
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge division={lead.division} />
                       </div>
 
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">

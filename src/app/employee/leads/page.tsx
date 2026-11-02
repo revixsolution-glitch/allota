@@ -15,6 +15,7 @@ import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -462,15 +463,7 @@ export default async function EmployeeLeadsPage({
 
                       {/* Division Category */}
                       <td className="px-3 py-3 w-[13%] min-w-[110px] whitespace-nowrap">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isThirdParty
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge division={lead.division} />
                       </td>
 
                       {/* Channel / Source */}
@@ -585,15 +578,7 @@ export default async function EmployeeLeadsPage({
                           <span>{formatLeadDateTime(lead.createdAt)}</span>
                         </div>
                       </div>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold shrink-0 ${
-                          isThirdParty
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                      </span>
+                      <CategoryBadge division={lead.division} />
                     </div>
 
                   {/* Badges strip: Source & Location */}

@@ -10,6 +10,7 @@ import { GradientText } from "@/components/GradientText";
 import { CLOSED_LEAD_STATUSES, startOfDay, endOfDay } from "@/lib/follow-up";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -369,15 +370,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
 
                       {/* Category */}
                       <td className="px-4 py-3.5">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isThirdParty
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge division={lead.division} />
                       </td>
 
                       {/* Channel / Source with Official Brand Logo */}
@@ -519,13 +512,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       <p className="font-mono text-ink-muted text-xs">{lead.phoneNumber}</p>
                     </div>
 
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                        isThirdParty ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {isThirdParty ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                    </span>
+                    <CategoryBadge division={lead.division} />
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2">

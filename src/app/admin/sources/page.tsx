@@ -5,6 +5,7 @@ import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { ExcelUploader } from "./ExcelUploader";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { SELECTABLE_SOURCES } from "@/lib/lead-sources";
+import { CategoryBadge } from "@/components/CategoryBadge";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -596,17 +597,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            batch.division === "THIRD_PARTY"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {batch.division === "THIRD_PARTY"
-                            ? "🏭 Third-Party Mfg"
-                            : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge division={batch.division} />
                       </td>
                       <td className="px-4 py-4 font-extrabold text-ink">
                         {batch.total} leads

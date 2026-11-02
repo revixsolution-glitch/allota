@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import {
   InsightsData,
   PcdClientRow,
@@ -1837,15 +1838,7 @@ export function InsightsDashboard({ data }: { data: InsightsData }) {
                         <p className="text-[10px] text-ink-faint font-normal">{rec.phoneNumber || "—"}</p>
                       </td>
                       <td className="py-3">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            rec.businessType === "THIRD_PARTY"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {rec.businessType === "THIRD_PARTY" ? "🏭 Third-Party Mfg" : "🏢 PCD Franchise"}
-                        </span>
+                        <CategoryBadge businessType={rec.businessType} />
                       </td>
                       <td className="py-3 font-mono font-bold text-primary">{rec.invoiceNumber}</td>
                       <td className="py-3">{rec.daysAsked} Days</td>
