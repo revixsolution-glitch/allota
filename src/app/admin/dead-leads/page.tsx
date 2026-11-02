@@ -9,7 +9,7 @@ import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
-import { formatLeadDateTime } from "@/lib/date-format";
+import { formatLeadDateTime, formatLeadDateParts } from "@/lib/date-format";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 
 async function deleteLeadAction(formData: FormData) {
@@ -285,28 +285,38 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1200px]">
+            <table className="w-full text-left text-xs min-w-[1050px] table-fixed">
+              <colgroup>
+                <col className="w-[210px]" />
+                <col className="w-[120px]" />
+                <col className="w-[160px]" />
+                <col className="w-[180px]" />
+                <col className="w-[140px]" />
+                <col className="w-[130px]" />
+                <col className="w-[150px]" />
+              </colgroup>
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[280px] min-w-[260px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Representative</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Last Activity</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[210px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[120px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[160px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-4 w-[180px] whitespace-nowrap">Representative</th>
+                  <th className="py-3 px-4 w-[140px] whitespace-nowrap">Last Activity</th>
+                  <th className="py-3 px-4 w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[150px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {paginatedDeadLeads.map((lead) => {
                   const callWithSummary = lead.calls.find((c) => c.aiSummary && c.aiSummary.trim().length > 0);
                   const isIrrelevant = lead.deadReason === "IRRELEVANT";
+                  const { dateStr, timeStr } = formatLeadDateParts(lead.deadAt || lead.updatedAt);
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect */}
-                      <td className="py-3 px-4 w-[280px] min-w-[260px]">
-                        <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700">
+                      <td className="py-3 px-4 w-[210px]">
+                        <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700 truncate block">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </Link>
                         <p className="font-mono text-[11px] text-ink-muted">
@@ -315,14 +325,14 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 w-[150px] min-w-[140px] whitespace-nowrap">
+                      <td className="py-3 px-4 w-[120px] whitespace-nowrap">
                         {isIrrelevant ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
                             <span>Irrelevant</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700 shadow-2xs">
                             <span>🔴</span>
                             <span>Dead</span>
                           </span>
@@ -330,26 +340,31 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px]">
+                      <td className="py-3 px-4 w-[160px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Representative */}
-                      <td className="py-3 px-4 w-[180px] min-w-[170px] font-semibold text-ink whitespace-nowrap">
+                      <td className="py-3 px-4 w-[180px] font-semibold text-ink whitespace-nowrap truncate">
                         {lead.assignedEmployee?.name || (
                           <span className="text-ink-faint">Unassigned</span>
                         )}
                       </td>
 
-                      {/* Last Activity */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px] text-ink-muted whitespace-nowrap text-xs">
-                        {lead.deadAt
-                          ? formatLeadDateTime(lead.deadAt)
-                          : formatLeadDateTime(lead.updatedAt)}
+                      {/* Last Activity (Date with Time Stacked Below) */}
+                      <td className="py-3 px-4 w-[140px] text-xs whitespace-nowrap">
+                        <div className="flex flex-col leading-tight">
+                          <span className="font-semibold text-ink">{dateStr || "—"}</span>
+                          {timeStr && (
+                            <span className="text-[11px] text-ink-faint font-mono mt-0.5">
+                              {timeStr}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Remarks (Global Component) */}
-                      <td className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">
+                      <td className="py-3 px-4 w-[130px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}

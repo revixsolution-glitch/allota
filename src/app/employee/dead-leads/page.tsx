@@ -8,7 +8,7 @@ import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
-import { formatLeadDateTime } from "@/lib/date-format";
+import { formatLeadDateTime, formatLeadDateParts } from "@/lib/date-format";
 
 export const dynamic = "force-dynamic";
 
@@ -263,30 +263,37 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1100px]">
+            <table className="w-full text-left text-xs min-w-[960px] table-fixed">
+              <colgroup>
+                <col className="w-[210px]" />
+                <col className="w-[120px]" />
+                <col className="w-[170px]" />
+                <col className="w-[140px]" />
+                <col className="w-[130px]" />
+                <col className="w-[150px]" />
+              </colgroup>
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[280px] min-w-[260px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[180px] min-w-[160px] whitespace-nowrap">Closed Date</th>
-                  <th className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-4 w-[210px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-4 w-[120px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-4 w-[170px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-4 w-[140px] whitespace-nowrap">Closed Date</th>
+                  <th className="py-3 px-4 w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-4 w-[150px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {paginatedDeadLeads.map((lead) => {
                   const cleanPhone = (lead.phoneNumber || "").replace(/\D/g, "");
                   const hasRemarks = lead.remarks.length > 0;
-                  const latestRemark = hasRemarks ? lead.remarks[0] : null;
-                  const olderRemarks = hasRemarks ? lead.remarks.slice(1) : [];
                   const isIrrelevant = lead.deadReason === "IRRELEVANT";
+                  const { dateStr, timeStr } = formatLeadDateParts(lead.deadAt || lead.updatedAt);
 
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-ink">
+                      <td className="py-3 px-4 w-[210px]">
+                        <div className="font-bold text-ink truncate">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </div>
                         <p className="font-mono text-[11px] text-ink-muted">
@@ -295,7 +302,7 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 w-[120px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -310,19 +317,24 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[180px] min-w-[170px]">
+                      <td className="py-3 px-4 w-[170px]">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
-                      {/* Closed Date */}
-                      <td className="py-3 px-4 w-[180px] min-w-[160px] text-ink-muted whitespace-nowrap text-xs">
-                        {lead.deadAt
-                          ? formatLeadDateTime(lead.deadAt)
-                          : formatLeadDateTime(lead.updatedAt)}
+                      {/* Closed Date (Date with Time Stacked Below) */}
+                      <td className="py-3 px-4 w-[140px] text-xs whitespace-nowrap">
+                        <div className="flex flex-col leading-tight">
+                          <span className="font-semibold text-ink">{dateStr || "—"}</span>
+                          {timeStr && (
+                            <span className="text-[11px] text-ink-faint font-mono mt-0.5">
+                              {timeStr}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Remarks */}
-                      <td className="py-3 px-4 w-[140px] min-w-[130px] whitespace-nowrap">
+                      <td className="py-3 px-4 w-[130px] whitespace-nowrap">
                         <details className="inline-block text-left group">
                           <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
                             <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
