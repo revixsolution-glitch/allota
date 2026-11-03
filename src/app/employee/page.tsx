@@ -16,6 +16,7 @@ import { SourceBadge } from "@/components/SourceBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { WhatsAppCompanionSection } from "@/components/WhatsAppCompanionSection";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 
 interface EmployeeDashboardPageProps {
   searchParams?: Promise<{
@@ -98,6 +99,19 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
         remarks: {
           include: { employee: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
+        },
+        calls: {
+          select: {
+            id: true,
+            aiSummary: true,
+            transcript: true,
+            occurredAt: true,
+            durationSec: true,
+            missed: true,
+            recordingUrl: true,
+          },
+          orderBy: { occurredAt: "desc" },
+          take: 3,
         },
       },
       orderBy: { createdAt: "desc" },
@@ -485,12 +499,12 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                   <tr>
-                    <th className="px-3.5 py-3 min-w-[180px]">Prospect &amp; Contact</th>
-                    <th className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">Category</th>
-                    <th className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">Platform</th>
-                    <th className="px-3 py-3 w-[220px] min-w-[150px] whitespace-nowrap">Follow-Up Action</th>
-                    <th className="px-2 py-3 w-px min-w-[85px] whitespace-nowrap">Remarks</th>
-                    <th className="px-3 py-3 w-px min-w-[90px] text-right whitespace-nowrap">Status</th>
+                    <th className="px-3.5 py-3 w-[24%] min-w-[200px] whitespace-nowrap">Prospect &amp; Contact</th>
+                    <th className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">Category</th>
+                    <th className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">Platform</th>
+                    <th className="px-3 py-3 w-[24%] min-w-[190px] whitespace-nowrap">Follow-Up Action</th>
+                    <th className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">Remarks</th>
+                    <th className="px-3 py-3 w-[14%] min-w-[110px] text-right whitespace-nowrap">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -533,7 +547,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         )}
                         <tr className="hover:bg-slate-50/70 transition">
                           {/* Prospect & Contact */}
-                          <td className="px-3.5 py-3 min-w-[180px] relative">
+                          <td className="px-3.5 py-3 w-[24%] min-w-[200px] relative">
                             {/* Floating small NEW tag on top-left, floating outside flow */}
                             {isCurrentFresh && (
                               <span
@@ -584,17 +598,17 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                           </td>
 
                         {/* Division Category */}
-                        <td className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">
+                        <td className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">
                           <CategoryBadge division={lead.division} />
                         </td>
 
                         {/* Channel / Source */}
-                        <td className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">
+                        <td className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">
                           <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                         </td>
 
                         {/* Follow Up */}
-                        <td className="px-3 py-3 w-[220px] min-w-[150px]">
+                        <td className="px-3 py-3 w-[24%] min-w-[190px]">
                           <FollowUpPicker
                             leadId={lead.id}
                             followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
@@ -603,63 +617,35 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                         </td>
 
                         {/* Remarks */}
-                        <td className="px-2 py-3 w-px min-w-[85px] whitespace-nowrap">
-                          <details className="inline-block text-left group">
-                            <summary className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer select-none">
-                              <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              <span>Remarks</span>
-                              <span className="text-[10px] text-amber-600 font-semibold">
-                                ({lead.remarks.length})
-                              </span>
-                            </summary>
-
-                            <div className="absolute mt-2 w-72 rounded-2xl bg-white p-4 shadow-xl border border-line z-20">
-                              <h4 className="text-xs font-extrabold text-ink mb-2">
-                                Remarks for {lead.name || "this lead"}
-                              </h4>
-
-                              {lead.remarks.length > 0 && (
-                                <div className="mb-3 max-h-40 overflow-y-auto space-y-2 pr-1">
-                                  {lead.remarks.map((r) => (
-                                    <div key={r.id} className="rounded-xl bg-slate-50 border border-line-soft p-2">
-                                      <p className="text-[11px] text-ink leading-relaxed">{r.remark}</p>
-                                      <p className="mt-1 text-[10px] text-ink-faint">
-                                        {r.employee.name} • {new Date(r.createdAt).toLocaleString("en-IN", {
-                                          day: "numeric",
-                                          month: "short",
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        })}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <form action={addLeadRemark} className="space-y-2">
-                                <input type="hidden" name="leadId" value={lead.id} />
-                                <textarea
-                                  name="remark"
-                                  rows={2}
-                                  required
-                                  placeholder="Write a short remark for admin..."
-                                  className="w-full rounded-xl border border-line p-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-amber-500"
-                                />
-                                <button
-                                  type="submit"
-                                  className="w-full h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition cursor-pointer"
-                                >
-                                  Add Remark
-                                </button>
-                              </form>
-                            </div>
-                          </details>
+                        <td className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">
+                          <LeadRemarksModal
+                            leadId={lead.id}
+                            leadName={lead.name ?? "Unnamed Prospect"}
+                            leadPhone={lead.phoneNumber ?? ""}
+                            leadStatus={lead.status}
+                            followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                            remarks={lead.remarks.map((r) => ({
+                              id: r.id,
+                              remark: r.remark,
+                              createdAt: r.createdAt.toISOString(),
+                              employeeName: r.employee.name,
+                            }))}
+                            callSummaries={lead.calls
+                              .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                              .map((c) => ({
+                                id: c.id,
+                                aiSummary: c.aiSummary,
+                                transcript: c.transcript,
+                                occurredAt: c.occurredAt.toISOString(),
+                                durationSec: c.durationSec,
+                                missed: c.missed,
+                                recordingUrl: c.recordingUrl,
+                              }))}
+                          />
                         </td>
 
                         {/* Status: Active / Converted / Dead */}
-                        <td className="px-3 py-3 w-px min-w-[90px] text-right whitespace-nowrap">
+                        <td className="px-3 py-3 w-[14%] min-w-[110px] text-right whitespace-nowrap">
                           <div className="inline-flex justify-end">
                             <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} layout="vertical" />
                           </div>
@@ -728,41 +714,30 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
-                      <details className="inline-block text-left group">
-                        <summary className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800 cursor-pointer select-none">
-                          <svg className="h-3.5 w-3.5 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Remarks ({lead.remarks.length})</span>
-                        </summary>
-                        <div className="mt-2 rounded-xl bg-white p-3 shadow-md border border-line">
-                          {lead.remarks.length > 0 && (
-                            <div className="mb-2 max-h-32 overflow-y-auto space-y-1.5">
-                              {lead.remarks.map((r) => (
-                                <p key={r.id} className="text-[11px] text-ink bg-slate-50 p-1.5 rounded">
-                                  {r.remark}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-                          <form action={addLeadRemark} className="space-y-1.5">
-                            <input type="hidden" name="leadId" value={lead.id} />
-                            <textarea
-                              name="remark"
-                              rows={2}
-                              required
-                              placeholder="Add quick remark..."
-                              className="w-full rounded-lg border border-line p-1.5 text-xs text-ink"
-                            />
-                            <button
-                              type="submit"
-                              className="w-full py-1 rounded-lg bg-amber-600 text-white text-xs font-bold"
-                            >
-                              Add Remark
-                            </button>
-                          </form>
-                        </div>
-                      </details>
+                      <LeadRemarksModal
+                        leadId={lead.id}
+                        leadName={lead.name ?? "Unnamed Prospect"}
+                        leadPhone={lead.phoneNumber ?? ""}
+                        leadStatus={lead.status}
+                        followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
+                        remarks={lead.remarks.map((r) => ({
+                          id: r.id,
+                          remark: r.remark,
+                          createdAt: r.createdAt.toISOString(),
+                          employeeName: r.employee.name,
+                        }))}
+                        callSummaries={lead.calls
+                          .filter((c) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                          .map((c) => ({
+                            id: c.id,
+                            aiSummary: c.aiSummary,
+                            transcript: c.transcript,
+                            occurredAt: c.occurredAt.toISOString(),
+                            durationSec: c.durationSec,
+                            missed: c.missed,
+                            recordingUrl: c.recordingUrl,
+                          }))}
+                      />
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line-soft">

@@ -1022,12 +1022,12 @@ export default async function AdminLeadsPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <tr>
-                <th className="px-3.5 py-3 min-w-[180px]">Lead &amp; Contact</th>
-                <th className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">Category</th>
-                <th className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">Platform</th>
-                <th className="px-3.5 py-3 w-[220px] min-w-[160px] whitespace-nowrap">Assigned Rep</th>
-                <th className="px-2 py-3 w-px min-w-[85px] whitespace-nowrap">Remarks</th>
-                <th className="px-3 py-3 w-px min-w-[110px] whitespace-nowrap">Status</th>
+                <th className="px-3.5 py-3 w-[24%] min-w-[200px] whitespace-nowrap">Lead &amp; Contact</th>
+                <th className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">Category</th>
+                <th className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">Platform</th>
+                <th className="px-3.5 py-3 w-[24%] min-w-[190px] whitespace-nowrap">Assigned Rep</th>
+                <th className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">Remarks</th>
+                <th className="px-3 py-3 w-[14%] min-w-[110px] whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -1042,7 +1042,7 @@ export default async function AdminLeadsPage({
                 return (
                   <tr key={lead.id} className="hover:bg-slate-50/60 transition">
                     {/* Lead & Contact */}
-                    <td className="px-3.5 py-3 w-[25%] min-w-[190px] relative">
+                    <td className="px-3.5 py-3 w-[24%] min-w-[200px] relative">
                       {/* Floating small NEW tag on top-left, floating outside flow */}
                       {isFresh && (
                         <span
@@ -1073,12 +1073,12 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Category (PCD Franchise vs Third-Party) */}
-                    <td className="px-1.5 py-3 w-px min-w-[68px] text-center whitespace-nowrap">
+                    <td className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">
                       <CategoryBadge division={lead.division} />
                     </td>
 
                     {/* Platform / Source */}
-                    <td className="px-2 py-3 w-px min-w-[105px] whitespace-nowrap">
+                    <td className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold neo-pressed border border-line text-ink">
                         <span className="flex items-center justify-center shrink-0">{getSourceIconComponent(lead.source)}</span>
                         <span>{sourceMeta?.shortLabel ?? lead.source}</span>
@@ -1086,7 +1086,7 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Assigned Representative */}
-                    <td className="px-3.5 py-3 w-[20%] min-w-[160px]">
+                    <td className="px-3.5 py-3 w-[24%] min-w-[190px]">
                       <form action={updateLead} className="flex items-center gap-1.5">
                         <input type="hidden" name="leadId" value={lead.id} />
                         <input type="hidden" name="status" value={lead.status} />
@@ -1113,7 +1113,7 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Remarks (interactive popup modal) */}
-                    <td className="px-3 py-3 w-[13%] min-w-[95px] whitespace-nowrap">
+                    <td className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">
                       <LeadRemarksModal
                         leadId={lead.id}
                         leadName={lead.name ?? "Unnamed Prospect"}
@@ -1143,7 +1143,7 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Status: Active (green) / Dead (red) / Irrelevant (amber) / Fresh (slate) */}
-                    <td className="px-3.5 py-3 w-[15%] min-w-[115px] whitespace-nowrap">
+                    <td className="px-3 py-3 w-[14%] min-w-[110px] whitespace-nowrap">
                       {lead.status === LeadStatus.NOT_INTERESTED ? (
                         lead.deadReason === "IRRELEVANT" ? (
                           <Link
