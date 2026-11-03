@@ -24,6 +24,7 @@ interface EmployeeDashboardPageProps {
     from?: string;
     to?: string;
     page?: string;
+    search?: string;
   }>;
 }
 
@@ -232,10 +233,35 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     !l.followUpAt &&
     (l._count?.calls || 0) === 0;
 
-  const freshCount = allLeads.filter(isFreshLead).length;
+  const search = (searchParams.search || "").trim().toLowerCase();
+  const cleanSearchDigits = search.replace(/\D/g, "");
+
+  // Search filter across assigned leads (supports digit-normalized phone search)
+  const searchedLeads = search
+    ? allLeads.filter((l) => {
+        const name = (l.name || "").toLowerCase();
+        const phone = (l.phoneNumber || "").toLowerCase();
+        const cleanPhoneDigits = phone.replace(/\D/g, "");
+        const city = (l.city || "").toLowerCase();
+        const state = (l.state || "").toLowerCase();
+        const details = (l.inquiryDetails || "").toLowerCase();
+        const phoneMatches =
+          phone.includes(search) ||
+          (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
+        return (
+          name.includes(search) ||
+          phoneMatches ||
+          city.includes(search) ||
+          state.includes(search) ||
+          details.includes(search)
+        );
+      })
+    : allLeads;
+
+  const freshCount = searchedLeads.filter(isFreshLead).length;
 
   // Solid ordering: Fresh uncontacted leads always float to the top
-  const sortedLeads = [...allLeads].sort((a, b) => {
+  const sortedLeads = [...searchedLeads].sort((a, b) => {
     const aFresh = isFreshLead(a);
     const bFresh = isFreshLead(b);
     if (aFresh !== bFresh) return aFresh ? -1 : 1;
@@ -254,6 +280,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     if (searchParams.range) sp.set("range", searchParams.range);
     if (searchParams.from) sp.set("from", searchParams.from);
     if (searchParams.to) sp.set("to", searchParams.to);
+    if (searchParams.search) sp.set("search", searchParams.search);
     if (p > 1) sp.set("page", String(p));
     const qs = sp.toString();
     return qs ? `/employee?${qs}` : "/employee";
@@ -470,19 +497,43 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
 
       {/* Assigned Leads Allotment Desk Preview */}
       <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base sm:text-lg font-extrabold text-ink">
               My Assigned Inquiries Workdesk
             </h2>
           </div>
-          <Link
-            href="/employee/leads"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 self-start sm:self-auto"
-          >
-            <span>View All {totalLeads} Allotted Leads</span>
-            <span>&rarr;</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <form method="GET" action="/employee" className="relative flex items-center">
+              {searchParams.range && <input type="hidden" name="range" value={searchParams.range} />}
+              {searchParams.from && <input type="hidden" name="from" value={searchParams.from} />}
+              {searchParams.to && <input type="hidden" name="to" value={searchParams.to} />}
+              <span className="absolute left-3 text-slate-400 text-xs select-none">🔍</span>
+              <input
+                type="text"
+                name="search"
+                defaultValue={searchParams.search || ""}
+                placeholder="Search name, phone..."
+                className="w-44 sm:w-60 rounded-xl border border-line bg-white pl-8 pr-7 py-1.5 text-xs font-medium text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary shadow-2xs"
+              />
+              {search && (
+                <Link
+                  href="/employee"
+                  title="Clear search"
+                  className="absolute right-2.5 text-xs font-bold text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </Link>
+              )}
+            </form>
+            <Link
+              href="/employee/leads"
+              className="text-xs font-bold text-primary hover:underline flex items-center gap-1 self-start sm:self-auto shrink-0"
+            >
+              <span>View All {totalLeads} Allotted Leads</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
         </div>
 
         {leads.length === 0 ? (

@@ -103,18 +103,23 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
     orderBy: [{ deadAt: "desc" }, { updatedAt: "desc" }],
   });
 
-  // Apply search filter if present
+  // Apply search filter if present (supports digit-normalized phone search)
   let filteredBySearch = allDeadLeads;
   if (search) {
+    const cleanSearchDigits = search.replace(/\D/g, "");
     filteredBySearch = filteredBySearch.filter((l) => {
       const name = (l.name || "").toLowerCase();
       const phone = (l.phoneNumber || "").toLowerCase();
+      const cleanPhoneDigits = phone.replace(/\D/g, "");
       const details = (l.inquiryDetails || "").toLowerCase();
       const rep = (l.assignedEmployee?.name || "").toLowerCase();
       const city = (l.city || "").toLowerCase();
+      const phoneMatches =
+        phone.includes(search) ||
+        (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
       return (
         name.includes(search) ||
-        phone.includes(search) ||
+        phoneMatches ||
         details.includes(search) ||
         rep.includes(search) ||
         city.includes(search)

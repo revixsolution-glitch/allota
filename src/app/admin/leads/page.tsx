@@ -138,15 +138,17 @@ export default async function AdminLeadsPage({
     params?.to
   );
 
-  // Base where clause for filtering leads table and pipeline status
+  // Base where clause for filtering leads table and pipeline status.
+  // When a search query is active, search across all sources/divisions so no lead is hidden by filters.
+  const isSearchActive = Boolean(search);
   const leadWhere: Record<string, any> = {
-    ...divisionWhere,
+    ...(isSearchActive ? {} : divisionWhere),
     ...companyScope,
   };
-  if (selectedStatus) {
+  if (selectedStatus && !isSearchActive) {
     leadWhere.status = selectedStatus;
   }
-  if (selectedSource) {
+  if (selectedSource && !isSearchActive) {
     if (selectedSource === LeadSource.META) {
       leadWhere.OR = [
         { source: LeadSource.META },
@@ -163,16 +165,18 @@ export default async function AdminLeadsPage({
       leadWhere.source = selectedSource;
     }
   }
-  if (unassignedOnly) {
+  if (unassignedOnly && !isSearchActive) {
     leadWhere.assignedEmployeeId = null;
-  } else if (repFilterId) {
+  } else if (repFilterId && !isSearchActive) {
     leadWhere.assignedEmployeeId = repFilterId;
   }
   const repScope = repFilterId && !unassignedOnly ? { assignedEmployeeId: repFilterId } : {};
-  if (dateFilter.start && dateFilter.end) {
-    leadWhere.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
-  } else if (dateFilter.start) {
-    leadWhere.createdAt = { gte: dateFilter.start };
+  if (!isSearchActive) {
+    if (dateFilter.start && dateFilter.end) {
+      leadWhere.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
+    } else if (dateFilter.start) {
+      leadWhere.createdAt = { gte: dateFilter.start };
+    }
   }
 
   // Fetch all live data in parallel using pure database logic
@@ -352,16 +356,21 @@ export default async function AdminLeadsPage({
     statusCounts.map((item) => [item.status, item._count._all])
   );
 
-  // Client-side search filtering if search query exists
+  // Client-side search filtering with digit-normalized phone matching
+  const cleanSearchDigits = search.replace(/\D/g, "");
   const filteredLeads = search
     ? leads.filter((l) => {
         const name = (l.name || "").toLowerCase();
         const phone = (l.phoneNumber || "").toLowerCase();
+        const cleanPhoneDigits = phone.replace(/\D/g, "");
         const notes = (extractLeadData(l.rawPayload) || l.inquiryDetails || "").toLowerCase();
         const rep = (l.assignedEmployee?.name || "").toLowerCase();
+        const phoneMatches =
+          phone.includes(search) ||
+          (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
         return (
           name.includes(search) ||
-          phone.includes(search) ||
+          phoneMatches ||
           notes.includes(search) ||
           rep.includes(search)
         );

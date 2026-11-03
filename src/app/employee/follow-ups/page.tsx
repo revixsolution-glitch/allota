@@ -111,16 +111,21 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
     visibleLeads = upcomingList;
   }
 
-  // 3. Apply search filter if query is present
+  // 3. Apply search filter if query is present (supports digit-normalized phone search)
   if (search) {
+    const cleanSearchDigits = search.replace(/\D/g, "");
     visibleLeads = visibleLeads.filter((l) => {
       const name = (l.name || "").toLowerCase();
       const phone = (l.phoneNumber || "").toLowerCase();
+      const cleanPhoneDigits = phone.replace(/\D/g, "");
       const details = (l.inquiryDetails || "").toLowerCase();
       const city = (l.city || "").toLowerCase();
+      const phoneMatches =
+        phone.includes(search) ||
+        (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
       return (
         name.includes(search) ||
-        phone.includes(search) ||
+        phoneMatches ||
         details.includes(search) ||
         city.includes(search)
       );

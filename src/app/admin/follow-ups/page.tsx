@@ -106,13 +106,18 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
     visibleLogs = upcomingList;
   }
 
-  // 2. Search filter
+  // 2. Search filter (supports digit-normalized phone search)
   if (search) {
+    const cleanSearchDigits = search.replace(/\D/g, "");
     visibleLogs = visibleLogs.filter((l) => {
       const name = (l.lead.name || "").toLowerCase();
       const phone = (l.lead.phoneNumber || "").toLowerCase();
+      const cleanPhoneDigits = phone.replace(/\D/g, "");
       const rep = (l.employee.name || "").toLowerCase();
-      return name.includes(search) || phone.includes(search) || rep.includes(search);
+      const phoneMatches =
+        phone.includes(search) ||
+        (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
+      return name.includes(search) || phoneMatches || rep.includes(search);
     });
   }
 

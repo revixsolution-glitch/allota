@@ -59,11 +59,11 @@ export default async function EmployeeLeadsPage({
     status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
   };
 
-  if (selectedDivision === "PCD_FRANCHISE" || selectedDivision === "THIRD_PARTY") {
+  if (!search && (selectedDivision === "PCD_FRANCHISE" || selectedDivision === "THIRD_PARTY")) {
     where.division = selectedDivision;
   }
 
-  if (params?.range && params.range !== "all_time") {
+  if (!search && params?.range && params.range !== "all_time") {
     if (dateFilter.start && dateFilter.end) {
       where.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
     } else if (dateFilter.start) {
@@ -119,17 +119,22 @@ export default async function EmployeeLeadsPage({
     divisionCounts.find((d) => d.division === "THIRD_PARTY")?._count._all || 0;
   const totalLeads = pcdCount + tpCount;
 
-  // Filter leads if search query present
+  // Filter leads if search query present (supports digit-normalized phone matching)
+  const cleanSearchDigits = search.replace(/\D/g, "");
   const searchedLeads = search
     ? leads.filter((l) => {
         const name = (l.name || "").toLowerCase();
         const phone = (l.phoneNumber || "").toLowerCase();
+        const cleanPhoneDigits = phone.replace(/\D/g, "");
         const city = (l.city || "").toLowerCase();
         const state = (l.state || "").toLowerCase();
         const details = (l.inquiryDetails || "").toLowerCase();
+        const phoneMatches =
+          phone.includes(search) ||
+          (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
         return (
           name.includes(search) ||
-          phone.includes(search) ||
+          phoneMatches ||
           city.includes(search) ||
           state.includes(search) ||
           details.includes(search)

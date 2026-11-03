@@ -93,18 +93,23 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
     }),
   ]);
 
-  // Apply search query across prospect name, phone, city, state and employee remarks
+  // Apply search query across prospect name, phone (digit-normalized), city, state and employee remarks
   let filteredBySearch = allDeadLeads;
   if (search) {
+    const cleanSearchDigits = search.replace(/\D/g, "");
     filteredBySearch = filteredBySearch.filter((l) => {
       const name = (l.name || "").toLowerCase();
       const phone = (l.phoneNumber || "").toLowerCase();
+      const cleanPhoneDigits = phone.replace(/\D/g, "");
       const details = (l.inquiryDetails || "").toLowerCase();
       const city = (l.city || "").toLowerCase();
       const remarksText = l.remarks.map((r) => (r.remark || "").toLowerCase()).join(" ");
+      const phoneMatches =
+        phone.includes(search) ||
+        (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
       return (
         name.includes(search) ||
-        phone.includes(search) ||
+        phoneMatches ||
         details.includes(search) ||
         city.includes(search) ||
         remarksText.includes(search)
