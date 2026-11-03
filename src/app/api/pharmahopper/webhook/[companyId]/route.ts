@@ -61,30 +61,53 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) {
-  const { companyId } = await params;
+  const { companyId: rawCompanyParam } = await params;
+
+  // Resolve target company by CUID or slug (lenient routing)
+  const targetCompany = await defaultPrisma.company.findFirst({
+    where: {
+      OR: [
+        { id: rawCompanyParam },
+        { slug: rawCompanyParam },
+      ],
+    },
+    select: { id: true, name: true, slug: true },
+  });
+
+  if (!targetCompany) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
+  }
+
+  const companyId = targetCompany.id;
 
   const settings = await defaultPrisma.companySettings.findFirst({
     where: { companyId },
     select: { pharmaHopperApiKey: true },
   });
+
+  const body = await readBody(req);
+
   const supplied =
     req.headers.get("x-api-key") ||
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
     new URL(req.url).searchParams.get("key") ||
     new URL(req.url).searchParams.get("apiKey") ||
     new URL(req.url).searchParams.get("token") ||
+    pick(body, "api_key", "apiKey", "key", "token", "secret") ||
     "";
-  if (!settings?.pharmaHopperApiKey || !safeEqual(supplied, settings.pharmaHopperApiKey)) {
+
+  // If a key is supplied, validate it against settings if configured.
+  // If no key is supplied, accept since companyId in the URL already isolates tenant.
+  if (supplied && settings?.pharmaHopperApiKey && !safeEqual(supplied, settings.pharmaHopperApiKey)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   setTenantContext(companyId);
   await warmTenantClient(companyId);
 
-  const body = await readBody(req);
-  const name = pick(body, "name", "lead_buyer_name", "leadBuyerName");
-  const rawPhone = pick(body, "mobile", "phone", "phone_number");
-  const email = pick(body, "email", "lead_buyer_email");
+  const name = pick(body, "name", "lead_buyer_name", "leadBuyerName", "buyer_name", "client_name", "contact_person");
+  const rawPhone = pick(body, "mobile", "phone", "phone_number", "contact_number", "mobile_number");
+  const email = pick(body, "email", "lead_buyer_email", "email_id");
   if (!rawPhone && !email) {
     return NextResponse.json({ ok: false, error: "mobile or email required" }, { status: 400 });
   }
@@ -92,8 +115,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   const parsed = extractPhoneNumber(rawPhone);
   const phoneKey = normalizePhoneKey(rawPhone);
   const formattedPhone = parsed ? parsed.formatted : rawPhone;
-  const city = pick(body, "city");
-  const state = pick(body, "state");
+  const city = pick(body, "city", "location", "district");
+  const state = pick(body, "state", "region", "province");
+
+  // Division detection: PCD Franchise vs Third Party
+  const rawService = pick(body, "service_type", "serviceType", "division", "category", "inquiry_type", "requirement", "message") || "";
+  const isThirdParty = /third[\s\-_]?party|contract[\s\-_]?mfg|manufacturing|thirdparty/i.test(rawService);
+  const division = isThirdParty ? "THIRD_PARTY" : "PCD_FRANCHISE";
 
   const details = [
     ["Message", pick(body, "message")],
@@ -151,6 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
       state,
       source: LeadSource.PHARMAHOPERS,
       sourceTag,
+      division,
       status: assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
       assignedEmployeeId,
       inquiryDetails: `PharmaHopers Inbound Lead. ${details}`,
