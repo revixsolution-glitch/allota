@@ -70,11 +70,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     clientCount,
     allLeads,
     divisionStats,
-    callsToday,
     totalCallsCount,
-    allTimeCallsCount,
-    callsPickedCount,
-    callsMissedCount,
     missedCallsQueue,
     company,
     pendingTasks,
@@ -128,33 +124,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     prisma.call.count({
       where: {
         employeeId,
-        ...(dateFilter.preset !== "all_time"
-          ? callDateFilter
-          : { occurredAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } }),
-      },
-    }),
-    prisma.call.count({
-      where: {
-        employeeId,
-        ...callDateFilter,
-      },
-    }),
-    prisma.call.count({
-      where: {
-        employeeId,
-      },
-    }),
-    prisma.call.count({
-      where: {
-        employeeId,
-        missed: false,
-        ...callDateFilter,
-      },
-    }),
-    prisma.call.count({
-      where: {
-        employeeId,
-        missed: true,
         ...callDateFilter,
       },
     }),
@@ -297,8 +266,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     company?.name?.toLowerCase().includes("kesrox")
   );
 
-  const answerRate = totalCallsCount > 0 ? Math.round((callsPickedCount / totalCallsCount) * 100) : 0;
-
   return (
     <div className="space-y-7">
       {/* Top Rep Greeting Banner */}
@@ -351,37 +318,6 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
               <p className="mt-1 text-2xl font-black text-emerald-700">{totalCallsCount}</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Field Telecalling Operational Insights (Pure Numbers - Strict Privacy on AI Summaries) */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-rose-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-            {dateFilter.preset === "all_time" ? "Calls Today" : `Calls (${dateFilter.label})`}
-          </p>
-          <p className="mt-1 text-2xl font-black text-rose-600">{callsToday}</p>
-          <p className="mt-0.5 text-[11px] text-ink-muted">{allTimeCallsCount} all-time calls</p>
-        </div>
-
-        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-emerald-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Picked / Answered</p>
-          <p className="mt-1 text-2xl font-black text-emerald-700">{callsPickedCount}</p>
-          <p className="mt-0.5 text-[11px] text-emerald-600 font-bold">{answerRate}% Connection Rate</p>
-        </div>
-
-        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-amber-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Not Answered / Missed</p>
-          <p className="mt-1 text-2xl font-black text-amber-700">{callsMissedCount}</p>
-          <p className="mt-0.5 text-[11px] text-amber-700 font-bold">
-            {callsMissedCount > 0 ? `${totalCallsCount > 0 ? Math.round((callsMissedCount / totalCallsCount) * 100) : 0}% Missed` : "Zero missed calls"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl p-4 bg-white neo-panel border-t-2 border-t-teal-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">Calling Cadence</p>
-          <p className="mt-1 text-2xl font-black text-teal-700">{answerRate >= 60 ? "🔥 High" : "⚡ Active"}</p>
-          <p className="mt-0.5 text-[11px] text-teal-700">Telecalling Desk Active</p>
         </div>
       </section>
 
