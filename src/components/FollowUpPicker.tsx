@@ -4,7 +4,12 @@ import { useState } from "react";
 import { setLeadFollowUp } from "@/lib/admin-actions";
 
 function formatFollowUp(iso: string | null): { label: string; tone: "overdue" | "today" | "upcoming" | "none" } {
-  if (!iso) return { label: "Not scheduled", tone: "none" };
+  if (!iso) {
+    const target = new Date();
+    target.setDate(target.getDate() + 2);
+    const dateLabel = target.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    return { label: `In 2 days • ${dateLabel}`, tone: "upcoming" };
+  }
 
   const target = new Date(iso);
   const now = new Date();
@@ -16,6 +21,8 @@ function formatFollowUp(iso: string | null): { label: string; tone: "overdue" | 
 
   if (diffDays < 0) return { label: `Overdue • ${dateLabel}`, tone: "overdue" };
   if (diffDays === 0) return { label: `Today • ${dateLabel}`, tone: "today" };
+  if (diffDays === 1) return { label: `Tomorrow • ${dateLabel}`, tone: "upcoming" };
+  if (diffDays === 2) return { label: `In 2 days • ${dateLabel}`, tone: "upcoming" };
   return { label: dateLabel, tone: "upcoming" };
 }
 
@@ -126,15 +133,6 @@ export function FollowUpPicker({
             <option value="5">In 5 days</option>
             <option value="custom">Custom date…</option>
           </select>
-        )}
-        {!followUpAt && !showCustom && (
-          <button
-            type="submit"
-            title="Schedule the selected follow-up"
-            className={`${h} shrink-0 rounded-lg bg-primary px-2.5 text-[11px] font-bold text-white hover:bg-primary-strong transition cursor-pointer`}
-          >
-            Set
-          </button>
         )}
       </form>
     </div>

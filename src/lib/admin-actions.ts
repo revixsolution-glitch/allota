@@ -1219,6 +1219,12 @@ export async function updateEmployeeLeadStatus(formData: FormData) {
     status: input.status,
   };
 
+  if (input.status === LeadStatus.CONVERTED || input.status === LeadStatus.NOT_INTERESTED) {
+    updateData.followUpAt = null;
+  } else if (!lead.followUpAt) {
+    updateData.followUpAt = getDefaultFollowUpDate();
+  }
+
   if (input.notes) {
     updateData.inquiryDetails = lead.inquiryDetails
       ? `${lead.inquiryDetails}\n[${new Date().toLocaleDateString("en-IN")}]: ${input.notes}`
@@ -1400,11 +1406,12 @@ export async function updateLeadActiveStatus(formData: FormData) {
     deadReason = null;
   }
 
-  // Auto-set upcoming 2 days follow-up if lead is active and has no follow-up scheduled
-  const targetFollowUpAt =
-    !lead.followUpAt && newStatus !== LeadStatus.NOT_INTERESTED && newStatus !== LeadStatus.CONVERTED
-      ? getDefaultFollowUpDate()
-      : undefined;
+  // Closed leads (Converted, Dead, Irrelevant) must have followUpAt cleared.
+  // Active/re-activated leads with no custom follow-up must be auto-scheduled for 2 days.
+  const isClosed = newStatus === LeadStatus.NOT_INTERESTED || newStatus === LeadStatus.CONVERTED;
+  const followUpData = isClosed
+    ? { followUpAt: null }
+    : (!lead.followUpAt ? { followUpAt: getDefaultFollowUpDate() } : {});
 
   await prisma.lead.update({
     where: { id: input.leadId },
@@ -1412,7 +1419,7 @@ export async function updateLeadActiveStatus(formData: FormData) {
       status: newStatus,
       deadAt,
       deadReason,
-      ...(targetFollowUpAt ? { followUpAt: targetFollowUpAt } : {}),
+      ...followUpData,
       ...(clientId ? { clientId } : {}),
     },
   });
