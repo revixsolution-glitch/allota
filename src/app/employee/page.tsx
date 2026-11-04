@@ -70,6 +70,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
     clientCount,
     allLeads,
     divisionStats,
+    allTimeTotalLeads,
     totalCallsCount,
     missedCallsQueue,
     company,
@@ -89,6 +90,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       where: {
         assignedEmployeeId: employeeId,
         status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
+        ...leadDateFilter,
       },
       include: {
         _count: { select: { calls: true } },
@@ -118,8 +120,15 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
       where: {
         assignedEmployeeId: employeeId,
         status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
+        ...leadDateFilter,
       },
       _count: { _all: true },
+    }),
+    prisma.lead.count({
+      where: {
+        assignedEmployeeId: employeeId,
+        status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
+      },
     }),
     prisma.call.count({
       where: {
@@ -290,24 +299,24 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center shrink-0">
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                My Pipeline
+                {dateFilter.preset === "all_time" ? "My Pipeline" : `Pipeline (${dateFilter.label})`}
               </p>
               <p className="mt-1 text-2xl font-black text-ink">{totalLeads}</p>
-              {periodNewLeads !== null && (
-                <p className="text-[10px] font-bold text-primary mt-0.5">
-                  {periodNewLeads} in {dateFilter.label}
+              {dateFilter.preset !== "all_time" && (
+                <p className="text-[10px] font-bold text-ink-muted mt-0.5">
+                  {allTimeTotalLeads} all-time
                 </p>
               )}
             </div>
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                PCD Franchise
+                {dateFilter.preset === "all_time" ? "PCD Franchise" : `PCD (${dateFilter.label})`}
               </p>
               <p className="mt-1 text-2xl font-black text-blue-700">{pcdCount}</p>
             </div>
             <div className="rounded-2xl p-3 neo-pressed">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
-                Third-Party
+                {dateFilter.preset === "all_time" ? "Third-Party" : `Third-Party (${dateFilter.label})`}
               </p>
               <p className="mt-1 text-2xl font-black text-purple-700">{tpCount}</p>
             </div>

@@ -108,6 +108,7 @@ export default async function EmployeeLeadsPage({
       where: {
         assignedEmployeeId: employeeId,
         status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] },
+        ...(where.createdAt ? { createdAt: where.createdAt } : {}),
       },
       _count: { _all: true },
     }),
