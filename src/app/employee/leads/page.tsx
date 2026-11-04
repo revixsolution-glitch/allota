@@ -458,11 +458,6 @@ export default async function EmployeeLeadsPage({
                             <span className="text-xs">📅</span>
                             <span>{formatLeadDateTime(lead.createdAt)}</span>
                           </div>
-                          {lead.reassignmentLogs && lead.reassignmentLogs.length > 0 && (
-                            <p className="text-[10px] text-teal-700 font-bold mt-1 truncate">
-                              ⚡ Allotted by Admin ({lead.reassignmentLogs[0].reason || "Direct Allotment"})
-                            </p>
-                          )}
                         </td>
 
                       {/* Division Category */}
