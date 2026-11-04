@@ -319,11 +319,11 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-3.5 w-[28%] min-w-[220px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-3.5 w-[16%] min-w-[120px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-3.5 w-[20%] min-w-[160px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[170px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[150px] whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -335,7 +335,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect (Name, Phone, and Activity Date/Time stacked underneath) */}
-                      <td className="py-3 px-3.5 w-[28%] min-w-[220px]">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[170px]">
                         <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700 truncate block">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </Link>
@@ -352,7 +352,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-3.5 w-[16%] min-w-[120px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -367,12 +367,12 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Remarks (Global Component with AI Summaries) */}
-                      <td className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -402,8 +402,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-3.5 w-[20%] min-w-[160px] text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[150px] whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
                           <Link
                             href={`/admin/lead-history/${lead.id}`}
                             className="rounded-xl border border-line bg-white px-2.5 py-1 text-[11px] font-bold text-ink-muted hover:bg-slate-50 transition"

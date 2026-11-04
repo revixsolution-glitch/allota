@@ -281,14 +281,14 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[950px]">
+            <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[240px] min-w-[220px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[170px] min-w-[160px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[170px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[150px] whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -301,7 +301,7 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect (Name, Phone, and Closed Date/Time stacked underneath) */}
-                      <td className="py-3 px-4 w-[240px] min-w-[220px]">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[170px]">
                         <div className="font-bold text-ink truncate">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </div>
@@ -318,7 +318,7 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -333,12 +333,12 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[170px] min-w-[160px]">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Remarks (Global Unified Modal with AI Summaries) */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[130px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -368,8 +368,8 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap w-[210px] min-w-[200px]">
-                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[150px] whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
                           {cleanPhone && (
                             <>
                               <a
