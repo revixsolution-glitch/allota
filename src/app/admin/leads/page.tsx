@@ -3,6 +3,7 @@ import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import { LeadCenterFilters } from "@/components/LeadCenterFilters";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { LeadRepSelect } from "@/components/LeadRepSelect";
+import { ExportLeadsModal } from "@/components/ExportLeadsModal";
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
@@ -1013,19 +1014,17 @@ export default async function AdminLeadsPage({
               </details>
             </section>
             </AssignLeadsModal>
-              <a
-                href={`/api/admin/leads/export?division=${selectedDivision}${selectedSource ? `&source=${selectedSource}` : ""}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
-                download
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs shrink-0 cursor-pointer"
-              >
-                <svg className="h-3.5 w-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export to Excel (.xlsx)
-              </a>
-            </div>
+            <ExportLeadsModal
+              employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+              currentDivision={selectedDivision}
+              currentSource={selectedSource || undefined}
+              currentRep={unassignedOnly ? "unassigned" : (repFilterId || undefined)}
+              currentStatus={selectedStatus || undefined}
+              currentSearch={search}
+            />
           </div>
         </div>
+      </div>
 
         {/* Desktop Full-Width Table */}
         <div className="hidden lg:block overflow-x-auto crm-table-container w-full">

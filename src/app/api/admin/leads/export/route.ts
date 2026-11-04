@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { LeadStatus } from "@/generated/prisma/enums";
+import { parseDashboardDateFilter } from "@/lib/date-filters";
 import * as XLSX from "xlsx";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +21,13 @@ export async function GET(request: Request) {
     const source = searchParams.get("source");
     const status = searchParams.get("status");
     const search = searchParams.get("search")?.trim().toLowerCase();
+    const employeeId = searchParams.get("employeeId");
+    const unassigned = searchParams.get("unassigned") === "1" || searchParams.get("unassigned") === "true";
+    const range = searchParams.get("range");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam && parseInt(limitParam, 10) > 0 ? parseInt(limitParam, 10) : undefined;
 
     const where: Record<string, any> = {
       ...scopeToCompany(activeCompanyId),
@@ -27,12 +36,46 @@ export async function GET(request: Request) {
     if (division && (division === "PCD_FRANCHISE" || division === "THIRD_PARTY")) {
       where.division = division;
     }
-    if (source) {
+
+    if (source && source !== "all") {
       where.source = source;
     }
-    if (status) {
-      where.status = status;
+
+    // Status filtering with group support
+    if (status && status !== "all") {
+      if (status === "ACTIVE") {
+        where.status = { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] };
+      } else if (status === "FRESH") {
+        where.status = { in: [LeadStatus.NEW, LeadStatus.ASSIGNED] };
+      } else if (status === "DEAD") {
+        where.status = LeadStatus.NOT_INTERESTED;
+        where.deadReason = { not: "IRRELEVANT" };
+      } else if (status === "IRRELEVANT") {
+        where.status = LeadStatus.NOT_INTERESTED;
+        where.deadReason = "IRRELEVANT";
+      } else if (Object.values(LeadStatus).includes(status as any)) {
+        where.status = status;
+      }
     }
+
+    // Representative filtering
+    if (unassigned || employeeId === "unassigned") {
+      where.assignedEmployeeId = null;
+    } else if (employeeId && employeeId !== "all") {
+      where.assignedEmployeeId = employeeId;
+    }
+
+    // Date range filtering
+    if (range || from || to) {
+      const dateFilter = parseDashboardDateFilter(range || undefined, from || undefined, to || undefined);
+      if (dateFilter.start && dateFilter.end) {
+        where.createdAt = { gte: dateFilter.start, lte: dateFilter.end };
+      } else if (dateFilter.start) {
+        where.createdAt = { gte: dateFilter.start };
+      }
+    }
+
+    // Text search filtering
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -45,9 +88,15 @@ export async function GET(request: Request) {
 
     const leads = await prisma.lead.findMany({
       where,
+      take: limit,
       include: {
         assignedEmployee: {
           select: { name: true, phoneNumber: true },
+        },
+        remarks: {
+          select: { remark: true, createdAt: true, employee: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 3,
         },
       },
       orderBy: { createdAt: "desc" },
@@ -63,10 +112,12 @@ export async function GET(request: Request) {
       "Division": l.division === "THIRD_PARTY" ? "Third-Party Manufacturing" : "PCD Pharma Franchise",
       "Lead Source": l.source,
       "Batch / Source Tag": l.sourceTag || "",
-      "Status": l.status,
+      "Status": l.status === "NOT_INTERESTED" ? (l.deadReason === "IRRELEVANT" ? "IRRELEVANT" : "DEAD") : l.status,
       "Inquiry Requirement": l.inquiryDetails || "",
       "Assigned Representative": l.assignedEmployee?.name || "Unassigned",
       "Representative Contact": l.assignedEmployee?.phoneNumber || "",
+      "Latest Remark": l.remarks[0]?.remark || "",
+      "Total Remarks": l.remarks.length,
       "Created Date": l.createdAt.toISOString().split("T")[0],
     }));
 
@@ -87,6 +138,8 @@ export async function GET(request: Request) {
       { wch: 40 }, // Inquiry Requirement
       { wch: 24 }, // Assigned Rep
       { wch: 20 }, // Rep Contact
+      { wch: 35 }, // Latest Remark
+      { wch: 14 }, // Total Remarks
       { wch: 14 }, // Created Date
     ];
     ws["!cols"] = colWidths;
