@@ -25,3 +25,14 @@ export function getFollowUpState(followUpAt: Date, now = new Date()): FollowUpSt
   if (followUpAt < endOfDay(now)) return "today";
   return "upcoming";
 }
+
+/**
+ * Global default follow-up: 2 upcoming days ahead at 10:00 AM IST.
+ * Ensures leads never remain unset/lost if an employee doesn't explicitly schedule one.
+ */
+export function getDefaultFollowUpDate(fromDate = new Date()): Date {
+  const d = new Date(fromDate);
+  d.setDate(d.getDate() + 2);
+  d.setHours(10, 0, 0, 0);
+  return d;
+}

@@ -4,6 +4,7 @@ import { setTenantContext } from "@/lib/tenant-context";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
+import { getDefaultFollowUpDate } from "@/lib/follow-up";
 
 export const dynamic = "force-dynamic";
 
@@ -339,6 +340,7 @@ export async function POST(req: NextRequest) {
                   division: determinedDivision,
                   status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
                   assignedEmployeeId: autoAssignedEmployeeId,
+                  followUpAt: getDefaultFollowUpDate(),
                   inquiryDetails,
                   rawPayload: msg,
                 },
@@ -623,6 +625,7 @@ export async function POST(req: NextRequest) {
               division: determinedDivision,
               status: autoAssignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
               assignedEmployeeId: autoAssignedEmployeeId,
+              followUpAt: getDefaultFollowUpDate(),
               inquiryDetails: `Meta Leadgen Form (${determinedDivision === "THIRD_PARTY" ? "Third-Party Manufacturing" : "PCD Franchise"}). Email: ${email || "N/A"}. Meta Lead ID: ${leadgenId}`,
               rawPayload: leadData,
             },

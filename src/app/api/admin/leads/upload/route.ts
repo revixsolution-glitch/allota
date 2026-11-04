@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 
 import { normalizePhoneKey } from "@/lib/phone-utils";
 import { analyzeSheet, extractLead, pickLeadSheet, LEAD_FIELDS, type ColumnMapping } from "@/lib/lead-sheet";
+import { getDefaultFollowUpDate } from "@/lib/follow-up";
 
 function cleanString(val: any): string {
   if (val === null || val === undefined) return "";
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
       state: string | null;
       status: LeadStatus;
       assignedEmployeeId: string | null;
+      followUpAt?: Date | null;
       companyId: string | null;
     }> = [];
 
@@ -195,6 +197,7 @@ export async function POST(request: Request) {
         state: rawState || null,
         status: targetEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: targetEmployee ? targetEmployee.id : null,
+        followUpAt: getDefaultFollowUpDate(),
         companyId: activeCompanyId,
       });
     }

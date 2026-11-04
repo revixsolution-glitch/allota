@@ -226,11 +226,10 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
   ]);
 
   // Fresh Uncontacted Leads:
-  // Status NEW or ASSIGNED, zero remarks, no scheduled follow-up date, and zero calls
+  // Status NEW or ASSIGNED, zero remarks, and zero calls
   const isFreshLead = (l: (typeof allLeads)[number]) =>
     (l.status === "NEW" || l.status === "ASSIGNED") &&
     l.remarks.length === 0 &&
-    !l.followUpAt &&
     (l._count?.calls || 0) === 0;
 
   const search = (searchParams.search || "").trim().toLowerCase();

@@ -15,6 +15,7 @@ import { getSession, getActiveCompanyId, hashPassword, scopeToCompany } from "@/
 import { prisma, defaultPrisma } from "@/lib/prisma";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
+import { getDefaultFollowUpDate } from "@/lib/follow-up";
 
 const requiredText = z.string().trim().min(1);
 const optionalText = z
@@ -218,6 +219,7 @@ export async function createLead(formData: FormData) {
       assignedEmployeeId,
       clientId: input.clientId,
       status: assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
+      followUpAt: getDefaultFollowUpDate(),
       rawPayload: input.notes ? { notes: input.notes } : undefined,
       companyId: activeCompanyId,
     },
@@ -1274,9 +1276,10 @@ export async function setLeadFollowUp(formData: FormData) {
   if (input.customDate) {
     followUpAt = new Date(`${input.customDate}T09:00:00`);
   } else {
-    const days = Number(input.days) || 1;
+    const days = Number(input.days) || 2;
     followUpAt = new Date();
     followUpAt.setDate(followUpAt.getDate() + days);
+    followUpAt.setHours(10, 0, 0, 0);
   }
 
   await prisma.lead.update({
@@ -1397,12 +1400,19 @@ export async function updateLeadActiveStatus(formData: FormData) {
     deadReason = null;
   }
 
+  // Auto-set upcoming 2 days follow-up if lead is active and has no follow-up scheduled
+  const targetFollowUpAt =
+    !lead.followUpAt && newStatus !== LeadStatus.NOT_INTERESTED && newStatus !== LeadStatus.CONVERTED
+      ? getDefaultFollowUpDate()
+      : undefined;
+
   await prisma.lead.update({
     where: { id: input.leadId },
     data: {
       status: newStatus,
       deadAt,
       deadReason,
+      ...(targetFollowUpAt ? { followUpAt: targetFollowUpAt } : {}),
       ...(clientId ? { clientId } : {}),
     },
   });
@@ -1471,6 +1481,22 @@ export async function addLeadRemark(formData: FormData) {
       remark: input.remark,
     },
   });
+
+  // Global Auto Follow-up: if no follow-up is currently set, automatically schedule for upcoming 2 days
+  if (!lead.followUpAt) {
+    const autoFollowUp = getDefaultFollowUpDate();
+    await prisma.lead.update({
+      where: { id: input.leadId },
+      data: { followUpAt: autoFollowUp },
+    });
+    await prisma.leadFollowUpLog.create({
+      data: {
+        leadId: input.leadId,
+        employeeId,
+        scheduledFor: autoFollowUp,
+      },
+    }).catch(() => {});
+  }
 
   revalidatePath("/employee");
   revalidatePath("/employee/leads");

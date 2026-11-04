@@ -5,6 +5,7 @@ import { setTenantContext } from "@/lib/tenant-context";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
+import { getDefaultFollowUpDate } from "@/lib/follow-up";
 
 export const dynamic = "force-dynamic";
 
@@ -182,6 +183,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
       division,
       status: assignedEmployeeId ? LeadStatus.ASSIGNED : LeadStatus.NEW,
       assignedEmployeeId,
+      followUpAt: getDefaultFollowUpDate(),
       inquiryDetails: `PharmaKhabar Inbound Lead. ${details}`,
       rawPayload: body,
     },

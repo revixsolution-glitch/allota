@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
+import { getDefaultFollowUpDate } from "@/lib/follow-up";
 
 export const dynamic = "force-dynamic";
 
@@ -362,6 +363,7 @@ export async function POST(request: Request) {
         division: determinedDivision,
         status: defaultEmployee ? LeadStatus.ASSIGNED : LeadStatus.NEW,
         assignedEmployeeId: defaultEmployee?.id || null,
+        followUpAt: getDefaultFollowUpDate(),
         inquiryDetails: lidJid ? `[LID: ${lidJid}]\n${messageText || "Initiated ad inquiry on WhatsApp."}` : (messageText || "Initiated ad inquiry on WhatsApp."),
       },
     });

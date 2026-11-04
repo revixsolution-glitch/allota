@@ -143,11 +143,10 @@ export default async function EmployeeLeadsPage({
     : leads;
 
   // Fresh Uncontacted Leads criteria:
-  // Status NEW or ASSIGNED, zero remarks, no scheduled follow-up date, and zero calls
+  // Status NEW or ASSIGNED, zero remarks, and zero calls
   const isFreshLead = (l: (typeof leads)[number]) =>
     (l.status === "NEW" || l.status === "ASSIGNED") &&
     l.remarks.length === 0 &&
-    !l.followUpAt &&
     (l._count.calls || 0) === 0;
 
   const freshCount = leads.filter(isFreshLead).length;

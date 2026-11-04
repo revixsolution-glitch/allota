@@ -33,7 +33,7 @@ export function FollowUpPicker({
   const { label, tone } = formatFollowUp(followUpAt);
 
   // Show what is actually scheduled: none → prompt, 1–5 days → that preset, anything else → the saved date.
-  let selectValue = "1"; // nothing scheduled yet → default to Tomorrow (1 day)
+  let selectValue = "2"; // nothing scheduled yet → auto-default to In 2 days globally
   let currentLabel = "";
   if (followUpAt) {
     const target = new Date(followUpAt);
