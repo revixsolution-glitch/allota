@@ -380,6 +380,29 @@ export async function GET() {
             phone: remoteData.phone,
           });
         }
+
+        // When companion service is active, it is the sole source of truth for live sockets.
+        // Never fall through to stale DB records that falsely report CONNECTED.
+        if (remoteData.status === "AWAITING_SCAN") {
+          let qrCode: string | null = null;
+          try {
+            const qrRes = await fetch(`${companionHost}/api/${targetId}/qr`, { cache: "no-store" });
+            if (qrRes.ok) {
+              const qrData = await qrRes.json();
+              qrCode = qrData.qrCode || null;
+            }
+          } catch {}
+          return NextResponse.json({
+            status: "AWAITING_SCAN",
+            qrCode,
+            phone: null,
+          });
+        }
+
+        return NextResponse.json({
+          status: remoteData.status || "NOT_CONNECTED",
+          phone: null,
+        });
       }
     } catch {}
   }
@@ -433,19 +456,14 @@ export async function GET() {
         },
       });
 
-      if (settings?.whatsappConnected && (settings?.whatsappCompanionPhone || settings?.whatsappCompanionCreds)) {
-        if (settings.whatsappCompanionPhone) {
-          isSaved = true;
-          savedPhone = settings.whatsappCompanionPhone;
-        } else if (settings.whatsappCompanionCreds) {
-          try {
-            const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
-            if (decryptedCreds?.registered && decryptedCreds?.me?.id) {
-              isSaved = true;
-              savedPhone = decryptedCreds.me.id.split(":")[0];
-            }
-          } catch {}
-        }
+      if (settings?.whatsappConnected && settings?.whatsappCompanionCreds) {
+        try {
+          const decryptedCreds = JSON.parse(settings.whatsappCompanionCreds, BufferJSON.reviver);
+          if (decryptedCreds?.registered && decryptedCreds?.me?.id) {
+            isSaved = true;
+            savedPhone = decryptedCreds.me.id.split(":")[0];
+          }
+        } catch {}
       }
     } catch (vaultErr) {
       console.warn("[Encrypted Vault] Creds check error:", vaultErr);
