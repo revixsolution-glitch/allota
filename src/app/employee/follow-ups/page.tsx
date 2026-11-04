@@ -54,8 +54,15 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
 
   const baseCompanyFilter = scopeToCompany(activeCompanyId);
 
+  const followUpDateWhere =
+    dateFilter.start && dateFilter.end
+      ? { followUpAt: { gte: dateFilter.start, lte: dateFilter.end } }
+      : dateFilter.start
+      ? { followUpAt: { gte: dateFilter.start } }
+      : { followUpAt: { not: null } };
+
   // 1. Fetch counts for all scheduled states
-  const [employee, allScheduledLeads] = await Promise.all([
+  const [employee, allScheduledLeads, allTimeScheduledCount] = await Promise.all([
     prisma.employee.findUnique({
       where: { id: employeeId },
       select: { name: true, phoneNumber: true },
@@ -63,9 +70,9 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
     prisma.lead.findMany({
       where: {
         assignedEmployeeId: employeeId,
-        followUpAt: { not: null },
         status: { notIn: [...CLOSED_LEAD_STATUSES] },
         ...baseCompanyFilter,
+        ...followUpDateWhere,
       },
       include: {
         _count: { select: { calls: true } },
@@ -87,6 +94,14 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
         },
       },
       orderBy: { followUpAt: "asc" },
+    }),
+    prisma.lead.count({
+      where: {
+        assignedEmployeeId: employeeId,
+        followUpAt: { not: null },
+        status: { notIn: [...CLOSED_LEAD_STATUSES] },
+        ...baseCompanyFilter,
+      },
     }),
   ]);
 
@@ -199,11 +214,11 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
             }`}
           >
             <p className={`text-[10px] font-bold uppercase tracking-wider ${activeTab === "all" ? "text-slate-300" : "text-ink-faint"}`}>
-              Total Scheduled
+              {dateFilter.preset === "all_time" ? "Total Scheduled" : `Scheduled (${dateFilter.label})`}
             </p>
             <p className="mt-1 text-2xl font-black">{totalCount}</p>
             <p className={`mt-0.5 text-[11px] ${activeTab === "all" ? "text-slate-300" : "text-ink-muted"}`}>
-              Active callbacks
+              {dateFilter.preset === "all_time" ? "Active callbacks" : `${allTimeScheduledCount} all-time`}
             </p>
           </Link>
 
@@ -271,7 +286,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-line-soft overflow-x-auto">
           {[
-            { id: "all", label: "All Scheduled", count: totalCount },
+            { id: "all", label: dateFilter.preset === "all_time" ? "All Scheduled" : `Scheduled (${dateFilter.label})`, count: totalCount },
             { id: "today", label: "⏰ Today", count: todayCount },
             { id: "overdue", label: "🚨 Overdue", count: overdueCount },
             { id: "upcoming", label: "📅 Upcoming", count: upcomingCount },
@@ -280,7 +295,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
             return (
               <Link
                 key={tab.id}
-                href={`/employee/follow-ups?tab=${tab.id}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
+                href={buildEmployeeFollowUpsUrl({ tab: tab.id, page: 1 })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
                   isActive
                     ? "bg-white text-ink shadow-xs border border-line"
@@ -299,6 +314,9 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
         {/* Search Bar */}
         <form method="GET" action="/employee/follow-ups" className="relative flex-1 sm:max-w-xs">
           <input type="hidden" name="tab" value={activeTab} />
+          {params?.range && <input type="hidden" name="range" value={params.range} />}
+          {params?.from && <input type="hidden" name="from" value={params.from} />}
+          {params?.to && <input type="hidden" name="to" value={params.to} />}
           <input
             type="text"
             name="search"

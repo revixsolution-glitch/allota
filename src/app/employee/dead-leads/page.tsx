@@ -177,6 +177,8 @@ export default async function EmployeeDeadLeadsPage(props: EmployeeDeadLeadsPage
           <form method="GET" action="/employee/dead-leads" className="flex items-center gap-2">
             {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
             {params?.range && <input type="hidden" name="range" value={params.range} />}
+            {params?.from && <input type="hidden" name="from" value={params.from} />}
+            {params?.to && <input type="hidden" name="to" value={params.to} />}
             <input
               type="text"
               name="search"

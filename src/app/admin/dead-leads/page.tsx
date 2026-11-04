@@ -212,6 +212,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
               {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
               {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
               {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
+              {resolvedParams.from && <input type="hidden" name="from" value={resolvedParams.from} />}
+              {resolvedParams.to && <input type="hidden" name="to" value={resolvedParams.to} />}
               <input
                 type="text"
                 name="search"
