@@ -30,10 +30,12 @@ export function FollowUpPicker({
   leadId,
   followUpAt,
   size = "md",
+  hideBadge = false,
 }: {
   leadId: string;
   followUpAt: string | null;
   size?: "md" | "sm";
+  hideBadge?: boolean;
 }) {
   const [showCustom, setShowCustom] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
@@ -70,43 +72,45 @@ export function FollowUpPicker({
   const h = size === "sm" ? "h-8" : "h-9";
 
   return (
-    <div className="space-y-1.5">
-      <span className={`inline-block rounded-lg border px-2 py-0.5 text-[10px] font-bold ${toneClass}`}>
-        {label}
-      </span>
+    <div className="space-y-1 w-fit max-w-[140px]">
+      {!hideBadge && (
+        <span className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-bold ${toneClass}`}>
+          {label}
+        </span>
+      )}
 
       <form
         action={setLeadFollowUp}
-        className="flex items-center gap-1.5"
+        className="flex items-center gap-1 w-fit"
         onSubmit={() => setShowCustom(false)}
       >
         <input type="hidden" name="leadId" value={leadId} />
 
         {showCustom ? (
-          <>
+          <div className="flex items-center gap-1">
             <input
               type="date"
               name="customDate"
               defaultValue={today}
               min={today}
               autoFocus
-              className={`${h} flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-primary`}
+              className={`${h} w-[120px] rounded-lg border border-line bg-white px-1.5 text-[11px] font-semibold text-ink focus:outline-none focus:ring-1 focus:ring-primary`}
             />
             <button
               type="button"
               onClick={() => setShowCustom(false)}
               title="Cancel custom date"
-              className={`${h} shrink-0 rounded-lg border border-line bg-white px-2 text-[11px] text-ink-faint hover:text-ink transition cursor-pointer`}
+              className={`${h} shrink-0 rounded-lg border border-line bg-white px-1.5 text-[11px] text-ink-faint hover:text-ink transition cursor-pointer`}
             >
               ✕
             </button>
             <button
               type="submit"
-              className={`${h} shrink-0 rounded-lg bg-primary px-2.5 text-[11px] font-bold text-white hover:bg-primary-strong transition cursor-pointer`}
+              className={`${h} shrink-0 rounded-lg bg-primary px-2 text-[11px] font-bold text-white hover:bg-primary-strong transition cursor-pointer`}
             >
               Set
             </button>
-          </>
+          </div>
         ) : (
           <select
             key={followUpAt ?? "none"}
@@ -119,14 +123,14 @@ export function FollowUpPicker({
                 e.currentTarget.form?.requestSubmit();
               }
             }}
-            className={`${h} flex-1 rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary`}
+            className={`${h} w-[128px] rounded-lg border border-line bg-white px-2 text-[11px] font-semibold text-ink neo-pressed focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer`}
           >
             {selectValue === "current" && (
               <option value="current" disabled>
                 {currentLabel}
               </option>
             )}
-            <option value="1">Tomorrow (1 day)</option>
+            <option value="1">Tomorrow</option>
             <option value="2">In 2 days</option>
             <option value="3">In 3 days</option>
             <option value="4">In 4 days</option>

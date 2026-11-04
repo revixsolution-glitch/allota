@@ -367,12 +367,12 @@ export default async function EmployeeLeadsPage({
             <table className="w-full text-left text-xs">
               <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                 <tr>
-                  <th className="px-3.5 py-3 w-[24%] min-w-[200px] whitespace-nowrap">Prospect &amp; Contact</th>
-                  <th className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">Category</th>
-                  <th className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">Platform</th>
-                  <th className="px-3 py-3 w-[24%] min-w-[190px] whitespace-nowrap">Follow Up</th>
-                  <th className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">Remarks</th>
-                  <th className="px-3 py-3 w-[14%] min-w-[110px] text-right whitespace-nowrap">Status</th>
+                  <th className="px-3.5 py-3 w-[20%] min-w-[170px] whitespace-nowrap">Prospect &amp; Contact</th>
+                  <th className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Category</th>
+                  <th className="px-3.5 py-3 w-[16%] min-w-[120px] whitespace-nowrap">Platform</th>
+                  <th className="px-3.5 py-3 w-[17%] min-w-[130px] whitespace-nowrap">Follow Up</th>
+                  <th className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Remarks</th>
+                  <th className="px-3.5 py-3 w-[17%] min-w-[125px] whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -415,7 +415,7 @@ export default async function EmployeeLeadsPage({
                       )}
                       <tr className="hover:bg-slate-50/70 transition">
                         {/* Prospect & Contact */}
-                        <td className="px-3.5 py-3 w-[24%] min-w-[200px] relative">
+                        <td className="px-3.5 py-3 w-[20%] min-w-[170px] relative">
                           {/* Floating small NEW tag on top-left of lead */}
                           {isCurrentFresh && (
                             <span
@@ -466,17 +466,17 @@ export default async function EmployeeLeadsPage({
                         </td>
 
                       {/* Division Category */}
-                      <td className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">
                         <CategoryBadge division={lead.division} />
                       </td>
 
                       {/* Channel / Source */}
-                      <td className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3 w-[16%] min-w-[120px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Follow Up */}
-                      <td className="px-3 py-3 w-[24%] min-w-[190px]">
+                      <td className="px-3.5 py-3 w-[17%] min-w-[130px]">
                         <FollowUpPicker
                           leadId={lead.id}
                           followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
@@ -485,7 +485,7 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Remarks (Global Unified Modal with AI Summaries) */}
-                      <td className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -513,8 +513,8 @@ export default async function EmployeeLeadsPage({
                       </td>
 
                       {/* Status: Active / Converted / Dead */}
-                      <td className="px-3 py-3 w-[14%] min-w-[110px] text-right whitespace-nowrap">
-                        <div className="inline-flex justify-end">
+                      <td className="px-3.5 py-3 w-[17%] min-w-[125px] whitespace-nowrap">
+                        <div className="inline-flex">
                           <LeadStatusToggle leadId={lead.id} status={lead.status} deadReason={lead.deadReason} layout="vertical" />
                         </div>
                       </td>

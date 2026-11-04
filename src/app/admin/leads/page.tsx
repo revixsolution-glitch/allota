@@ -2,6 +2,7 @@ import { AssignLeadsModal } from "@/components/AssignLeadsModal";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import { LeadCenterFilters } from "@/components/LeadCenterFilters";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { LeadRepSelect } from "@/components/LeadRepSelect";
 import Link from "next/link";
 import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { allotLeadsBatch, createLead, updateLead, addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
@@ -1031,12 +1032,12 @@ export default async function AdminLeadsPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-gradient-to-r from-sky-100 via-violet-100 to-orange-100 text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <tr>
-                <th className="px-3.5 py-3 w-[24%] min-w-[200px] whitespace-nowrap">Lead &amp; Contact</th>
-                <th className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">Category</th>
-                <th className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">Platform</th>
-                <th className="px-3.5 py-3 w-[24%] min-w-[190px] whitespace-nowrap">Assigned Rep</th>
-                <th className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">Remarks</th>
-                <th className="px-3 py-3 w-[14%] min-w-[110px] whitespace-nowrap">Status</th>
+                <th className="px-3.5 py-3 w-[22%] min-w-[180px] whitespace-nowrap">Lead &amp; Contact</th>
+                <th className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Category</th>
+                <th className="px-3.5 py-3 w-[16%] min-w-[120px] whitespace-nowrap">Platform</th>
+                <th className="px-3.5 py-3 w-[15%] min-w-[120px] whitespace-nowrap">Assigned Rep</th>
+                <th className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">Remarks</th>
+                <th className="px-3.5 py-3 w-[17%] min-w-[125px] whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -1051,7 +1052,7 @@ export default async function AdminLeadsPage({
                 return (
                   <tr key={lead.id} className="hover:bg-slate-50/60 transition">
                     {/* Lead & Contact */}
-                    <td className="px-3.5 py-3 w-[24%] min-w-[200px] relative">
+                    <td className="px-3.5 py-3 w-[22%] min-w-[180px] relative">
                       {/* Floating small NEW tag on top-left, floating outside flow */}
                       {isFresh && (
                         <span
@@ -1082,47 +1083,31 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Category (PCD Franchise vs Third-Party) */}
-                    <td className="px-2 py-3 w-[11%] min-w-[85px] text-center whitespace-nowrap">
+                    <td className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">
                       <CategoryBadge division={lead.division} />
                     </td>
 
                     {/* Platform / Source */}
-                    <td className="px-2 py-3 w-[14%] min-w-[115px] text-center whitespace-nowrap">
+                    <td className="px-3.5 py-3 w-[16%] min-w-[120px] whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold neo-pressed border border-line text-ink">
                         <span className="flex items-center justify-center shrink-0">{getSourceIconComponent(lead.source)}</span>
                         <span>{sourceMeta?.shortLabel ?? lead.source}</span>
                       </span>
                     </td>
 
-                    {/* Assigned Representative */}
-                    <td className="px-3.5 py-3 w-[24%] min-w-[190px]">
-                      <form action={updateLead} className="flex items-center gap-1.5">
-                        <input type="hidden" name="leadId" value={lead.id} />
-                        <input type="hidden" name="status" value={lead.status} />
-                        <select
-                          key={`${lead.id}-${lead.assignedEmployeeId ?? "none"}`}
-                          name="assignedEmployeeId"
-                          defaultValue={lead.assignedEmployeeId ?? ""}
-                          className={lead.assignedEmployeeId ? tableSelectClass : tableSelectUnassignedClass}
-                        >
-                          <option value="">Unassigned</option>
-                          {employees.map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                              {employee.name}
-                            </option>
-                          ))}
-                          {lead.assignedEmployee && !employees.some((e) => e.id === lead.assignedEmployeeId) && (
-                            <option value={lead.assignedEmployee.id}>{lead.assignedEmployee.name}</option>
-                          )}
-                        </select>
-                        <button type="submit" className={smallButtonClass}>
-                          Save
-                        </button>
-                      </form>
+                    {/* Assigned Representative (Auto-saves on change, zero extra buttons) */}
+                    <td className="px-3.5 py-3 w-[15%] min-w-[120px]">
+                      <LeadRepSelect
+                        leadId={lead.id}
+                        leadStatus={lead.status}
+                        assignedEmployeeId={lead.assignedEmployeeId}
+                        employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+                        assignedEmployeeName={lead.assignedEmployee?.name}
+                      />
                     </td>
 
                     {/* Remarks (interactive popup modal) */}
-                    <td className="px-2 py-3 w-[13%] min-w-[105px] text-center whitespace-nowrap">
+                    <td className="px-3.5 py-3 w-[15%] min-w-[110px] whitespace-nowrap">
                       <LeadRemarksModal
                         leadId={lead.id}
                         leadName={lead.name ?? "Unnamed Prospect"}
@@ -1152,7 +1137,7 @@ export default async function AdminLeadsPage({
                     </td>
 
                     {/* Status: Active (green) / Dead (red) / Irrelevant (amber) / Fresh (slate) */}
-                    <td className="px-3 py-3 w-[14%] min-w-[110px] whitespace-nowrap">
+                    <td className="px-3.5 py-3 w-[17%] min-w-[125px] whitespace-nowrap">
                       {lead.status === LeadStatus.NOT_INTERESTED ? (
                         lead.deadReason === "IRRELEVANT" ? (
                           <Link
@@ -1301,41 +1286,19 @@ export default async function AdminLeadsPage({
 
                 {/* Rep Assignment & Stage Form on Mobile */}
                 <div className="space-y-2 pt-1 border-t border-line-soft">
-                  <form action={updateLead} className="flex items-center justify-between gap-2">
-                    <input type="hidden" name="leadId" value={lead.id} />
-                    <input type="hidden" name="status" value={lead.status} />
-                    <div className="flex-1 min-w-0">
-                      <label className="block text-[10px] font-bold uppercase text-ink-faint mb-0.5">
-                        Assigned Rep:
-                      </label>
-                      <select
-                        key={`${lead.id}-${lead.assignedEmployeeId ?? "none"}`}
-                        name="assignedEmployeeId"
-                        defaultValue={lead.assignedEmployeeId ?? ""}
-                        className={`w-full h-8 rounded-lg border px-2 text-xs font-medium ${
-                          lead.assignedEmployeeId
-                            ? "border-line bg-white text-ink"
-                            : "border-rose-200 bg-gradient-to-r from-amber-50 to-rose-100 text-rose-800"
-                        }`}
-                      >
-                        <option value="">Unassigned</option>
-                        {employees.map((employee) => (
-                          <option key={employee.id} value={employee.id}>
-                            {employee.name}
-                          </option>
-                        ))}
-                        {lead.assignedEmployee && !employees.some((e) => e.id === lead.assignedEmployeeId) && (
-                          <option value={lead.assignedEmployee.id}>{lead.assignedEmployee.name}</option>
-                        )}
-                      </select>
-                    </div>
-                    <button
-                      type="submit"
-                      className="self-end h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white px-2.5 text-xs font-bold text-ink cursor-pointer"
-                    >
-                      Assign
-                    </button>
-                  </form>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-ink-faint mb-1">
+                      Assigned Rep:
+                    </label>
+                    <LeadRepSelect
+                      leadId={lead.id}
+                      leadStatus={lead.status}
+                      assignedEmployeeId={lead.assignedEmployeeId}
+                      employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+                      assignedEmployeeName={lead.assignedEmployee?.name}
+                      className="w-full max-w-full"
+                    />
+                  </div>
 
                   <form action={updateLead} className="flex items-center justify-between gap-2">
                     <input type="hidden" name="leadId" value={lead.id} />

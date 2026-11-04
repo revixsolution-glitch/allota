@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession, getActiveCompanyId, scopeViaRelation } from "@/lib/auth";
+import { getSession, getActiveCompanyId, scopeViaRelation, scopeToCompany } from "@/lib/auth";
 import { GradientText } from "@/components/GradientText";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
+import { LeadRemarksModal } from "@/components/LeadRemarksModal";
+import { FollowUpEmployeeFilter } from "@/components/FollowUpEmployeeFilter";
 
 function dayBounds(d: Date) {
   const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -45,18 +47,51 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
     ? { scheduledFor: { gte: dateFilter.start } }
     : {};
 
-  const logs = await prisma.leadFollowUpLog.findMany({
-    where: {
-      ...scopeViaRelation(activeCompanyId, "lead"),
-      ...dateWhere,
-      ...(employeeId ? { employeeId } : {}),
-    },
-    include: {
-      lead: { select: { id: true, name: true, phoneNumber: true, followUpAt: true, status: true } },
-      employee: { select: { name: true } },
-    },
-    orderBy: [{ leadId: "asc" }, { createdAt: "asc" }],
-  });
+  const [logs, employees] = await Promise.all([
+    prisma.leadFollowUpLog.findMany({
+      where: {
+        ...scopeViaRelation(activeCompanyId, "lead"),
+        ...dateWhere,
+        ...(employeeId ? { employeeId } : {}),
+      },
+      include: {
+        lead: {
+          select: {
+            id: true,
+            name: true,
+            phoneNumber: true,
+            followUpAt: true,
+            status: true,
+            remarks: {
+              include: {
+                employee: { select: { name: true } },
+              },
+              orderBy: { createdAt: "desc" },
+            },
+            calls: {
+              select: {
+                id: true,
+                aiSummary: true,
+                transcript: true,
+                occurredAt: true,
+                durationSec: true,
+                missed: true,
+                recordingUrl: true,
+              },
+              orderBy: { occurredAt: "desc" },
+            },
+          },
+        },
+        employee: { select: { id: true, name: true } },
+      },
+      orderBy: [{ leadId: "asc" }, { createdAt: "asc" }],
+    }),
+    prisma.employee.findMany({
+      where: scopeToCompany(activeCompanyId),
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   // Assign a 1st/2nd/3rd... sequence number per lead, then re-sort newest activity first.
   const sequenceByLeadId = new Map<string, number>();
@@ -68,7 +103,7 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
   withSequence.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const repName = employeeId
-    ? (await prisma.employee.findUnique({ where: { id: employeeId }, select: { name: true } }))?.name ?? null
+    ? employees.find((e) => e.id === employeeId)?.name ?? null
     : null;
 
   const now = new Date();
@@ -106,7 +141,7 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
     visibleLogs = upcomingList;
   }
 
-  // 2. Search filter (supports digit-normalized phone search)
+  // 2. Search filter (supports digit-normalized phone search and remarks)
   if (search) {
     const cleanSearchDigits = search.replace(/\D/g, "");
     visibleLogs = visibleLogs.filter((l) => {
@@ -117,7 +152,8 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
       const phoneMatches =
         phone.includes(search) ||
         (cleanSearchDigits.length >= 3 && cleanPhoneDigits.includes(cleanSearchDigits));
-      return name.includes(search) || phoneMatches || rep.includes(search);
+      const remarkMatches = (l.lead.remarks || []).some((r) => r.remark.toLowerCase().includes(search));
+      return name.includes(search) || phoneMatches || rep.includes(search) || remarkMatches;
     });
   }
 
@@ -130,14 +166,16 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
   const startIndex = (currentPage - 1) * LEADS_PER_PAGE;
   const paginatedSequence = visibleLogs.slice(startIndex, startIndex + LEADS_PER_PAGE);
 
-  const buildFollowUpsUrl = (options: { page?: number; tab?: string }) => {
+  const buildFollowUpsUrl = (options: { page?: number; tab?: string; employeeId?: string; search?: string }) => {
     const sp = new URLSearchParams();
     const t = options.tab !== undefined ? options.tab : activeTab;
     const p = options.page !== undefined ? options.page : 1;
+    const emp = options.employeeId !== undefined ? options.employeeId : employeeId;
+    const s = options.search !== undefined ? options.search : resolvedParams.search;
 
     if (t && t !== "all") sp.set("tab", t);
-    if (resolvedParams.employeeId) sp.set("employeeId", resolvedParams.employeeId);
-    if (resolvedParams.search) sp.set("search", resolvedParams.search);
+    if (emp) sp.set("employeeId", emp);
+    if (s) sp.set("search", s);
     if (resolvedParams.range) sp.set("range", resolvedParams.range);
     if (resolvedParams.from) sp.set("from", resolvedParams.from);
     if (resolvedParams.to) sp.set("to", resolvedParams.to);
@@ -263,25 +301,41 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
           })}
         </div>
 
-        {/* Live Search Form */}
-        <form method="GET" action="/admin/follow-ups" className="flex items-center gap-2">
-          {activeTab !== "all" && <input type="hidden" name="tab" value={activeTab} />}
-          {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
-          {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
-          <input
-            type="text"
-            name="search"
-            defaultValue={resolvedParams.search || ""}
-            placeholder="Search prospect or rep..."
-            className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none w-full sm:w-56"
+        {/* Filter Controls: Employee Dropdown + Search Input */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FollowUpEmployeeFilter
+            employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+            currentEmployeeId={employeeId}
           />
-          <button
-            type="submit"
-            className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition"
-          >
-            Filter
-          </button>
-        </form>
+
+          <form method="GET" action="/admin/follow-ups" className="flex items-center gap-2">
+            {activeTab !== "all" && <input type="hidden" name="tab" value={activeTab} />}
+            {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
+            {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
+            <input
+              type="text"
+              name="search"
+              defaultValue={resolvedParams.search || ""}
+              placeholder="Search prospect or remarks..."
+              className="h-9 rounded-xl border border-line bg-white px-3 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none w-full sm:w-52"
+            />
+            <button
+              type="submit"
+              className="h-9 rounded-xl bg-slate-900 px-3.5 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
+            >
+              Search
+            </button>
+            {(search || employeeId) && (
+              <Link
+                href={buildFollowUpsUrl({ search: "", employeeId: "" })}
+                className="h-9 inline-flex items-center rounded-xl border border-line bg-white px-2.5 text-xs font-bold text-ink-faint hover:text-rose-600 transition"
+                title="Clear all filters"
+              >
+                ✕ Clear
+              </Link>
+            )}
+          </form>
+        </div>
       </div>
 
       {visibleLogs.length === 0 ? (
@@ -311,12 +365,12 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4">Lead</th>
-                  <th className="py-3 px-4">Representative</th>
-                  <th className="py-3 px-4">Scheduled For</th>
-                  <th className="py-3 px-4">Follow-up Iteration</th>
-                  <th className="py-3 px-4">Logged At</th>
-                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-3.5 w-[24%] min-w-[190px] whitespace-nowrap">Lead</th>
+                  <th className="py-3 px-3.5 w-[18%] min-w-[140px] whitespace-nowrap">Scheduled For</th>
+                  <th className="py-3 px-3.5 w-[17%] min-w-[130px] whitespace-nowrap">Follow-up Iteration</th>
+                  <th className="py-3 px-3.5 w-[16%] min-w-[125px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-3.5 w-[12%] min-w-[95px] whitespace-nowrap">Logged At</th>
+                  <th className="py-3 px-3.5 w-[13%] min-w-[100px] whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -327,7 +381,8 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
 
                   return (
                     <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                      <td className="py-3 px-4">
+                      {/* Lead */}
+                      <td className="py-3 px-3.5 w-[24%] min-w-[190px]">
                         <Link href={`/admin/lead-history/${log.lead.id}`} className="font-bold text-ink hover:text-sky-700">
                           <ProtectedData text={log.lead.name || "Unnamed Prospect"} />
                         </Link>
@@ -335,10 +390,9 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
                           <ProtectedData text={log.lead.phoneNumber || "No phone"} />
                         </p>
                       </td>
-                      <td className="py-3 px-4 font-semibold text-ink">
-                        {log.employee.name}
-                      </td>
-                      <td className="py-3 px-4">
+
+                      {/* Scheduled For */}
+                      <td className="py-3 px-3.5 w-[18%] min-w-[140px]">
                         <span className="font-bold text-ink">
                           {log.scheduledFor.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </span>
@@ -346,15 +400,50 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
                           {log.scheduledFor.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+
+                      {/* Follow-up Iteration */}
+                      <td className="py-3 px-3.5 w-[17%] min-w-[130px] whitespace-nowrap">
+                        <span className="rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-[10px] font-bold text-sky-800">
                           {log.sequence === 1 ? "1st" : log.sequence === 2 ? "2nd" : log.sequence === 3 ? "3rd" : `${log.sequence}th`} follow-up
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-ink-muted">
+
+                      {/* Remarks (global pill button showing count, opens modal on click) */}
+                      <td className="py-3 px-3.5 w-[16%] min-w-[125px] whitespace-nowrap">
+                        <LeadRemarksModal
+                          leadId={log.lead.id}
+                          leadName={log.lead.name ?? "Unnamed Prospect"}
+                          leadPhone={log.lead.phoneNumber ?? "No phone recorded"}
+                          leadStatus={log.lead.status}
+                          followUpAt={log.lead.followUpAt ? log.lead.followUpAt.toISOString() : null}
+                          assignedRepName={log.employee.name}
+                          remarks={(log.lead.remarks || []).map((r) => ({
+                            id: r.id,
+                            remark: r.remark,
+                            createdAt: r.createdAt.toISOString(),
+                            employeeName: r.employee.name,
+                          }))}
+                          callSummaries={(log.lead.calls || [])
+                            .filter((c: any) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                            .map((c: any) => ({
+                              id: c.id,
+                              aiSummary: c.aiSummary,
+                              transcript: c.transcript,
+                              occurredAt: c.occurredAt.toISOString(),
+                              durationSec: c.durationSec,
+                              missed: c.missed,
+                              recordingUrl: c.recordingUrl,
+                            }))}
+                        />
+                      </td>
+
+                      {/* Logged At */}
+                      <td className="py-3 px-3.5 w-[12%] min-w-[95px] text-ink-muted whitespace-nowrap">
                         {log.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                       </td>
-                      <td className="py-3 px-4">
+
+                      {/* Status */}
+                      <td className="py-3 px-3.5 w-[13%] min-w-[100px] whitespace-nowrap">
                         {!isCurrent ? (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-ink-faint">
                             Rescheduled
@@ -430,6 +519,34 @@ export default async function FollowUpsPage(props: FollowUpsPageProps) {
                     <span className="text-ink-faint text-[11px]">
                       Scheduled: <strong>{log.scheduledFor.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</strong>
                     </span>
+                  </div>
+
+                  <div className="pt-0.5">
+                    <LeadRemarksModal
+                      leadId={log.lead.id}
+                      leadName={log.lead.name ?? "Unnamed Prospect"}
+                      leadPhone={log.lead.phoneNumber ?? "No phone recorded"}
+                      leadStatus={log.lead.status}
+                      followUpAt={log.lead.followUpAt ? log.lead.followUpAt.toISOString() : null}
+                      assignedRepName={log.employee.name}
+                      remarks={(log.lead.remarks || []).map((r) => ({
+                        id: r.id,
+                        remark: r.remark,
+                        createdAt: r.createdAt.toISOString(),
+                        employeeName: r.employee.name,
+                      }))}
+                      callSummaries={(log.lead.calls || [])
+                        .filter((c: any) => (c.aiSummary && c.aiSummary.trim().length > 0) || c.transcript)
+                        .map((c: any) => ({
+                          id: c.id,
+                          aiSummary: c.aiSummary,
+                          transcript: c.transcript,
+                          occurredAt: c.occurredAt.toISOString(),
+                          durationSec: c.durationSec,
+                          missed: c.missed,
+                          recordingUrl: c.recordingUrl,
+                        }))}
+                    />
                   </div>
 
                   {cleanPhone && (

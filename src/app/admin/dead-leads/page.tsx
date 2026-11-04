@@ -11,6 +11,7 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
 import { formatLeadDateTime, formatLeadDateParts } from "@/lib/date-format";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
+import { EmployeeFilter } from "@/components/FollowUpEmployeeFilter";
 
 async function deleteLeadAction(formData: FormData) {
   "use server";
@@ -73,35 +74,42 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
     ? { updatedAt: { gte: dateFilter.start } }
     : {};
 
-  const allDeadLeads = await prisma.lead.findMany({
-    where: {
-      status: LeadStatus.NOT_INTERESTED,
-      ...companyScope,
-      ...dateWhere,
-      ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
-    },
-    include: {
-      assignedEmployee: { select: { id: true, name: true, phoneNumber: true } },
-      calls: {
-        orderBy: { occurredAt: "desc" },
-        select: {
-          id: true,
-          occurredAt: true,
-          durationSec: true,
-          missed: true,
-          aiSummary: true,
-          direction: true,
-          transcript: true,
-          recordingUrl: true,
+  const [allDeadLeads, employees] = await Promise.all([
+    prisma.lead.findMany({
+      where: {
+        status: LeadStatus.NOT_INTERESTED,
+        ...companyScope,
+        ...dateWhere,
+        ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
+      },
+      include: {
+        assignedEmployee: { select: { id: true, name: true, phoneNumber: true } },
+        calls: {
+          orderBy: { occurredAt: "desc" },
+          select: {
+            id: true,
+            occurredAt: true,
+            durationSec: true,
+            missed: true,
+            aiSummary: true,
+            direction: true,
+            transcript: true,
+            recordingUrl: true,
+          },
+        },
+        remarks: {
+          include: { employee: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
         },
       },
-      remarks: {
-        include: { employee: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-    orderBy: [{ deadAt: "desc" }, { updatedAt: "desc" }],
-  });
+      orderBy: [{ deadAt: "desc" }, { updatedAt: "desc" }],
+    }),
+    prisma.employee.findMany({
+      where: companyScope,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   // Apply search filter if present (supports digit-normalized phone search)
   let filteredBySearch = allDeadLeads;
@@ -150,14 +158,15 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
   const paginatedDeadLeads = visibleLeads.slice(startIndex, startIndex + LEADS_PER_PAGE);
 
   const repName = employeeId
-    ? (await prisma.employee.findUnique({ where: { id: employeeId }, select: { name: true } }))?.name ?? null
+    ? employees.find((e) => e.id === employeeId)?.name ?? null
     : null;
 
-  const buildDeadLeadsUrl = (page: number, newType?: string) => {
+  const buildDeadLeadsUrl = (page: number, newType?: string, newEmployeeId?: string) => {
     const sp = new URLSearchParams();
     const t = newType !== undefined ? newType : (activeType !== "all" ? activeType : undefined);
+    const emp = newEmployeeId !== undefined ? newEmployeeId : employeeId;
     if (t && t !== "all") sp.set("type", t);
-    if (resolvedParams.employeeId) sp.set("employeeId", resolvedParams.employeeId);
+    if (emp) sp.set("employeeId", emp);
     if (resolvedParams.search) sp.set("search", resolvedParams.search);
     if (resolvedParams.range) sp.set("range", resolvedParams.range);
     if (resolvedParams.from) sp.set("from", resolvedParams.from);
@@ -172,8 +181,8 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
     <div className="space-y-6 pb-28">
       {repName && (
         <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900">
-          Showing only <strong>{repName}</strong>
-          <Link href="/admin/dead-leads" className="ml-auto text-xs font-bold text-sky-700 underline">Show everyone</Link>
+          Showing closed leads for <strong>{repName}</strong>
+          <Link href={buildDeadLeadsUrl(1, activeType, "")} className="ml-auto text-xs font-bold text-sky-700 underline">Show everyone</Link>
         </div>
       )}
 
@@ -192,33 +201,41 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
             </h1>
           </div>
 
-          {/* Live Search Form */}
-          <form method="GET" action="/admin/dead-leads" className="flex items-center gap-2">
-            {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
-            {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
-            {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
-            <input
-              type="text"
-              name="search"
-              defaultValue={resolvedParams.search || ""}
-              placeholder="Search dead lead or rep..."
-              className="rounded-xl border border-line bg-white px-3 py-2 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none w-full sm:w-64"
+          {/* Controls: Employee Filter + Live Search Form */}
+          <div className="flex flex-wrap items-center gap-2">
+            <EmployeeFilter
+              employees={employees.map((e) => ({ id: e.id, name: e.name }))}
+              currentEmployeeId={employeeId}
             />
-            <button
-              type="submit"
-              className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
-            >
-              Filter
-            </button>
-            {resolvedParams.search && (
-              <Link
-                href={activeType !== "all" ? `/admin/dead-leads?type=${activeType}` : "/admin/dead-leads"}
-                className="rounded-xl border border-line bg-white px-2.5 py-2 text-xs font-bold text-ink-muted hover:bg-slate-50 transition"
+
+            <form method="GET" action="/admin/dead-leads" className="flex items-center gap-2">
+              {activeType !== "all" && <input type="hidden" name="type" value={activeType} />}
+              {employeeId && <input type="hidden" name="employeeId" value={employeeId} />}
+              {resolvedParams.range && <input type="hidden" name="range" value={resolvedParams.range} />}
+              <input
+                type="text"
+                name="search"
+                defaultValue={resolvedParams.search || ""}
+                placeholder="Search dead lead or rep..."
+                className="h-9 rounded-xl border border-line bg-white px-3 text-xs text-ink placeholder:text-ink-faint focus:border-primary focus:outline-none w-full sm:w-56"
+              />
+              <button
+                type="submit"
+                className="h-9 rounded-xl bg-slate-900 px-3.5 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
               >
-                Clear
-              </Link>
-            )}
-          </form>
+                Filter
+              </button>
+              {(resolvedParams.search || employeeId) && (
+                <Link
+                  href={buildDeadLeadsUrl(1, activeType, "")}
+                  className="h-9 inline-flex items-center rounded-xl border border-line bg-white px-2.5 text-xs font-bold text-ink-faint hover:text-rose-600 transition"
+                  title="Clear filters"
+                >
+                  ✕ Clear
+                </Link>
+              )}
+            </form>
+          </div>
         </div>
 
         {/* Classification Filter Tabs */}
@@ -299,15 +316,14 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
         <div className="rounded-3xl neo-panel bg-white border border-line overflow-hidden">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto crm-table-container w-full">
-            <table className="w-full text-left text-xs min-w-[1050px]">
+            <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="py-3 px-4 w-[240px] min-w-[220px] whitespace-nowrap">Prospect</th>
-                  <th className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">Category</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Source</th>
-                  <th className="py-3 px-4 w-[180px] min-w-[170px] whitespace-nowrap">Representative</th>
-                  <th className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">Remarks</th>
-                  <th className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">Actions</th>
+                  <th className="py-3 px-3.5 w-[28%] min-w-[220px] whitespace-nowrap">Prospect</th>
+                  <th className="py-3 px-3.5 w-[16%] min-w-[120px] whitespace-nowrap">Category</th>
+                  <th className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">Source</th>
+                  <th className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">Remarks</th>
+                  <th className="py-3 px-3.5 w-[20%] min-w-[160px] text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -319,7 +335,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect (Name, Phone, and Activity Date/Time stacked underneath) */}
-                      <td className="py-3 px-4 w-[240px] min-w-[220px]">
+                      <td className="py-3 px-3.5 w-[28%] min-w-[220px]">
                         <Link href={`/admin/lead-history/${lead.id}`} className="font-bold text-ink hover:text-rose-700 truncate block">
                           <ProtectedData text={lead.name || "Unnamed Prospect"} />
                         </Link>
@@ -336,7 +352,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Category Badge */}
-                      <td className="py-3 px-4 w-[130px] min-w-[120px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[16%] min-w-[120px] whitespace-nowrap">
                         {isIrrelevant ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800 shadow-2xs">
                             <span>🚫</span>
@@ -351,19 +367,12 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Source */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px]">
+                      <td className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
-                      {/* Representative */}
-                      <td className="py-3 px-4 w-[180px] min-w-[170px] font-semibold text-ink whitespace-nowrap truncate">
-                        {lead.assignedEmployee?.name || (
-                          <span className="text-ink-faint">Unassigned</span>
-                        )}
-                      </td>
-
                       {/* Remarks (Global Component with AI Summaries) */}
-                      <td className="py-3 px-4 w-[160px] min-w-[150px] whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[18%] min-w-[130px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -393,7 +402,7 @@ export default async function DeadLeadsPage(props: DeadLeadsPageProps) {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 w-[210px] min-w-[200px] text-right whitespace-nowrap">
+                      <td className="py-3 px-3.5 w-[20%] min-w-[160px] text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/admin/lead-history/${lead.id}`}

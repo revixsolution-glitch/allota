@@ -340,13 +340,13 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-line text-[11px] font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-3.5 py-3 w-[22%] min-w-[190px] whitespace-nowrap">Prospect &amp; Contact</th>
-                  <th className="px-2 py-3 w-[10%] min-w-[85px] text-center whitespace-nowrap">Category</th>
-                  <th className="px-2 py-3 w-[12%] min-w-[110px] text-center whitespace-nowrap">Platform</th>
-                  <th className="px-3 py-3 w-[22%] min-w-[180px] whitespace-nowrap">Scheduled Date</th>
-                  <th className="px-2 py-3 w-[11%] min-w-[100px] text-center whitespace-nowrap">Remarks</th>
-                  <th className="px-2 py-3 w-[11%] min-w-[100px] whitespace-nowrap">Status</th>
-                  <th className="px-3.5 py-3 w-[12%] min-w-[110px] text-right whitespace-nowrap">Instant Action</th>
+                  <th className="px-3.5 py-3 w-[20%] min-w-[170px] whitespace-nowrap">Prospect &amp; Contact</th>
+                  <th className="px-3.5 py-3 w-[13%] min-w-[95px] whitespace-nowrap">Category</th>
+                  <th className="px-3.5 py-3 w-[13%] min-w-[100px] whitespace-nowrap">Platform</th>
+                  <th className="px-3.5 py-3 w-[16%] min-w-[130px] whitespace-nowrap">Scheduled Date</th>
+                  <th className="px-3.5 py-3 w-[12%] min-w-[95px] whitespace-nowrap">Remarks</th>
+                  <th className="px-3.5 py-3 w-[13%] min-w-[100px] whitespace-nowrap">Status</th>
+                  <th className="px-3.5 py-3 w-[13%] min-w-[105px] text-right whitespace-nowrap">Instant Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -361,7 +361,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                   return (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect */}
-                      <td className="px-3.5 py-3.5 w-[22%] min-w-[190px]">
+                      <td className="px-3.5 py-3.5 w-[20%] min-w-[170px]">
                         <p className="font-bold text-ink text-sm">{lead.name}</p>
                         <p className="font-mono text-ink-muted text-xs mt-0.5">
                           {lead.phoneNumber || "No phone recorded"}
@@ -374,17 +374,17 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       </td>
 
                       {/* Category */}
-                      <td className="px-2 py-3.5 w-[10%] min-w-[85px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3.5 w-[13%] min-w-[95px] whitespace-nowrap">
                         <CategoryBadge division={lead.division} />
                       </td>
 
                       {/* Channel / Source with Official Brand Logo */}
-                      <td className="px-2 py-3.5 w-[12%] min-w-[110px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3.5 w-[13%] min-w-[100px] whitespace-nowrap">
                         <SourceBadge source={lead.source} sourceTag={lead.sourceTag} />
                       </td>
 
                       {/* Scheduled Date & Timing Badge */}
-                      <td className="px-3 py-3.5 w-[22%] min-w-[180px]">
+                      <td className="px-3.5 py-3.5 w-[16%] min-w-[130px]">
                         <div className="space-y-1">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold border ${
@@ -410,13 +410,14 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                               leadId={lead.id}
                               followUpAt={lead.followUpAt ? lead.followUpAt.toISOString() : null}
                               size="sm"
+                              hideBadge
                             />
                           </div>
                         </div>
                       </td>
 
                       {/* Remarks & Notes Modal */}
-                      <td className="px-2 py-3.5 w-[11%] min-w-[100px] text-center whitespace-nowrap">
+                      <td className="px-3.5 py-3.5 w-[12%] min-w-[95px] whitespace-nowrap">
                         <LeadRemarksModal
                           leadId={lead.id}
                           leadName={lead.name ?? "Unnamed Prospect"}
@@ -444,7 +445,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       </td>
 
                       {/* Status */}
-                      <td className="px-2 py-3.5 w-[11%] min-w-[100px] whitespace-nowrap">
+                      <td className="px-3.5 py-3.5 w-[13%] min-w-[100px] whitespace-nowrap">
                         <form action={updateEmployeeLeadStatus} className="flex items-center gap-1.5">
                           <input type="hidden" name="leadId" value={lead.id} />
                           <select
@@ -468,7 +469,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                       </td>
 
                       {/* Direct 1-Tap Actions */}
-                      <td className="px-3.5 py-3.5 w-[12%] min-w-[110px] text-right">
+                      <td className="px-3.5 py-3.5 w-[13%] min-w-[105px] text-right">
                         <div className="inline-flex items-center gap-1.5 justify-end">
                           {cleanPhone && (
                             <>
