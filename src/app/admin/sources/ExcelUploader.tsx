@@ -12,6 +12,7 @@ import {
   type SheetAnalysis,
 } from "@/lib/lead-sheet";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { LeadSource } from "@/generated/prisma/enums";
 
 interface EmployeeOption {
   id: string;
@@ -24,6 +25,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
+  const [source, setSource] = useState<LeadSource>(LeadSource.EXCEL_IMPORT);
   const [batchTag, setBatchTag] = useState("");
   const [division, setDivision] = useState("PCD_FRANCHISE");
   const [employeeId, setEmployeeId] = useState("");
@@ -34,6 +36,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     allDuplicates?: boolean;
     message?: string;
     batchTag?: string;
+    source?: string;
     insertedCount?: number;
     duplicateCount?: number;
     invalidCount?: number;
@@ -124,6 +127,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("source", source);
       fd.append("batchTag", batchTag.trim());
       fd.append("division", division);
       if (employeeId) {
@@ -148,6 +152,7 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
         setResult(data);
         setFile(null);
         setBatchTag("");
+        setSource(LeadSource.EXCEL_IMPORT);
         setAnalysis(null);
         setMapping(null);
         if (fileInputRef.current) {
@@ -266,6 +271,104 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
           )}
         </div>
 
+        {/* Batch Configuration Settings */}
+        <div className="rounded-2xl border border-line bg-slate-50/70 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-black uppercase tracking-wider text-ink-muted">
+              Import Configuration & Source Attribution
+            </span>
+            <span className="text-[10px] text-ink-faint font-medium">
+              (Choose which platform or channel these leads originated from)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. Lead Source Platform */}
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-muted mb-1.5">
+                Lead Source *
+              </label>
+              <div className="relative">
+                <select
+                  value={source}
+                  onChange={(e) => setSource(e.target.value as LeadSource)}
+                  className="w-full appearance-none rounded-xl border border-line bg-white pl-3 pr-8 py-2.5 text-xs font-bold text-ink shadow-2xs hover:border-emerald-500/50 hover:bg-slate-50/80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="EXCEL_IMPORT">📊 Sheet Import / Generic Excel</option>
+                  <option value="META">🌐 Meta Ads (Facebook & Instagram)</option>
+                  <option value="PHARMAHOPERS">💊 PharmaHopers</option>
+                  <option value="PHARMAKHABAR">📰 PharmaKhabar</option>
+                  <option value="INDIAMART">🛒 IndiaMART</option>
+                  <option value="WEBSITE">🖥️ Website Form</option>
+                  <option value="WHATSAPP">💬 WhatsApp Export</option>
+                  <option value="MANUAL">✍️ Manual / Offline List</option>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Category / Division */}
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-muted mb-1.5">
+                Default Category
+              </label>
+              <div className="relative">
+                <select
+                  value={division}
+                  onChange={(e) => setDivision(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-line bg-white pl-3 pr-8 py-2.5 text-xs font-bold text-ink shadow-2xs hover:border-emerald-500/50 hover:bg-slate-50/80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="PCD_FRANCHISE">🏢 PCD Pharma Franchise</option>
+                  <option value="THIRD_PARTY">🏭 Third-Party Manufacturing</option>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Representative Allotment */}
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-muted mb-1.5">
+                Assign To (Optional)
+              </label>
+              <div className="relative">
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-line bg-white pl-3 pr-8 py-2.5 text-xs font-bold text-ink shadow-2xs hover:border-emerald-500/50 hover:bg-slate-50/80 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                >
+                  <option value="">⚠️ Unassigned Pool (Assign Later)</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      👤 {emp.name} ({emp.leadCount} leads)
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Batch Tag */}
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-muted mb-1.5">
+                Batch / Campaign Tag
+              </label>
+              <input
+                type="text"
+                value={batchTag}
+                onChange={(e) => setBatchTag(e.target.value)}
+                placeholder="e.g. Meta Ads Oct Export"
+                className="w-full rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-bold text-ink shadow-2xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Column mapping + live preview */}
         {file && analysis && mapping && (
           <ColumnMappingPreview
@@ -345,11 +448,16 @@ export function ExcelUploader({ employees }: { employees: EmployeeOption[] }) {
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-2 font-bold text-sm text-emerald-800">
-                    <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex flex-wrap items-center gap-2 font-bold text-sm text-emerald-800">
+                    <svg className="h-5 w-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
                     <span>Batch Ingested Successfully: {result.batchTag}</span>
+                    {result.source && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800 border border-emerald-200 shadow-2xs">
+                        Source: {result.source}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div className="rounded-xl bg-white/80 p-2.5 border border-emerald-100">

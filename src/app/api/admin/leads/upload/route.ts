@@ -28,6 +28,11 @@ export async function POST(request: Request) {
     const batchTagInput = cleanString(formData.get("batchTag"));
     const divisionInput = cleanString(formData.get("division")) || "PCD_FRANCHISE";
     const employeeId = cleanString(formData.get("employeeId")) || null;
+    const rawSource = cleanString(formData.get("source"));
+    const targetSource =
+      rawSource && Object.values(LeadSource).includes(rawSource as LeadSource)
+        ? (rawSource as LeadSource)
+        : LeadSource.EXCEL_IMPORT;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -183,9 +188,9 @@ export async function POST(request: Request) {
       });
 
       leadsToInsert.push({
-        source: LeadSource.EXCEL_IMPORT,
+        source: targetSource,
         sourceTag: batchTag,
-        division: rawDivision || "PCD_FRANCHISE",
+        division: rawDivision || divisionInput || "PCD_FRANCHISE",
         inquiryDetails: noteDetails,
         rawPayload: {
           importedFile: file.name,
@@ -268,6 +273,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       batchTag,
+      source: targetSource,
       totalRowsProcessed: dataRows.length,
       insertedCount: leadsToInsert.length,
       duplicateCount,
