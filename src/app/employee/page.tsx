@@ -8,6 +8,7 @@ import { MissedCallAlertButton } from "@/components/MissedCallAlertButton";
 import { FollowUpPicker } from "@/components/FollowUpPicker";
 import { LeadStatusToggle } from "@/components/LeadStatusToggle";
 import { formatLeadDateTime } from "@/lib/date-format";
+import { formatLeadName } from "@/lib/lead-format";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CLOSED_LEAD_STATUSES, endOfDay, startOfDay } from "@/lib/follow-up";
@@ -555,7 +556,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                             )}
                             <div className={`space-y-0.5 ${isCurrentFresh ? "pt-2.5" : ""}`}>
                               <p className="font-extrabold text-ink text-sm min-w-0 truncate">
-                                <span>{lead.name || "Anonymous Prospect"}</span>
+                                <span>{formatLeadName(lead.name) || "Anonymous Prospect"}</span>
                               </p>
                             </div>
                             <div className="mt-1 flex items-center gap-2 font-mono text-xs text-ink-muted whitespace-nowrap">
@@ -692,7 +693,7 @@ export default async function EmployeeDashboardPage(props: EmployeeDashboardPage
                       )}
                       <div className={`flex items-start justify-between gap-2 ${isCurrentFresh ? "pt-2" : ""}`}>
                         <div>
-                          <p className="font-bold text-ink text-base">{lead.name || "Anonymous Prospect"}</p>
+                          <p className="font-bold text-ink text-base">{formatLeadName(lead.name) || "Anonymous Prospect"}</p>
                           <p className="font-mono text-ink-muted text-xs mt-0.5">{lead.phoneNumber}</p>
                           <div className="flex items-center gap-1 text-[11px] font-medium text-ink-muted mt-1">
                             <span>📅</span>

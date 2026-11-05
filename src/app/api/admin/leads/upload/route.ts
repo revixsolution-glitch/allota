@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import { normalizePhoneKey } from "@/lib/phone-utils";
 import { analyzeSheet, extractLead, pickLeadSheet, LEAD_FIELDS, type ColumnMapping } from "@/lib/lead-sheet";
 import { getDefaultFollowUpDate } from "@/lib/follow-up";
+import { formatLeadName } from "@/lib/lead-format";
 
 function cleanString(val: any): string {
   if (val === null || val === undefined) return "";
@@ -171,7 +172,7 @@ export async function POST(request: Request) {
       batchSeenPhones.add(phoneKey);
       existingPhones.add(phoneKey);
 
-      const finalName = rawName || `Prospect ${parsedPhone.digits.slice(-4)}`;
+      const finalName = formatLeadName(rawName) || `Prospect ${parsedPhone.digits.slice(-4)}`;
       const noteDetails = rawInquiry || `Imported via Batch: ${batchTag}${rawCity ? ` (${rawCity}, ${rawState})` : ""}`;
 
       // Reconstruct row object for payload audit

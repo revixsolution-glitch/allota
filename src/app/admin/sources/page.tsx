@@ -6,6 +6,7 @@ import { ExcelUploader } from "./ExcelUploader";
 import { addSourceEmployeeMapping, removeSourceEmployeeMapping } from "@/lib/admin-actions";
 import { SELECTABLE_SOURCES } from "@/lib/lead-sources";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { formatLeadName } from "@/lib/lead-format";
 
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 
@@ -663,7 +664,7 @@ export default async function SourcesHubPage(props: SourcesHubPageProps) {
                 <tbody className="divide-y divide-line">
                   {recentUploads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-5 py-3.5 font-bold text-ink">{lead.name}</td>
+                      <td className="px-5 py-3.5 font-bold text-ink">{formatLeadName(lead.name) || "Unnamed Prospect"}</td>
                       <td className="px-4 py-3.5 font-mono text-ink-muted">{lead.phoneNumber}</td>
                       <td className="px-4 py-3.5 text-ink-muted">
                         {lead.city ? `${lead.city}, ${lead.state || ""}` : "—"}

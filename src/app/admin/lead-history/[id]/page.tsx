@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany } from "@/lib/auth";
 import { LeadStatus } from "@/generated/prisma/enums";
 import { deleteLead, updateLead, updateLeadActiveStatus } from "@/lib/admin-actions";
+import { formatLeadName } from "@/lib/lead-format";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export default async function LeadHistoryPage({ params }: { params: Promise<{ id
               />
               {isDead ? (isIrrelevant ? "Irrelevant inquiry" : "Dead lead") : "Active lead"}
             </span>
-            <h1 className="mt-3 text-3xl font-extrabold text-ink">{lead.name || "Unnamed prospect"}</h1>
+            <h1 className="mt-3 text-3xl font-extrabold text-ink">{formatLeadName(lead.name) || "Unnamed prospect"}</h1>
             <p className="mt-1 text-xl font-bold text-ink-muted">{lead.phoneNumber || "No phone number"}</p>
           </div>
 

@@ -11,6 +11,7 @@ import { CLOSED_LEAD_STATUSES, startOfDay, endOfDay } from "@/lib/follow-up";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { PaginationBar } from "@/components/PaginationBar";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { formatLeadName } from "@/lib/lead-format";
 
 export const dynamic = "force-dynamic";
 
@@ -380,7 +381,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                     <tr key={lead.id} className="hover:bg-slate-50/70 transition">
                       {/* Prospect */}
                       <td className="px-3.5 py-3.5 w-[20%] min-w-[170px]">
-                        <p className="font-bold text-ink text-sm">{lead.name}</p>
+                        <p className="font-bold text-ink text-sm">{formatLeadName(lead.name) || "Unnamed Prospect"}</p>
                         <p className="font-mono text-ink-muted text-xs mt-0.5">
                           {lead.phoneNumber || "No phone recorded"}
                         </p>
@@ -532,7 +533,7 @@ export default async function EmployeeFollowUpsPage(props: EmployeeFollowUpsPage
                 <div key={lead.id} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-ink text-base">{lead.name}</h3>
+                      <h3 className="font-bold text-ink text-base">{formatLeadName(lead.name) || "Unnamed Prospect"}</h3>
                       <p className="font-mono text-ink-muted text-xs">{lead.phoneNumber}</p>
                     </div>
 

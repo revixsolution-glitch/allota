@@ -220,6 +220,11 @@ export function cleanContactDisplayName(rawName?: string | null): string {
   // 6. Normalize whitespace
   clean = clean.replace(/\s+/g, " ").trim();
 
+  // 6b. If PascalCase without spaces (e.g. ShashiBhushan -> Shashi Bhushan)
+  if (!clean.includes(" ") && /[a-z][A-Z]/.test(clean)) {
+    clean = clean.replace(/([a-z])([A-Z])/g, "$1 $2");
+  }
+
   // 7. Format 10-digit phone numbers if that was the entire name
   if (/^\d{10}$/.test(clean)) {
     return `+91 ${clean.slice(0, 5)} ${clean.slice(5)}`;

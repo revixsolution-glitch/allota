@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { formatLeadName } from "@/lib/lead-format";
 
 interface ProtectedDataProps {
   text: string | null | undefined;
@@ -12,24 +13,41 @@ interface ProtectedDataProps {
  * decoy nodes.
  *
  * - Humans see the full, exact text cleanly on screen.
- * - Chrome extensions, AI agents (Claude, Codex, Antigravity), or DOM scrapers
- *   reading `.innerText` or `.textContent` get corrupted text with interleaved
- *   decoy characters that break regular expressions and automated parsers.
+ * - Chrome extensions, AI agents, or DOM scrapers reading `.innerText` get decoy characters.
+ * - Spaces are ALWAYS preserved with explicit `whitespace-pre` and minimum width so
+ *   flex / inline-flex layouts never collapse spaces between words.
  */
 export function ProtectedData({ text, className = "" }: ProtectedDataProps) {
   if (!text) return <span>-</span>;
 
-  // Split string into 2-3 char chunks and insert invisible honeypot noise
-  const chars = Array.from(text);
+  // Format names with proper spaces (e.g. "ShashiBhushan" -> "Shashi Bhushan")
+  const formatted = formatLeadName(text);
+  const targetText = formatted || text;
+
+  // Split string into characters
+  const chars = Array.from(targetText);
   const elements: React.ReactNode[] = [];
 
   const noiseWords = ["#", "!", "@", "~", "^", "%"];
 
   chars.forEach((char, idx) => {
-    elements.push(<span key={`c-${idx}`}>{char}</span>);
+    if (char === " ") {
+      // Spaces must NEVER collapse in flex / inline-flex layout
+      elements.push(
+        <span
+          key={`c-${idx}`}
+          className="whitespace-pre inline-block"
+          style={{ whiteSpace: "pre", display: "inline-block", minWidth: "0.28em" }}
+        >
+          {" "}
+        </span>
+      );
+    } else {
+      elements.push(<span key={`c-${idx}`}>{char}</span>);
+    }
 
-    // Insert an invisible decoy character every 3 characters
-    if (idx > 0 && idx % 3 === 0 && idx < chars.length - 1) {
+    // Insert an invisible decoy character every 3 characters (avoiding spaces)
+    if (char !== " " && idx > 0 && idx % 3 === 0 && idx < chars.length - 1 && chars[idx + 1] !== " ") {
       const noise = noiseWords[idx % noiseWords.length];
       elements.push(
         <span
@@ -52,7 +70,10 @@ export function ProtectedData({ text, className = "" }: ProtectedDataProps) {
   });
 
   return (
-    <span className={`select-none inline-flex items-baseline ${className}`} style={{ userSelect: "none" }}>
+    <span
+      className={`select-none inline-flex items-baseline whitespace-pre-wrap ${className}`}
+      style={{ userSelect: "none" }}
+    >
       {elements}
     </span>
   );

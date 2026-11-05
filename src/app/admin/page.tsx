@@ -4,6 +4,7 @@ import { hasDashboard } from "@/types/company";
 import { prisma } from "@/lib/prisma";
 import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
+import { formatLeadName } from "@/lib/lead-format";
 
 interface AdminDashboardPageProps {
   searchParams?: Promise<{
@@ -468,7 +469,7 @@ export default async function AdminDashboardPage(props: AdminDashboardPageProps)
           {recentLeads.map((lead) => (
             <div key={lead.id} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-slate-50/50 transition">
               <div className="min-w-0">
-                <p className="truncate font-semibold text-ink text-sm">{lead.name ?? "Unnamed inquiry"}</p>
+                <p className="truncate font-semibold text-ink text-sm">{formatLeadName(lead.name) || "Unnamed inquiry"}</p>
                 <div className="mt-1 flex items-center gap-2">
                   <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold border ${getPlatformTagClass(lead.source)}`}>
                     {lead.source}

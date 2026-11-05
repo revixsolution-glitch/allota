@@ -5,6 +5,7 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
 import { getDefaultFollowUpDate } from "@/lib/follow-up";
+import { formatLeadName } from "@/lib/lead-format";
 
 export const dynamic = "force-dynamic";
 
@@ -533,11 +534,12 @@ export async function POST(req: NextRequest) {
             fieldData[item.name] = Array.isArray(item.values) ? item.values[0] : String(item.values);
           }
 
-          const fullName =
+          const rawFullName =
             fieldData["full_name"] ||
             fieldData["name"] ||
             `${fieldData["first_name"] || ""} ${fieldData["last_name"] || ""}`.trim() ||
             "Meta Ad Prospect";
+          const fullName = formatLeadName(rawFullName) || "Meta Ad Prospect";
 
           const rawPhoneNumber =
             fieldData["phone_number"] ||

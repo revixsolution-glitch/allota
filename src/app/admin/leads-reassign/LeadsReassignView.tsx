@@ -10,6 +10,7 @@ import {
   ReassignmentAuditRow,
 } from "./types";
 import { GradientText } from "@/components/GradientText";
+import { formatLeadName } from "@/lib/lead-format";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -910,7 +911,7 @@ export function LeadsReassignView({
                         </td>
                         <td className="py-3.5">
                           <div className="font-bold text-ink flex items-center gap-1.5">
-                            {lead.name}
+                            {formatLeadName(lead.name) || "Unnamed Prospect"}
                             {lead.reassignedCount > 0 && (
                               <span className="rounded bg-indigo-100 text-indigo-800 px-1.5 py-0.2 text-[9px] font-bold">
                                 Reassigned #{lead.reassignedCount}

@@ -6,6 +6,7 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { extractPhoneNumber, normalizePhoneKey } from "@/lib/phone-utils";
 import { pickNextEmployeeForSource } from "@/lib/lead-assignment";
 import { getDefaultFollowUpDate } from "@/lib/follow-up";
+import { formatLeadName } from "@/lib/lead-format";
 
 export const dynamic = "force-dynamic";
 
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ com
   const lead = await prisma.lead.create({
     data: {
       companyId,
-      name: name || (isTestLead ? "PharmaKhabar Test User" : "PharmaKhabar Inquirer"),
+      name: formatLeadName(name) || (isTestLead ? "PharmaKhabar Test User" : "PharmaKhabar Inquirer"),
       phoneNumber: formattedPhone,
       city,
       state,

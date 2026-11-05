@@ -4,6 +4,7 @@ import { LeadSource, LeadStatus } from "@/generated/prisma/enums";
 import { getSession, getActiveCompanyId, scopeToCompany, scopeViaRelation } from "@/lib/auth";
 import { parseDashboardDateFilter } from "@/lib/date-filters";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { formatLeadName } from "@/lib/lead-format";
 
 interface LeadsIqPageProps {
   searchParams?: Promise<{
@@ -706,7 +707,7 @@ export default async function LeadsIqPage(props: LeadsIqPageProps) {
                     );
                     return (
                       <tr key={lead.id} className="hover:bg-slate-50/70 transition">
-                        <td className="px-5 py-3.5 font-bold text-ink">{lead.name}</td>
+                        <td className="px-5 py-3.5 font-bold text-ink">{formatLeadName(lead.name) || "Unnamed Prospect"}</td>
                         <td className="px-4 py-3.5 font-mono text-ink-muted">
                           {lead.phoneNumber}
                         </td>
