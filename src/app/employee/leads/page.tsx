@@ -16,6 +16,7 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { ProtectedData } from "@/components/ProtectedData";
 import { LeadRemarksModal } from "@/components/LeadRemarksModal";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { EmployeePipelineSelect } from "@/components/EmployeePipelineSelect";
 
 export default async function EmployeeLeadsPage({
   searchParams,
@@ -204,14 +205,15 @@ export default async function EmployeeLeadsPage({
   const startIndex = (currentPage - 1) * LEADS_PER_PAGE;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + LEADS_PER_PAGE);
 
-  const buildUrl = (o: { division?: string; followUp?: string; page?: number }) => {
+  const buildUrl = (o: { division?: string; followUp?: string; page?: number; search?: string }) => {
     const sp = new URLSearchParams();
     const d = o.division ?? selectedDivision;
     const f = o.followUp ?? followUpFilter;
     const p = o.page !== undefined ? o.page : 1;
+    const s = o.search !== undefined ? o.search : search ? params?.search || "" : "";
     if (d && d !== "ALL") sp.set("division", d);
     if (f && f !== "all") sp.set("followUp", f);
-    if (search) sp.set("search", params?.search || "");
+    if (s) sp.set("search", s);
     if (params?.range) sp.set("range", params.range);
     if (params?.from) sp.set("from", params.from);
     if (params?.to) sp.set("to", params.to);
@@ -287,64 +289,47 @@ export default async function EmployeeLeadsPage({
             </Link>
           </div>
 
-          {/* Follow-up reminders */}
-          <div className="flex w-full flex-wrap items-center gap-2 border-t border-line pt-3 sm:order-last sm:basis-full">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-faint">Follow-ups</span>
-            {(
-              [
-                { key: "all", label: "All Pipeline", count: null, tone: "border-line bg-canvas text-ink-muted", on: "bg-slate-800 text-white border-slate-800" },
-                { key: "fresh", label: "✨ Fresh Leads", count: freshCount, tone: "border-emerald-300 bg-emerald-50 text-emerald-800 font-black", on: "bg-emerald-600 text-white border-emerald-600 shadow-2xs" },
-                { key: "due", label: "Due now", count: overdueCount + todayCount, tone: "border-sky-200 bg-sky-50 text-sky-800", on: "bg-sky-700 text-white border-sky-700" },
-                { key: "overdue", label: "Overdue", count: overdueCount, tone: "border-rose-200 bg-rose-50 text-rose-700", on: "bg-rose-600 text-white border-rose-600" },
-                { key: "today", label: "Today", count: todayCount, tone: "border-amber-200 bg-amber-50 text-amber-800", on: "bg-amber-500 text-white border-amber-500" },
-                { key: "upcoming", label: "Upcoming", count: upcomingCount, tone: "border-emerald-200 bg-emerald-50 text-emerald-800", on: "bg-emerald-600 text-white border-emerald-600" },
-              ] as const
-            ).map((t) => (
-              <Link
-                key={t.key}
-                href={buildUrl({ followUp: t.key })}
-                className={`rounded-xl border px-3 py-1.5 text-[11px] font-bold transition ${
-                  followUpFilter === t.key ? t.on : t.tone
-                }`}
-              >
-                {t.label}
-                {t.count !== null && ` (${t.count})`}
-              </Link>
-            ))}
-          </div>
-
-          {/* Search Bar */}
-          <form className="flex items-center gap-2 w-full sm:w-auto">
-            {selectedDivision !== "ALL" && (
-              <input type="hidden" name="division" value={selectedDivision} />
-            )}
-            {followUpFilter !== "all" && <input type="hidden" name="followUp" value={followUpFilter} />}
-            <input
-              type="text"
-              name="search"
-              defaultValue={search}
-              placeholder="Search by prospect, phone, city..."
-              className="h-10 flex-1 sm:w-64 rounded-xl border border-line bg-canvas px-3.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+          {/* Pipeline Stage Dropdown & Search Bar */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Follow-up / Pipeline Dropdown (Matches Admin Lead Center) */}
+            <EmployeePipelineSelect
+              followUpFilter={followUpFilter}
+              totalLeads={totalLeads}
+              freshCount={freshCount}
+              overdueCount={overdueCount}
+              todayCount={todayCount}
+              upcomingCount={upcomingCount}
             />
-            <button
-              type="submit"
-              className="h-10 rounded-xl bg-primary px-3.5 text-xs font-bold text-white hover:bg-primary-strong transition shrink-0 cursor-pointer"
-            >
-              Search
-            </button>
-            {search && (
-              <Link
-                href={
-                  selectedDivision !== "ALL"
-                    ? `/employee/leads?division=${selectedDivision}`
-                    : "/employee/leads"
-                }
-                className="text-xs font-bold text-ink-faint hover:text-ink shrink-0"
+
+            {/* Search Bar */}
+            <form className="flex items-center gap-2 flex-1 sm:flex-initial">
+              {selectedDivision !== "ALL" && (
+                <input type="hidden" name="division" value={selectedDivision} />
+              )}
+              {followUpFilter !== "all" && <input type="hidden" name="followUp" value={followUpFilter} />}
+              <input
+                type="text"
+                name="search"
+                defaultValue={search}
+                placeholder="Search prospect, phone, city..."
+                className="h-10 flex-1 sm:w-60 rounded-xl border border-line bg-canvas px-3.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-xl bg-primary px-3.5 text-xs font-bold text-white hover:bg-primary-strong transition shrink-0 cursor-pointer"
               >
-                Clear
-              </Link>
-            )}
-          </form>
+                Search
+              </button>
+              {search && (
+                <Link
+                  href={buildUrl({ search: "" })}
+                  className="text-xs font-bold text-ink-faint hover:text-ink shrink-0"
+                >
+                  Clear
+                </Link>
+              )}
+            </form>
+          </div>
         </div>
       </section>
 
