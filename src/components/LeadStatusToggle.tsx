@@ -209,59 +209,45 @@ export function LeadStatusToggle({
           </svg>
         </button>
 
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu (Pops up above button) */}
         {isOpen && (
-          <div className="absolute right-0 top-full mt-1.5 w-64 rounded-2xl bg-white p-1.5 shadow-xl border border-line z-50 animate-in fade-in zoom-in-95 duration-100">
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-faint border-b border-line-soft mb-1">
-              Select Closed Category
-            </div>
-
+          <div className="absolute right-0 bottom-full mb-1.5 w-36 rounded-xl bg-white p-1 shadow-xl border border-line z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
             {/* Option A: Dead */}
             <button
               type="button"
               onClick={() => handleDeadSelection("DEAD")}
-              className={`w-full rounded-xl p-2 text-left transition cursor-pointer flex items-start gap-2 ${
+              className={`w-full rounded-lg px-2.5 py-1.5 text-left transition cursor-pointer flex items-center justify-between text-xs font-semibold ${
                 isDeadState && !isIrrelevant
-                  ? "bg-rose-50 text-rose-950 font-semibold"
+                  ? "bg-rose-50 text-rose-700 font-bold"
                   : "hover:bg-slate-50 text-ink"
               }`}
             >
-              <span className="text-sm leading-none mt-0.5">🔴</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-rose-700 flex items-center justify-between">
-                  <span>Dead Lead</span>
-                  {isDeadState && !isIrrelevant && (
-                    <span className="text-[10px] text-rose-600 font-bold">Selected</span>
-                  )}
-                </div>
-                <p className="text-[10px] text-ink-muted leading-tight mt-0.5">
-                  Not interested, price mismatch, competitor chosen
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs">🔴</span>
+                <span>Dead</span>
               </div>
+              {isDeadState && !isIrrelevant && (
+                <span className="text-[10px] text-rose-600 font-bold">✓</span>
+              )}
             </button>
 
             {/* Option B: Irrelevant */}
             <button
               type="button"
               onClick={() => handleDeadSelection("IRRELEVANT")}
-              className={`w-full rounded-xl p-2 text-left transition cursor-pointer flex items-start gap-2 mt-1 ${
+              className={`w-full rounded-lg px-2.5 py-1.5 text-left transition cursor-pointer flex items-center justify-between text-xs font-semibold ${
                 isIrrelevant
-                  ? "bg-amber-50 text-amber-950 font-semibold"
+                  ? "bg-amber-50 text-amber-700 font-bold"
                   : "hover:bg-slate-50 text-ink"
               }`}
             >
-              <span className="text-sm leading-none mt-0.5">🚫</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-amber-700 flex items-center justify-between">
-                  <span>Irrelevant Inquiry</span>
-                  {isIrrelevant && (
-                    <span className="text-[10px] text-amber-600 font-bold">Selected</span>
-                  )}
-                </div>
-                <p className="text-[10px] text-ink-muted leading-tight mt-0.5">
-                  Wrong number, student, job seeker, invalid inquiry
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs">🚫</span>
+                <span>Irrelevant</span>
               </div>
+              {isIrrelevant && (
+                <span className="text-[10px] text-amber-600 font-bold">✓</span>
+              )}
             </button>
           </div>
         )}
