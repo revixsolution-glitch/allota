@@ -1489,6 +1489,14 @@ export async function addLeadRemark(formData: FormData) {
     },
   });
 
+  // When a remark is added to a fresh/new lead, it is now in active discussion: promote status to CONTACTED (Active)
+  if (lead.status === LeadStatus.NEW || lead.status === LeadStatus.ASSIGNED) {
+    await prisma.lead.update({
+      where: { id: input.leadId },
+      data: { status: LeadStatus.CONTACTED },
+    });
+  }
+
   // Global Auto Follow-up: if no follow-up is currently set, automatically schedule for upcoming 2 days
   if (!lead.followUpAt) {
     const autoFollowUp = getDefaultFollowUpDate();

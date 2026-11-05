@@ -1043,10 +1043,12 @@ export default async function AdminLeadsPage({
               {paginatedLeads.map((lead) => {
                 const sourceMeta = leadSources.find((s) => s.value === lead.source);
                 const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
+                const hasRemarks = Boolean(lead.remarks && lead.remarks.length > 0);
+                const hasCalls = Boolean(lead.calls && lead.calls.length > 0);
                 const isFresh =
                   (lead.status === "NEW" || lead.status === "ASSIGNED") &&
-                  (!lead.remarks || lead.remarks.length === 0) &&
-                  !lead.followUpAt;
+                  !hasRemarks &&
+                  !hasCalls;
 
                 return (
                   <tr key={lead.id} className="hover:bg-slate-50/60 transition">
@@ -1162,7 +1164,7 @@ export default async function AdminLeadsPage({
                           <span className="h-2 w-2 rounded-full bg-purple-500" />
                           Converted
                         </span>
-                      ) : lead.status === LeadStatus.NEW || lead.status === LeadStatus.ASSIGNED ? (
+                      ) : isFresh ? (
                         <span
                           title="Fresh uncontacted lead"
                           className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600"
@@ -1172,7 +1174,7 @@ export default async function AdminLeadsPage({
                         </span>
                       ) : (
                         <span
-                          title="Marked active by the representative"
+                          title="Active pipeline lead"
                           className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
                         >
                           <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -1201,6 +1203,12 @@ export default async function AdminLeadsPage({
             const cleanPhone = (lead.phoneNumber || "").replace(/[^0-9]/g, "");
             const isPcd = (lead.division || "PCD_FRANCHISE") === "PCD_FRANCHISE";
             const leadDataText = extractLeadData(lead.rawPayload) || lead.inquiryDetails || "Inquiry recorded via API";
+            const hasRemarks = Boolean(lead.remarks && lead.remarks.length > 0);
+            const hasCalls = Boolean(lead.calls && lead.calls.length > 0);
+            const isFresh =
+              (lead.status === "NEW" || lead.status === "ASSIGNED") &&
+              !hasRemarks &&
+              !hasCalls;
 
             return (
               <div key={lead.id} className="p-4 space-y-3">
@@ -1277,7 +1285,7 @@ export default async function AdminLeadsPage({
                       ? (lead.deadReason === "IRRELEVANT" ? "🚫 Irrelevant" : "🔴 Dead")
                       : lead.status === LeadStatus.CONVERTED
                       ? "🟣 Converted"
-                      : lead.status === LeadStatus.NEW || lead.status === LeadStatus.ASSIGNED
+                      : isFresh
                       ? "⚪ Fresh"
                       : "🟢 Active"}
                   </span>
