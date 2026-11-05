@@ -88,7 +88,13 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
             territory: true,
           },
         },
-        leads: Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : true,
+        leads: {
+          ...(Object.keys(leadDateFilter).length > 0 ? { where: leadDateFilter } : {}),
+          include: {
+            remarks: { select: { id: true } },
+            _count: { select: { calls: true } },
+          },
+        },
         calls: Object.keys(callDateFilter).length > 0 ? { where: callDateFilter } : true,
         tasks: true,
         sessions: {
@@ -221,6 +227,25 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
           const scheduledFollowUps = openFollowUps.length;
           const overdueFollowUps = openFollowUps.filter((l) => (l.followUpAt as Date) < startOfToday).length;
 
+          // Fresh Untouched Leads (NEW or ASSIGNED, 0 remarks, 0 calls)
+          const newLeadsCount = employee.leads.filter(
+            (l) =>
+              (l.status === "NEW" || l.status === "ASSIGNED") &&
+              (!l.remarks || l.remarks.length === 0) &&
+              (l._count?.calls ?? 0) === 0
+          ).length;
+
+          // Active Pipeline Leads (in progress, has remarks/calls, or marked CONTACTED/INTERESTED)
+          const activeLeadsCount = employee.leads.filter(
+            (l) =>
+              l.status !== "NOT_INTERESTED" &&
+              l.status !== "CONVERTED" &&
+              (l.status === "CONTACTED" ||
+                l.status === "INTERESTED" ||
+                (l.remarks && l.remarks.length > 0) ||
+                (l._count?.calls ?? 0) > 0)
+          ).length;
+
           const latestSession = employee.sessions[0];
           const isShiftActive = latestSession?.status === "ACTIVE";
 
@@ -344,74 +369,99 @@ export default async function AdminEmployeesPage(props: AdminEmployeesPageProps)
                 </details>
               </div>
 
-              {/* Quick Metrics Strip */}
-              <div className={`mt-5 grid grid-cols-2 gap-2.5 ${isCorePlan ? "sm:grid-cols-4" : "sm:grid-cols-5"}`}>
-                {!isCorePlan && (
-                  <div className="rounded-xl p-3 neo-pressed border border-line text-center bg-slate-50/50">
-                    <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Marg Sales</p>
-                    <p className="mt-1 text-sm font-black text-emerald-700">
-                      {formatINR(totalSales)}
-                    </p>
-                  </div>
-                )}
-
+              {/* Quick Metrics Strip: 6 compact, high-density cards */}
+              <div className="mt-5 grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                {/* 1. All Leads */}
                 <Link
                   href={`/admin/leads?employeeId=${employee.id}`}
-                  title={`Open ${employee.name}'s leads`}
-                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-indigo-50/50 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
+                  title={`Open ${employee.name}'s leads (${employee.leads.length} allotted, ${convertedLeadsCount} converted)`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-line text-center bg-indigo-50/50 hover:bg-indigo-100/60 hover:border-indigo-300 hover:shadow-xs transition"
                 >
-                  <p className="text-[10px] uppercase font-bold text-indigo-800 tracking-wider">
-                    {dateFilter.preset !== "all_time" ? `Leads (${dateFilter.label})` : "Leads"}
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-900 tracking-wider truncate">
+                    Leads
                   </p>
-                  <p className="mt-1 text-sm font-black text-indigo-700">
-                    {employee.leads.length}{" "}
-                    {dateFilter.preset !== "all_time" && (
-                      <span className="text-[10px] font-semibold text-ink-faint">
-                        ({employee._count.leads} total)
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-indigo-700 leading-tight">
+                    {employee.leads.length}
+                    {convertedLeadsCount > 0 && (
+                      <span className="text-[8px] sm:text-[9px] font-extrabold text-emerald-700 ml-0.5">
+                        ({convertedLeadsCount}W)
                       </span>
-                    )}{" "}
-                    <span className="text-[9px] font-bold text-emerald-700">({convertedLeadsCount}W)</span>
+                    )}
                   </p>
                 </Link>
 
+                {/* 2. New (Fresh) Leads */}
+                <Link
+                  href={`/admin/leads?employeeId=${employee.id}&status=NEW`}
+                  title={`Open ${employee.name}'s untouched fresh inquiries (${newLeadsCount} uncontacted)`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-emerald-200/80 text-center bg-emerald-50/60 hover:bg-emerald-100/70 hover:border-emerald-300 hover:shadow-xs transition"
+                >
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-900 tracking-wider truncate">
+                    New Leads
+                  </p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-emerald-700 leading-tight">
+                    {newLeadsCount}
+                  </p>
+                </Link>
+
+                {/* 3. Active Leads */}
+                <Link
+                  href={`/admin/leads?employeeId=${employee.id}&status=CONTACTED`}
+                  title={`Open ${employee.name}'s active pipeline leads in progress (${activeLeadsCount} active)`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-blue-200/80 text-center bg-blue-50/60 hover:bg-blue-100/70 hover:border-blue-300 hover:shadow-xs transition"
+                >
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-blue-900 tracking-wider truncate">
+                    Active
+                  </p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-blue-700 leading-tight">
+                    {activeLeadsCount}
+                  </p>
+                </Link>
+
+                {/* 4. Follow-ups */}
                 <Link
                   href={`/admin/follow-ups?employeeId=${employee.id}`}
-                  title={`Open ${employee.name}'s follow-ups`}
-                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-sky-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
+                  title={`Open ${employee.name}'s follow-ups (${scheduledFollowUps} scheduled, ${overdueFollowUps} overdue)`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-sky-200/80 text-center bg-sky-50/60 hover:bg-sky-100/70 hover:border-sky-300 hover:shadow-xs transition"
                 >
-                  <p className="text-[10px] uppercase font-bold text-sky-800 tracking-wider">Follow-ups</p>
-                  <p className="mt-1 text-sm font-black text-sky-700">
-                    {scheduledFollowUps}{" "}
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-sky-900 tracking-wider truncate">
+                    Follow-ups
+                  </p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-sky-700 leading-tight">
+                    {scheduledFollowUps}
                     {overdueFollowUps > 0 && (
-                      <span className="text-[9px] font-bold text-rose-700">({overdueFollowUps} overdue)</span>
-                    )}
-                  </p>
-                </Link>
-
-                <Link
-                  href={`/admin/dead-leads?employeeId=${employee.id}`}
-                  title={`Open ${employee.name}'s dead leads`}
-                  className="block rounded-xl p-3 neo-pressed border border-line text-center bg-rose-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition"
-                >
-                  <p className="text-[10px] uppercase font-bold text-rose-800 tracking-wider">Dead Leads</p>
-                  <p className="mt-1 text-sm font-black text-rose-700">{deadLeadsCount}</p>
-                </Link>
-
-                <Link
-                  href={`/admin/employees/${employee.id}?tab=calls`}
-                  className="rounded-xl p-3 neo-pressed border border-line text-center bg-purple-50/60 hover:bg-gradient-to-r hover:from-sky-100 hover:via-violet-100 hover:to-orange-100 hover:border-violet-200 hover:shadow-md transition block"
-                  title="View AI Call Summaries & Verbatim Transcripts"
-                >
-                  <p className="text-[10px] uppercase font-black text-purple-800 tracking-wider flex items-center justify-center gap-1">
-                    <span>🤖</span> AI Calls
-                  </p>
-                  <p className="mt-1 text-sm font-black text-purple-700">
-                    {employee.calls.length}
-                    {dateFilter.preset !== "all_time" && (
-                      <span className="text-[10px] font-semibold text-ink-faint ml-1">
-                        ({employee._count.calls} all-time)
+                      <span className="text-[8px] sm:text-[9px] font-bold text-rose-600 block sm:inline sm:ml-0.5 truncate">
+                        ({overdueFollowUps}!)
                       </span>
                     )}
+                  </p>
+                </Link>
+
+                {/* 5. Dead Leads */}
+                <Link
+                  href={`/admin/dead-leads?employeeId=${employee.id}`}
+                  title={`Open ${employee.name}'s closed dead leads (${deadLeadsCount} dead/irrelevant)`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-rose-200/80 text-center bg-rose-50/60 hover:bg-rose-100/70 hover:border-rose-300 hover:shadow-xs transition"
+                >
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-rose-900 tracking-wider truncate">
+                    Dead Leads
+                  </p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-rose-700 leading-tight">
+                    {deadLeadsCount}
+                  </p>
+                </Link>
+
+                {/* 6. AI Calls */}
+                <Link
+                  href={`/admin/employees/${employee.id}?tab=calls`}
+                  className="block rounded-xl py-2 px-1 sm:px-1.5 neo-pressed border border-purple-200/80 text-center bg-purple-50/60 hover:bg-purple-100/70 hover:border-purple-300 hover:shadow-xs transition"
+                  title={`View ${employee.name}'s AI call recordings & transcripts (${employee.calls.length} calls)`}
+                >
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold text-purple-900 tracking-wider truncate flex items-center justify-center gap-0.5">
+                    <span>🤖</span> Calls
+                  </p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-black text-purple-700 leading-tight">
+                    {employee.calls.length}
                   </p>
                 </Link>
               </div>
