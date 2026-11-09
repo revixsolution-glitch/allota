@@ -220,6 +220,30 @@ export function AppShell({
               );
             })}
 
+            {/* WhatsApp AI Agent External Link */}
+            <a
+              href={process.env.NEXT_PUBLIC_WHATSAPP_AGENT_URL || "http://localhost:5055"}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 text-ink-muted neo-button hover:bg-gradient-to-r hover:from-emerald-500/10 hover:via-teal-500/15 hover:to-emerald-500/10 hover:text-emerald-700 hover:border-emerald-300 shadow-2xs group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+                  </svg>
+                </div>
+                <span className="truncate">WhatsApp AI Agent</span>
+              </div>
+              <span className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200 group-hover:bg-emerald-100 transition">
+                <span>Tab</span>
+                <svg className="h-3 w-3 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </span>
+            </a>
+
             {showWhatsAppConnector && (
               <div className="pt-2">
                 <button
@@ -346,6 +370,30 @@ export function AppShell({
                 </Link>
               );
             })}
+
+            {/* WhatsApp AI Agent External Link */}
+            <a
+              href={process.env.NEXT_PUBLIC_WHATSAPP_AGENT_URL || "http://localhost:5055"}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 text-ink-muted neo-button hover:bg-gradient-to-r hover:from-emerald-500/10 hover:via-teal-500/15 hover:to-emerald-500/10 hover:text-emerald-700 hover:border-emerald-300 shadow-2xs group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+                  </svg>
+                </div>
+                <span className="truncate">WhatsApp AI Agent</span>
+              </div>
+              <span className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200 group-hover:bg-emerald-100 transition">
+                <span>Tab</span>
+                <svg className="h-3 w-3 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </span>
+            </a>
 
             {showWhatsAppConnector && (
               <div className="pt-2">
