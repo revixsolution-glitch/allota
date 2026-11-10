@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const COMPANION_SERVICE_URL =
   process.env.COMPANION_SERVICE_URL ||
-  "https://allota-whatsapp-companion.onrender.com";
+  "http://127.0.0.1:10000";
 
 /**
  * Dispatches an instant WhatsApp alert to Savi (+91 78891 07964) for Kesrox leads
@@ -168,6 +168,18 @@ export async function POST(request: Request) {
 
     // Handle session credential & full key state backup from companion daemon
     if (body.action === "BACKUP_CREDS" && body.companyId) {
+      let targetCompanyId = body.companyId;
+      if (typeof targetCompanyId === "string" && targetCompanyId.startsWith("emp_")) {
+        const empId = targetCompanyId.replace(/^emp_/, "");
+        const emp = await prisma.employee.findUnique({
+          where: { id: empId },
+          select: { companyId: true },
+        });
+        if (emp?.companyId) {
+          targetCompanyId = emp.companyId;
+        }
+      }
+
       const credsData = body.sessionMap
         ? (typeof body.sessionMap === "string" ? body.sessionMap : JSON.stringify(body.sessionMap))
         : (typeof body.creds === "string" ? body.creds : JSON.stringify(body.creds));
@@ -191,12 +203,12 @@ export async function POST(request: Request) {
       }
 
       if (!isValidPayload) {
-        console.warn(`[Vault Integrity Guard] Blocked attempt to overwrite session for ${body.companyId} with invalid/empty credentials.`);
+        console.warn(`[Vault Integrity Guard] Blocked attempt to overwrite session for ${targetCompanyId} with invalid/empty credentials.`);
         return NextResponse.json({ error: "Payload rejected: Missing valid cryptographic Baileys session keys." }, { status: 400 });
       }
 
       const updated = await prisma.companySettings.updateMany({
-        where: { companyId: body.companyId },
+        where: { companyId: targetCompanyId },
         data: {
           whatsappConnected: true,
           whatsappCompanionPhone: body.phone || null,
@@ -206,13 +218,13 @@ export async function POST(request: Request) {
 
       if (updated.count === 0) {
         const comp = await prisma.company.findUnique({
-          where: { id: body.companyId },
+          where: { id: targetCompanyId },
           select: { id: true, name: true },
         });
 
         await prisma.companySettings.create({
           data: {
-            companyId: body.companyId,
+            companyId: targetCompanyId,
             companyName: comp?.name || "Company",
             whatsappConnected: true,
             whatsappCompanionPhone: body.phone || null,
@@ -221,15 +233,30 @@ export async function POST(request: Request) {
         });
       }
 
-      console.log(`[Creds Vault] Successfully saved session for company ${body.companyId} to PostgreSQL`);
+      console.log(`[Creds Vault] Successfully saved session for company ${targetCompanyId} to PostgreSQL`);
       return NextResponse.json({ success: true, backedUp: true });
     }
 
-    const { companyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral, lidJid } = body;
+    const { companyId: rawCompanyId, senderPhone, senderName, messageText, isFromMe, isGroup, hasAdReferral, lidJid } = body;
 
     // 1. Strict Security Filter: Never process outbound or group chats
-    if (!companyId || !senderPhone || isFromMe || isGroup) {
+    if (!rawCompanyId || !senderPhone || isFromMe || isGroup) {
       return NextResponse.json({ success: true, ignored: true, reason: "OUTBOUND_OR_GROUP" });
+    }
+
+    // Resolve companyId if passed as employee-scoped identifier (e.g. emp_cmub3s6lq...)
+    let companyId = rawCompanyId;
+    let explicitEmployeeId: string | null = null;
+    if (typeof rawCompanyId === "string" && rawCompanyId.startsWith("emp_")) {
+      const empId = rawCompanyId.replace(/^emp_/, "");
+      const emp = await prisma.employee.findUnique({
+        where: { id: empId },
+        select: { id: true, companyId: true },
+      });
+      if (emp) {
+        companyId = emp.companyId;
+        explicitEmployeeId = emp.id;
+      }
     }
 
     const cleanText = String(messageText || "").trim().toLowerCase();
@@ -337,6 +364,12 @@ export async function POST(request: Request) {
 
     // 6. Ingest only verified ad leads into Allota CRM (Prioritize Savi for Kesrox)
     const defaultEmployee =
+      (explicitEmployeeId
+        ? await prisma.employee.findUnique({
+            where: { id: explicitEmployeeId },
+            select: { id: true, name: true },
+          })
+        : null) ||
       (await prisma.employee.findFirst({
         where: { companyId, name: { contains: "Savi", mode: "insensitive" } },
         select: { id: true, name: true },

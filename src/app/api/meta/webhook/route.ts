@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.VERIFY_TOKEN || "allota_meta_verify_token";
 const COMPANION_SERVICE_URL =
   process.env.COMPANION_SERVICE_URL ||
-  "https://allota-whatsapp-companion.onrender.com";
+  "http://127.0.0.1:10000";
 
 /**
  * Meta Webhook Verification (GET)

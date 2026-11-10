@@ -48,7 +48,7 @@ async function getCompanionHost(): Promise<string> {
       return "http://127.0.0.1:10000";
     }
   } catch {}
-  return "https://allota-whatsapp-companion.onrender.com";
+  return "http://127.0.0.1:10000";
 }
 
 async function verifyKesroxAccess(session: any, companyId: string | null): Promise<boolean> {
