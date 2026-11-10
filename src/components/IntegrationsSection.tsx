@@ -298,7 +298,7 @@ export function IntegrationsSection({ companyId, settings }: IntegrationsSection
                   type="text"
                   name="metaAppId"
                   defaultValue={settings.metaAppId || ""}
-                  placeholder="e.g. 4226729374283881"
+                  placeholder="e.g. 1234567890123456"
                   className="w-full rounded-xl border border-line bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-faint font-mono"
                 />
                 <p className="text-[10px] text-ink-faint mt-1">From Meta App Dashboard</p>
@@ -308,7 +308,7 @@ export function IntegrationsSection({ companyId, settings }: IntegrationsSection
                 <SecretInput
                   name="metaAppSecret"
                   defaultValue={settings.metaAppSecret || ""}
-                  placeholder="e.g. 00000000000000000000000000000000"
+                  placeholder="e.g. 0123456789abcdef0123456789abcdef"
                 />
                 <p className="text-[10px] text-ink-faint mt-1">App Settings &gt; Basic</p>
               </div>
